@@ -1,0 +1,6 @@
+{
+  "name": "FocusFlow",
+  "description": "FocusFlow - Offline-first Study & Vault OS with AI Flashcards and Active Recall Studio",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

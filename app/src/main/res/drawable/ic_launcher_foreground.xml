@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 1. Ambient Bloom / Soft Neon Shadow behind the ribbon -->
+    <path
+        android:pathData="M37,42 C30,42 25,48 25,56 C25,64 30,70 37,70 C44,70 50,62 54,54 C58,46 64,38 71,38 C78,38 83,44 83,52 C83,60 78,66 71,66 C64,66 58,58 54,54"
+        android:strokeWidth="12"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="25"
+                android:startY="56"
+                android:endX="83"
+                android:endY="52"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#4000C8FF" />
+                <item android:offset="0.5" android:color="#408B5CF6" />
+                <item android:offset="1.0" android:color="#40EC4899" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 2. Bottom/Back Loop Pass (Deep Vibrant Ribbon) -->
+    <path
+        android:pathData="M54,54 C59,45 65,37 72,37 C80,37 86,43 86,52 C86,61 80,67 72,67 C65,67 59,59 54,54 C49,49 43,41 36,41 C28,41 22,47 22,56 C22,65 28,71 36,71 C43,71 49,63 54,54 Z"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="22"
+                android:startY="71"
+                android:endX="86"
+                android:endY="37"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#00D2FF" />
+                <item android:offset="0.25" android:color="#2563EB" />
+                <item android:offset="0.55" android:color="#7C3AED" />
+                <item android:offset="0.8" android:color="#C026D3" />
+                <item android:offset="1.0" android:color="#38BDF8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3. Foreground Flow (3D Overlay Crossing on Left Vertical Loop) -->
+    <path
+        android:pathData="M36,71 C28,71 22,65 22,56 C22,47 28,41 36,41 C43,41 49,49 54,54"
+        android:strokeWidth="7"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="22"
+                android:startY="65"
+                android:endX="54"
+                android:endY="45"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#00F0FF" />
+                <item android:offset="0.4" android:color="#3B82F6" />
+                <item android:offset="1.0" android:color="#8B5CF6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 4. Specular Highlight / Glass Reflection (Top curve) -->
+    <path
+        android:pathData="M25,52 C26,45 30,42 36,42 C41,42 46,47 50,52"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="25"
+                android:startY="42"
+                android:endX="50"
+                android:endY="52"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#80E0F2FE" />
+                <item android:offset="0.5" android:color="#CCFFFFFF" />
+                <item android:offset="1.0" android:color="#20FFFFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 5. Specular Highlight (Right loop crest) -->
+    <path
+        android:pathData="M65,42 C70,38 75,38 80,41 C84,44 85,48 85,52"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="65"
+                android:startY="38"
+                android:endX="85"
+                android:endY="52"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#30FFFFFF" />
+                <item android:offset="0.6" android:color="#DDF5D0FE" />
+                <item android:offset="1.0" android:color="#5067E8F9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 6. Inner Core Specular Glow Dot -->
+    <path
+        android:pathData="M35,43m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"
+        android:fillColor="#E0F2FE" />
+
+    <path
+        android:pathData="M73,39m-1.2,0a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0"
+        android:fillColor="#FDF4FF" />
+</vector>
