@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -52,11 +53,7 @@ import com.example.model.MockDataSource
 import com.example.model.VaultItem
 import com.example.model.VaultItemType
 import com.example.ui.components.GlassCard
-import com.example.ui.theme.PrimaryDark
-import com.example.ui.theme.PrimaryContainerDark
-import com.example.ui.theme.SurfaceCharcoalDark
-import com.example.ui.theme.SurfaceContainerLowestDark
-import com.example.ui.theme.SurfaceSlateDark
+import com.example.ui.theme.LocalAccentTheme
 
 @Composable
 fun WorkspaceScreen(
@@ -67,11 +64,11 @@ fun WorkspaceScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    val accentTheme = LocalAccentTheme.current
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -100,38 +97,46 @@ fun WorkspaceScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CreateNewFolder,
                         contentDescription = "Create Folder",
-                        tint = PrimaryDark,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // Import Button
-                Button(
-                    onClick = onImportClick,
-                    shape = RoundedCornerShape(9999.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryContainerDark),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    modifier = Modifier.height(40.dp)
+                // Import Button with Rich Dynamic Gradient
+                Box(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(9999.dp))
+                        .background(
+                            Brush.horizontalGradient(accentTheme.buttonGradientColors)
+                        )
+                        .clickable { onImportClick() }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Import",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = accentTheme.buttonTextColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Import",
+                            color = accentTheme.buttonTextColor,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -211,7 +216,7 @@ fun RecentFileCard(
         modifier = modifier
             .width(145.dp)
             .height(135.dp),
-        backgroundColor = MaterialTheme.colorScheme.surface,
+        backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
         borderColor = MaterialTheme.colorScheme.outlineVariant,
         onClick = onClick
     ) {
@@ -273,7 +278,7 @@ fun FolderGridCard(
         modifier = modifier
             .fillMaxWidth()
             .height(58.dp),
-        backgroundColor = MaterialTheme.colorScheme.surface,
+        backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
         borderColor = MaterialTheme.colorScheme.outlineVariant,
         shape = RoundedCornerShape(14.dp),
         onClick = onClick
@@ -302,3 +307,4 @@ fun FolderGridCard(
         }
     }
 }
+

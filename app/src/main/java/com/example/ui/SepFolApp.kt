@@ -5,8 +5,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -344,7 +348,13 @@ fun SepFolApp() {
                 ) {
                     AnimatedContent(
                         targetState = Pair(currentScreen, selectedTab),
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        transitionSpec = {
+                            (fadeIn(animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)) +
+                                    scaleIn(initialScale = 0.98f, animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)))
+                                .togetherWith(
+                                    fadeOut(animationSpec = tween(120))
+                                )
+                        },
                         label = "screenTransition"
                     ) { (screen, tab) ->
                         when {

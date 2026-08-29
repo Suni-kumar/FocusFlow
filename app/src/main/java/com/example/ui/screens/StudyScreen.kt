@@ -2,7 +2,9 @@ package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -76,10 +78,13 @@ fun StudyScreen(
     val cards = deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards }
     val currentCard = cards[currentCardIndex.coerceIn(0, cards.size - 1)]
 
-    // Flip animation rotation
+    // Flip animation rotation with high-refresh spring physics
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        animationSpec = spring(
+            dampingRatio = 0.78f,
+            stiffness = 500f
+        ),
         label = "cardFlip"
     )
 
@@ -91,7 +96,6 @@ fun StudyScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
