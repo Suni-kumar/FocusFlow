@@ -290,10 +290,10 @@ private fun ColorfulSpeedDialItem(
             .testTag(testTag)
             .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
-        // Option Text Pill Card (Dark Slate with glow border)
+        // Option Text Pill Card (Theme-aware with glow border)
         Surface(
             shape = RoundedCornerShape(14.dp),
-            color = SurfaceSlateDark.copy(alpha = 0.95f),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
             border = androidx.compose.foundation.BorderStroke(
                 width = 1.2.dp,
                 color = glowColor.copy(alpha = 0.5f)
@@ -309,13 +309,13 @@ private fun ColorfulSpeedDialItem(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
             }

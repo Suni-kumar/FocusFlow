@@ -111,7 +111,7 @@ fun PdfImageViewerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF090A10))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -311,10 +311,10 @@ private fun ViewerTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding(),
-        color = Color(0xFF0D0E17),
+        color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = Color.White.copy(alpha = 0.08f)
+            color = MaterialTheme.colorScheme.outlineVariant
         )
     ) {
         Row(
@@ -328,31 +328,36 @@ private fun ViewerTopBar(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f, fill = false)
             ) {
-                IconButton(
-                    onClick = onBackClick,
+                Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .testTag("viewer_back_button")
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                        .clickable(onClick = onBackClick)
+                        .testTag("viewer_back_button"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(19.dp)
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(end = 6.dp)
+                ) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 14.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -360,42 +365,44 @@ private fun ViewerTopBar(
                         text = if (isPdf) "Page $currentPage of $totalPages • PDF" else "${item.extension.uppercase()} Image Viewer",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color = if (isPdf) Color(0xFFC084FC) else Color(0xFF38BDF8),
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 11.sp
                     )
                 }
             }
 
-            // Right: Arranged Functional Icons
+            // Right: Unified, Pristine 38dp Actions Row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (isPdf) {
-                    // Page Navigation Pill "< 1/10 >"
-                    Surface(
+                    // Page Navigation Pill "< 1/10 >" (Uniform 38dp height)
+                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(18.dp))
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp)),
-                        color = Color(0xFF1C1E2B),
-                        shape = RoundedCornerShape(18.dp)
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            IconButton(
-                                onClick = onPrevPage,
-                                enabled = currentPage > 1,
+                            Box(
                                 modifier = Modifier
-                                    .size(28.dp)
-                                    .testTag("prev_page_button")
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable(enabled = currentPage > 1, onClick = onPrevPage)
+                                    .testTag("prev_page_button"),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = "Previous Page",
-                                    tint = if (currentPage > 1) Color.White else Color.White.copy(alpha = 0.3f),
+                                    tint = if (currentPage > 1) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -403,95 +410,103 @@ private fun ViewerTopBar(
                             Text(
                                 text = "$currentPage/$totalPages",
                                 style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp)
+                                modifier = Modifier.padding(horizontal = 3.dp)
                             )
 
-                            IconButton(
-                                onClick = onNextPage,
-                                enabled = currentPage < totalPages,
+                            Box(
                                 modifier = Modifier
-                                    .size(28.dp)
-                                    .testTag("next_page_button")
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable(enabled = currentPage < totalPages, onClick = onNextPage)
+                                    .testTag("next_page_button"),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = "Next Page",
-                                    tint = if (currentPage < totalPages) Color.White else Color.White.copy(alpha = 0.3f),
+                                    tint = if (currentPage < totalPages) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
                     }
 
-                    // 4-Square Grid Overview Button
-                    IconButton(
-                        onClick = onOverviewClick,
+                    // 4-Square Grid Overview Button (Uniform 38dp)
+                    Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .testTag("page_overview_button")
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                            .clickable(onClick = onOverviewClick)
+                            .testTag("page_overview_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.GridView,
                             contentDescription = "Page Overview",
-                            tint = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier.size(18.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 } else {
-                    // Image: Rotate 90° Button
-                    IconButton(
-                        onClick = onRotateClick,
+                    // Image: Rotate 90° Button (Uniform 38dp)
+                    Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .testTag("image_rotate_button")
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                            .clickable(onClick = onRotateClick)
+                            .testTag("image_rotate_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.RotateRight,
                             contentDescription = "Rotate 90°",
-                            tint = Color(0xFF38BDF8),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(19.dp)
                         )
                     }
 
-                    // Image: Fit / Reset Zoom Button
-                    IconButton(
-                        onClick = onFitScreenClick,
+                    // Image: Fit / Reset Zoom Button (Uniform 38dp)
+                    Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .testTag("image_fit_button")
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                            .clickable(onClick = onFitScreenClick)
+                            .testTag("image_fit_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.FitScreen,
                             contentDescription = "Fit Screen",
-                            tint = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier.size(18.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
 
-                // Share / Export Button (Functional for both PDF & Images)
-                IconButton(
-                    onClick = onShareClick,
+                // Share / Export Button (Uniform 38dp matching styling)
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(38.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF7C3AED).copy(alpha = 0.35f))
-                        .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                        .testTag("viewer_share_button")
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                        .clickable(onClick = onShareClick)
+                        .testTag("viewer_share_button"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share / Export",
-                        tint = Color(0xFFE9D5FF),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -522,16 +537,16 @@ private fun FloatingZoomJobbar(
             .shadow(
                 elevation = 16.dp,
                 shape = RoundedCornerShape(32.dp),
-                spotColor = Color(0xFF8B5CF6).copy(alpha = 0.3f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
             )
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.15f),
+                color = MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(32.dp)
             )
             .testTag("floating_zoom_jobbar"),
         shape = RoundedCornerShape(32.dp),
-        color = Color(0xFF171826).copy(alpha = 0.95f)
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -544,13 +559,13 @@ private fun FloatingZoomJobbar(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.06f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .testTag("zoom_out_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.ZoomOut,
                     contentDescription = "Zoom Out",
-                    tint = Color.White.copy(alpha = 0.9f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -567,7 +582,7 @@ private fun FloatingZoomJobbar(
                     text = "$zoomPercentage%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 13.sp,
                     fontFamily = FontFamily.Monospace
                 )
@@ -579,13 +594,13 @@ private fun FloatingZoomJobbar(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.06f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .testTag("zoom_in_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.ZoomIn,
                     contentDescription = "Zoom In",
-                    tint = Color.White.copy(alpha = 0.9f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -596,15 +611,15 @@ private fun FloatingZoomJobbar(
                     modifier = Modifier
                         .height(18.dp)
                         .width(1.dp),
-                    color = Color.White.copy(alpha = 0.15f)
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF0284C7).copy(alpha = 0.25f)
+                    color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
                         text = "${rotationAngle}°",
-                        color = Color(0xFF38BDF8),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,

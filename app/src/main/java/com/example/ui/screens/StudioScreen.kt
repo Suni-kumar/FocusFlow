@@ -127,8 +127,8 @@ fun StudioScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp)),
-                backgroundColor = SurfaceSlateDark.copy(alpha = 0.65f),
-                borderColor = Color.White.copy(alpha = 0.08f),
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                borderColor = MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
@@ -146,7 +146,7 @@ fun StudioScreen(
                             Icon(
                                 imageVector = Icons.Default.School,
                                 contentDescription = null,
-                                tint = Color(0xFF38BDF8),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
@@ -166,8 +166,8 @@ fun StudioScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF8B5CF6).copy(alpha = 0.2f))
-                            .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                             .clickable { onViewAllDecksClick() }
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
@@ -175,7 +175,7 @@ fun StudioScreen(
                             text = "View All",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFC084FC)
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -200,7 +200,7 @@ fun StudioScreen(
                             Text(
                                 text = "${selectedDeckIds.size} decks selected",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = PrimaryDark,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -211,7 +211,7 @@ fun StudioScreen(
                             text = "Dashboard (${decks.size})",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = PrimaryDark
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -222,8 +222,8 @@ fun StudioScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 24.dp),
-                        backgroundColor = SurfaceSlateDark.copy(alpha = 0.4f),
-                        borderColor = Color.White.copy(alpha = 0.05f),
+                        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        borderColor = MaterialTheme.colorScheme.outlineVariant,
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(
@@ -522,10 +522,10 @@ fun StudioSpeedDialItem(
             .testTag(testTag)
             .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
-        // Option Text Pill Card (Dark Slate with glow border)
+        // Option Text Pill Card
         Surface(
             shape = RoundedCornerShape(14.dp),
-            color = SurfaceSlateDark.copy(alpha = 0.95f),
+            color = MaterialTheme.colorScheme.surface,
             border = androidx.compose.foundation.BorderStroke(
                 width = 1.2.dp,
                 color = glowColor.copy(alpha = 0.5f)
@@ -541,13 +541,13 @@ fun StudioSpeedDialItem(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
             }
@@ -603,7 +603,7 @@ fun ManagedDeckItem(
             .clip(RoundedCornerShape(14.dp))
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.08f),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(14.dp)
             )
             .combinedClickable(
@@ -614,8 +614,8 @@ fun ManagedDeckItem(
                 }
             )
             .testTag("managed_deck_${deck.id}"),
-        backgroundColor = if (isSelected) PrimaryContainerDark.copy(alpha = 0.25f) else SurfaceSlateDark.copy(alpha = 0.65f),
-        borderColor = if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.08f),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
+        borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
         shape = RoundedCornerShape(14.dp)
     ) {
         Column(

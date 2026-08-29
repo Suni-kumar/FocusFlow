@@ -235,8 +235,8 @@ fun FolderScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(PrimaryContainerDark.copy(alpha = 0.2f))
-                        .border(1.dp, PrimaryDark.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -248,13 +248,13 @@ fun FolderScreen(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = PrimaryDark,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Filtered by: \"${uiState.searchQuery}\"",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium,
                             fontSize = 12.sp
                         )
@@ -262,7 +262,7 @@ fun FolderScreen(
                     Text(
                         text = "Clear",
                         style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryDark,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -499,8 +499,8 @@ fun BreadcrumbBar(
 ) {
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        backgroundColor = SurfaceSlateDark.copy(alpha = 0.5f),
-        borderColor = Color.White.copy(alpha = 0.08f),
+        backgroundColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -517,7 +517,7 @@ fun BreadcrumbBar(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Navigate Up",
-                        tint = PrimaryDark,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -549,7 +549,7 @@ fun BreadcrumbBar(
                                 Icon(
                                     imageVector = Icons.Default.FolderOpen,
                                     contentDescription = null,
-                                    tint = if (isLast) PrimaryDark else Color.White.copy(alpha = 0.6f),
+                                    tint = if (isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -557,7 +557,7 @@ fun BreadcrumbBar(
                                 text = crumb.name,
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = if (isLast) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isLast) PrimaryDark else Color.White.copy(alpha = 0.65f),
+                                color = if (isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
                             )
                         }
@@ -566,7 +566,7 @@ fun BreadcrumbBar(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -587,8 +587,8 @@ fun RecentNoteCard(
         modifier = modifier
             .width(150.dp)
             .height(135.dp),
-        backgroundColor = SurfaceSlateDark.copy(alpha = 0.65f),
-        borderColor = Color.White.copy(alpha = 0.08f),
+        backgroundColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
         onClick = onClick
     ) {
         Column(
@@ -606,9 +606,9 @@ fun RecentNoteCard(
                 val isImg = item.extension.lowercase() in listOf("png", "jpg", "jpeg", "webp") || item.mimeType.startsWith("image/")
 
                 val badgeInfo = when {
-                    isPdf -> FileBadgeInfo("PDF", Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFF87171), Icons.Default.PictureAsPdf)
-                    isImg -> FileBadgeInfo("IMG", Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF22D3EE), Icons.Default.Image)
-                    else -> FileBadgeInfo("MD", PrimaryDark.copy(alpha = 0.15f), PrimaryDark, Icons.Default.Description)
+                    isPdf -> FileBadgeInfo("PDF", Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFEF4444), Icons.Default.PictureAsPdf)
+                    isImg -> FileBadgeInfo("IMG", Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF0891B2), Icons.Default.Image)
+                    else -> FileBadgeInfo("MD", MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f), MaterialTheme.colorScheme.primary, Icons.Default.Description)
                 }
 
                 Box(
@@ -673,11 +673,11 @@ fun FolderCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) PrimaryDark.copy(alpha = 0.22f) else SurfaceSlateDark.copy(alpha = 0.65f)
+    val bg = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface
     val borderCol = when {
-        isSelected -> PrimaryDark
-        folder.isPinned -> PrimaryDark.copy(alpha = 0.5f)
-        else -> Color.White.copy(alpha = 0.08f)
+        isSelected -> MaterialTheme.colorScheme.primary
+        folder.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        else -> MaterialTheme.colorScheme.outlineVariant
     }
 
     GlassCard(
@@ -707,7 +707,7 @@ fun FolderCard(
                     Icon(
                         imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                         contentDescription = if (isSelected) "Selected" else "Not selected",
-                        tint = if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.4f),
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(20.dp)
                     )
                 } else {
@@ -715,13 +715,13 @@ fun FolderCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(PrimaryDark.copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Folder,
                             contentDescription = null,
-                            tint = PrimaryDark,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -749,7 +749,7 @@ fun FolderCard(
                             Icon(
                                 imageVector = Icons.Default.PushPin,
                                 contentDescription = "Pinned",
-                                tint = PrimaryDark,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(13.dp)
                             )
                         }
@@ -773,7 +773,7 @@ fun FolderCard(
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Folder options",
-                        tint = Color.White.copy(alpha = 0.6f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -792,11 +792,11 @@ fun NoteListItemCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) PrimaryDark.copy(alpha = 0.22f) else SurfaceSlateDark.copy(alpha = 0.65f)
+    val bg = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface
     val borderCol = when {
-        isSelected -> PrimaryDark
-        item.isPinned -> PrimaryDark.copy(alpha = 0.45f)
-        else -> Color.White.copy(alpha = 0.08f)
+        isSelected -> MaterialTheme.colorScheme.primary
+        item.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        else -> MaterialTheme.colorScheme.outlineVariant
     }
 
     GlassCard(
@@ -826,7 +826,7 @@ fun NoteListItemCard(
                     Icon(
                         imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                         contentDescription = if (isSelected) "Selected" else "Not selected",
-                        tint = if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.4f),
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(22.dp)
                     )
                 } else {
@@ -834,9 +834,9 @@ fun NoteListItemCard(
                     val isImg = item.extension.lowercase() in listOf("png", "jpg", "jpeg", "webp") || item.mimeType.startsWith("image/")
 
                     val (badgeBg, iconColor, iconVector) = when {
-                        isPdf -> Triple(Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFF87171), Icons.Default.PictureAsPdf)
-                        isImg -> Triple(Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF22D3EE), Icons.Default.Image)
-                        else -> Triple(PrimaryContainerDark.copy(alpha = 0.2f), PrimaryDark, Icons.Default.Description)
+                        isPdf -> Triple(Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFEF4444), Icons.Default.PictureAsPdf)
+                        isImg -> Triple(Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF0891B2), Icons.Default.Image)
+                        else -> Triple(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f), MaterialTheme.colorScheme.primary, Icons.Default.Description)
                     }
 
                     Box(
@@ -877,7 +877,7 @@ fun NoteListItemCard(
                             Icon(
                                 imageVector = Icons.Default.PushPin,
                                 contentDescription = "Pinned",
-                                tint = PrimaryDark,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(13.dp)
                             )
                         }
@@ -903,7 +903,7 @@ fun NoteListItemCard(
                         )
                         Text(
                             text = "•",
-                            color = Color.White.copy(alpha = 0.3f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             fontSize = 10.sp
                         )
                         Text(
@@ -924,7 +924,7 @@ fun NoteListItemCard(
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Options",
-                        tint = Color.White.copy(alpha = 0.6f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -945,8 +945,8 @@ fun EmptyFolderState(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 24.dp),
-        backgroundColor = SurfaceSlateDark.copy(alpha = 0.4f),
-        borderColor = Color.White.copy(alpha = 0.06f),
+        backgroundColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(
@@ -960,13 +960,13 @@ fun EmptyFolderState(
                 modifier = Modifier
                     .size(54.dp)
                     .clip(CircleShape)
-                    .background(PrimaryContainerDark.copy(alpha = 0.2f)),
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.FolderOpen,
                     contentDescription = null,
-                    tint = PrimaryDark,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -979,13 +979,13 @@ fun EmptyFolderState(
                     text = if (isSearch) "No matching items found" else "This directory is empty",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp
                 )
                 Text(
                     text = if (isSearch) "Try searching with a different keyword" else "Start organizing your study vault or import files directly",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
             }
@@ -999,53 +999,56 @@ fun EmptyFolderState(
                         onClick = onImportFileClick,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = SurfaceSlateDark
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
-                        modifier = Modifier.border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                        modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                     ) {
                         Icon(
                             imageVector = Icons.Default.UploadFile,
                             contentDescription = null,
-                            tint = Color(0xFF64B5F6),
+                            tint = Color(0xFF0284C7),
                             modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Import", color = Color.White, fontSize = 12.sp)
+                        Text(text = "Import", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
 
                     Button(
                         onClick = onCreateFolderClick,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = SurfaceCharcoalDark.copy(alpha = 0.8f)
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
-                        modifier = Modifier.border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                        modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                     ) {
                         Icon(
                             imageVector = Icons.Default.CreateNewFolder,
                             contentDescription = null,
-                            tint = PrimaryDark,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "+ Folder", color = Color.White, fontSize = 12.sp)
+                        Text(text = "+ Folder", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
 
                     Button(
                         onClick = onCreateNoteClick,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryContainerDark
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "+ Note", color = Color.White, fontSize = 12.sp)
+                        Text(text = "+ Note", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

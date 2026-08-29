@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -91,9 +92,10 @@ fun RenameItemDialog(
             modifier = modifier
                 .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(20.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(20.dp)),
-            color = Color(0xFF141624),
-            shape = RoundedCornerShape(20.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)),
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 8.dp
         ) {
             Column(
                 modifier = Modifier
@@ -109,13 +111,13 @@ fun RenameItemDialog(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF3B82F6).copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (item.isDirectory) Icons.Default.Folder else Icons.Default.DriveFileRenameOutline,
                             contentDescription = null,
-                            tint = Color(0xFF60A5FA),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -125,13 +127,13 @@ fun RenameItemDialog(
                             text = if (item.isDirectory) "Rename Folder" else "Rename File",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 16.sp
                         )
                         Text(
                             text = "Enter a new title for this ${if (item.isDirectory) "folder" else "file"}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -146,19 +148,19 @@ fun RenameItemDialog(
                         .testTag("rename_input_field"),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFF1C1E2D),
-                        unfocusedContainerColor = Color(0xFF1C1E2D),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedIndicatorColor = Color(0xFF60A5FA),
-                        unfocusedIndicatorColor = Color.White.copy(alpha = 0.15f)
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                     ),
                     trailingIcon = {
                         if (extension.isNotBlank()) {
                             Text(
                                 text = ".$extension",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(end = 12.dp)
@@ -175,9 +177,12 @@ fun RenameItemDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     ) {
-                        Text("Cancel", color = Color.White, fontSize = 13.sp)
+                        Text("Cancel", fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }
 
                     Button(
@@ -191,13 +196,13 @@ fun RenameItemDialog(
                         enabled = textFieldValue.text.trim().isNotBlank(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryContainerDark
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier.testTag("rename_confirm_button")
                     ) {
                         Text(
                             "Rename",
-                            color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )

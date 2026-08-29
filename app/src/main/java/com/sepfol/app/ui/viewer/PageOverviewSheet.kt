@@ -131,19 +131,13 @@ fun PageOverviewModal(
                         .shadow(
                             elevation = 32.dp,
                             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                            spotColor = Color(0xFF8B5CF6).copy(alpha = 0.4f)
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                         ),
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    color = Color(0xFF13141F),
+                    color = MaterialTheme.colorScheme.surface,
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.25f),
-                                Color(0xFF8B5CF6).copy(alpha = 0.35f),
-                                Color.Transparent
-                            )
-                        )
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
                 ) {
                     Column(
@@ -159,7 +153,7 @@ fun PageOverviewModal(
                                 .width(38.dp)
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(Color.White.copy(alpha = 0.25f))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                         )
 
                         // Top Header Bar
@@ -174,19 +168,19 @@ fun PageOverviewModal(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                // Purple rounded icon badge
+                                // Rounded icon badge
                                 Box(
                                     modifier = Modifier
                                         .size(44.dp)
                                         .clip(RoundedCornerShape(14.dp))
-                                        .background(Color(0xFF8B5CF6).copy(alpha = 0.22f))
-                                        .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
+                                        .background(MaterialTheme.colorScheme.primaryContainer)
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.GridView,
                                         contentDescription = null,
-                                        tint = Color(0xFFC084FC),
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -196,13 +190,13 @@ fun PageOverviewModal(
                                         text = "Page Overview",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontSize = 18.sp
                                     )
                                     Text(
                                         text = "Total $totalPages Pages • Tap any page to jump",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.6f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 12.sp
                                     )
                                 }
@@ -214,12 +208,12 @@ fun PageOverviewModal(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close",
-                                    tint = Color.White.copy(alpha = 0.8f),
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -243,7 +237,7 @@ fun PageOverviewModal(
                             placeholder = {
                                 Text(
                                     text = "Jump directly to page # (1 - $totalPages)...",
-                                    color = Color.White.copy(alpha = 0.45f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     fontSize = 13.sp
                                 )
                             },
@@ -251,7 +245,7 @@ fun PageOverviewModal(
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search page",
-                                    tint = Color.White.copy(alpha = 0.5f),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                             },
@@ -273,12 +267,12 @@ fun PageOverviewModal(
                             ),
                             shape = RoundedCornerShape(16.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color(0xFF1B1D2C),
-                                unfocusedContainerColor = Color(0xFF1B1D2C),
-                                focusedBorderColor = Color(0xFF8B5CF6),
-                                unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                             )
                         )
 
@@ -318,10 +312,10 @@ fun PageOverviewModal(
                         // Bottom Footer Bar
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFF0F101A),
+                            color = MaterialTheme.colorScheme.surface,
                             border = androidx.compose.foundation.BorderStroke(
                                 width = 1.dp,
-                                color = Color.White.copy(alpha = 0.08f)
+                                color = MaterialTheme.colorScheme.outlineVariant
                             )
                         ) {
                             Row(
@@ -334,7 +328,7 @@ fun PageOverviewModal(
                                 Text(
                                     text = "Tip: Press page number to jump instantly",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 12.sp
                                 )
 
@@ -345,7 +339,7 @@ fun PageOverviewModal(
                                     Text(
                                         text = "Done",
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFC084FC),
+                                        color = MaterialTheme.colorScheme.primary,
                                         fontSize = 14.sp
                                     )
                                 }
@@ -365,8 +359,8 @@ private fun PageThumbnailCard(
     isCurrent: Boolean,
     onClick: () -> Unit
 ) {
-    val activeBorderColor = if (isCurrent) Color(0xFF8B5CF6) else Color.White.copy(alpha = 0.08f)
-    val cardBg = if (isCurrent) Color(0xFF8B5CF6).copy(alpha = 0.12f) else Color(0xFF1A1C2A)
+    val activeBorderColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val cardBg = if (isCurrent) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
 
     Surface(
         modifier = Modifier
@@ -374,7 +368,7 @@ private fun PageThumbnailCard(
             .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, color = Color(0xFF8B5CF6).copy(alpha = 0.3f)),
+                indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                 onClick = onClick
             )
             .testTag("page_card_$pageNumber"),
@@ -416,7 +410,7 @@ private fun PageThumbnailCard(
                 Text(
                     text = "Page $pageNumber",
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isCurrent) Color(0xFFE9D5FF) else Color.White,
+                    color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     fontSize = 13.sp
                 )
 
@@ -424,13 +418,13 @@ private fun PageThumbnailCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFF8B5CF6))
+                            .background(MaterialTheme.colorScheme.primary)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "CURRENT",
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 9.sp
                         )
                     }

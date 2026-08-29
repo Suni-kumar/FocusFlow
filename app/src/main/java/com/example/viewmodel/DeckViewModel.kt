@@ -102,6 +102,7 @@ class DeckViewModel(
     fun generateAiDeck(
         topicOrNotes: String,
         targetCardCount: Int,
+        deckTitle: String = "",
         onComplete: ((FlashcardDeck) -> Unit)? = null
     ) {
         val prompt = topicOrNotes.trim()
@@ -129,9 +130,11 @@ class DeckViewModel(
                 val colorIndex = (_uiState.value.decks.size) % categoryColors.size
                 val assignedColor = categoryColors[colorIndex]
 
+                val finalTitle = if (deckTitle.isNotBlank()) deckTitle.trim() else result.title
+
                 val newDeck = FlashcardDeck(
                     id = "ai_deck_" + System.currentTimeMillis(),
-                    title = result.title,
+                    title = finalTitle,
                     description = result.description,
                     cardCount = result.cards.size,
                     lastReviewed = "Just created",

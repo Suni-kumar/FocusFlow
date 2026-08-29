@@ -37,14 +37,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.PrimaryDark
-import com.example.ui.theme.SurfaceSlateDark
 import com.sepfol.app.ui.folder.SortOption
 
 @Composable
@@ -117,22 +116,27 @@ fun FilterSortToolbar(
         Box(modifier = Modifier.padding(start = 8.dp)) {
             Surface(
                 modifier = Modifier
+                    .shadow(
+                        elevation = 2.dp,
+                        shape = RoundedCornerShape(12.dp),
+                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                    )
                     .clip(RoundedCornerShape(12.dp))
                     .clickable { isSortMenuOpen = true }
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                     .testTag("sort_menu_button"),
-                color = SurfaceSlateDark.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sort,
                         contentDescription = "Sort Options",
-                        tint = PrimaryDark,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -144,7 +148,7 @@ fun FilterSortToolbar(
                             SortOption.SIZE_DESC -> "Size"
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -155,41 +159,41 @@ fun FilterSortToolbar(
                 expanded = isSortMenuOpen,
                 onDismissRequest = { isSortMenuOpen = false },
                 modifier = Modifier
-                    .background(Color(0xFF161828))
-                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
             ) {
                 DropdownMenuItem(
-                    text = { Text("Newest first (Date ↓)", color = Color.White, fontSize = 13.sp) },
-                    leadingIcon = { Icon(Icons.Default.ArrowDownward, null, tint = PrimaryDark, modifier = Modifier.size(16.dp)) },
+                    text = { Text("Newest first (Date ↓)", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.ArrowDownward, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) },
                     onClick = {
                         onSortOptionSelected(SortOption.DATE_DESC)
                         isSortMenuOpen = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Oldest first (Date ↑)", color = Color.White, fontSize = 13.sp) },
-                    leadingIcon = { Icon(Icons.Default.ArrowUpward, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(16.dp)) },
+                    text = { Text("Oldest first (Date ↑)", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.ArrowUpward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)) },
                     onClick = {
                         onSortOptionSelected(SortOption.DATE_ASC)
                         isSortMenuOpen = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Name (A to Z)", color = Color.White, fontSize = 13.sp) },
+                    text = { Text("Name (A to Z)", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
                     onClick = {
                         onSortOptionSelected(SortOption.NAME_ASC)
                         isSortMenuOpen = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Name (Z to A)", color = Color.White, fontSize = 13.sp) },
+                    text = { Text("Name (Z to A)", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
                     onClick = {
                         onSortOptionSelected(SortOption.NAME_DESC)
                         isSortMenuOpen = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Size (Largest first)", color = Color.White, fontSize = 13.sp) },
+                    text = { Text("Size (Largest first)", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp) },
                     onClick = {
                         onSortOptionSelected(SortOption.SIZE_DESC)
                         isSortMenuOpen = false
@@ -210,15 +214,20 @@ private fun FilterTabPill(
 ) {
     Surface(
         modifier = Modifier
+            .shadow(
+                elevation = if (isSelected) 2.dp else 1.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            )
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .border(
                 1.dp,
-                if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.08f),
+                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                 RoundedCornerShape(16.dp)
             )
             .testTag(testTag),
-        color = if (isSelected) PrimaryDark.copy(alpha = 0.2f) else Color(0xFF141624),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
@@ -229,13 +238,13 @@ private fun FilterTabPill(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.6f),
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(14.dp)
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 12.sp
             )

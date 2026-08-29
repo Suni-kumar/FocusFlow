@@ -71,7 +71,7 @@ fun WorkspaceScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(SurfaceCharcoalDark)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -211,8 +211,8 @@ fun RecentFileCard(
         modifier = modifier
             .width(145.dp)
             .height(135.dp),
-        backgroundColor = SurfaceSlateDark.copy(alpha = 0.65f),
-        borderColor = Color.White.copy(alpha = 0.08f),
+        backgroundColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
         onClick = onClick
     ) {
         Column(
@@ -222,10 +222,10 @@ fun RecentFileCard(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             val (icon, iconTint, bgTint) = when (item.type) {
-                VaultItemType.DOCUMENT -> Triple(Icons.Default.Description, PrimaryDark, PrimaryContainerDark.copy(alpha = 0.15f))
-                VaultItemType.PDF -> Triple(Icons.Default.PictureAsPdf, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f))
-                VaultItemType.IMAGE -> Triple(Icons.Default.Image, PrimaryDark, PrimaryContainerDark.copy(alpha = 0.15f))
-                VaultItemType.FOLDER -> Triple(Icons.Default.Folder, PrimaryDark, PrimaryContainerDark.copy(alpha = 0.15f))
+                VaultItemType.DOCUMENT -> Triple(Icons.Default.Description, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                VaultItemType.PDF -> Triple(Icons.Default.PictureAsPdf, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f))
+                VaultItemType.IMAGE -> Triple(Icons.Default.Image, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                VaultItemType.FOLDER -> Triple(Icons.Default.Folder, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
             }
 
             Box(
@@ -273,8 +273,8 @@ fun FolderGridCard(
         modifier = modifier
             .fillMaxWidth()
             .height(58.dp),
-        backgroundColor = SurfaceSlateDark.copy(alpha = 0.65f),
-        borderColor = Color.White.copy(alpha = 0.08f),
+        backgroundColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
         shape = RoundedCornerShape(14.dp),
         onClick = onClick
     ) {
@@ -288,7 +288,7 @@ fun FolderGridCard(
             Icon(
                 imageVector = Icons.Default.Folder,
                 contentDescription = null,
-                tint = PrimaryDark,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
             Text(

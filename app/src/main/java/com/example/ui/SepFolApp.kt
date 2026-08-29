@@ -488,10 +488,11 @@ fun SepFolApp() {
                             deckViewModel.dismissAiGenerateDialog()
                             screenStack = screenStack + ScreenState.SETTINGS
                         },
-                        onGenerate = { topic, count ->
+                        onGenerate = { deckTitle, topic, count ->
                             deckViewModel.generateAiDeck(
                                 topicOrNotes = topic,
                                 targetCardCount = count,
+                                deckTitle = deckTitle,
                                 onComplete = { generatedDeck ->
                                     activeDeck = generatedDeck
                                 }

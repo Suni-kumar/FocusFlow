@@ -120,18 +120,18 @@ fun WorkspaceSwitcherModal(
                         .shadow(
                             elevation = 24.dp,
                             shape = RoundedCornerShape(28.dp),
-                            ambientColor = PrimaryDark.copy(alpha = 0.25f),
-                            spotColor = Color(0xFF8B5CF6).copy(alpha = 0.35f)
+                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                         ),
                     shape = RoundedCornerShape(28.dp),
-                    color = SurfaceSlateDark.copy(alpha = 0.95f),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
                         brush = Brush.verticalGradient(
                             listOf(
-                                Color.White.copy(alpha = 0.25f),
-                                PrimaryDark.copy(alpha = 0.3f),
-                                Color.White.copy(alpha = 0.05f)
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                             )
                         )
                     )
@@ -149,7 +149,7 @@ fun WorkspaceSwitcherModal(
                                 .width(38.dp)
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(Color.White.copy(alpha = 0.25f))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
                         )
 
                         // Modal Header
@@ -166,13 +166,13 @@ fun WorkspaceSwitcherModal(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape)
-                                        .background(PrimaryContainerDark.copy(alpha = 0.35f)),
+                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
-                                        tint = PrimaryDark,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -181,13 +181,13 @@ fun WorkspaceSwitcherModal(
                                         text = "Workspace Switcher",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontSize = 17.sp
                                     )
                                     Text(
                                         text = "Swipe up gesture active",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -198,12 +198,12 @@ fun WorkspaceSwitcherModal(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close switcher",
-                                    tint = Color.White.copy(alpha = 0.7f),
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -263,11 +263,11 @@ private fun WorkspaceOptionCard(
         label = "cardScale"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) glowColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.1f),
+        targetValue = if (isSelected) glowColor.copy(alpha = 0.7f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
         label = "borderColor"
     )
     val containerBg by animateColorAsState(
-        targetValue = if (isSelected) glowColor.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.04f),
+        targetValue = if (isSelected) glowColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         label = "containerBg"
     )
 
@@ -326,7 +326,7 @@ private fun WorkspaceOptionCard(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 15.sp
                     )
 
@@ -352,7 +352,7 @@ private fun WorkspaceOptionCard(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.65f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
                 )

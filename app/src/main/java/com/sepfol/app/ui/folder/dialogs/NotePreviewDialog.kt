@@ -68,15 +68,10 @@ fun NotePreviewDialog(
                 .clip(RoundedCornerShape(20.dp))
                 .border(
                     width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.18f),
-                            Color.White.copy(alpha = 0.05f)
-                        )
-                    ),
+                    color = MaterialTheme.colorScheme.outlineVariant,
                     shape = RoundedCornerShape(20.dp)
                 ),
-            color = SurfaceSlateDark.copy(alpha = 0.95f),
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
             Column(
@@ -100,13 +95,13 @@ fun NotePreviewDialog(
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
-                                .background(PrimaryContainerDark.copy(alpha = 0.25f)),
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Description,
                                 contentDescription = null,
-                                tint = PrimaryDark,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -116,7 +111,7 @@ fun NotePreviewDialog(
                                 text = item.name,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 16.sp
                             )
                             Row(
@@ -130,13 +125,13 @@ fun NotePreviewDialog(
                                     Icon(
                                         imageVector = Icons.Default.Schedule,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.5f),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(11.dp)
                                     )
                                     Text(
                                         text = dateStr,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -147,13 +142,13 @@ fun NotePreviewDialog(
                                     Icon(
                                         imageVector = Icons.Default.Storage,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.5f),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(11.dp)
                                     )
                                     Text(
                                         text = com.sepfol.app.ui.folder.formatFileSize(item.sizeBytes),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -168,7 +163,7 @@ fun NotePreviewDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color.White.copy(alpha = 0.6f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -180,8 +175,8 @@ fun NotePreviewDialog(
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(SurfaceCharcoalDark.copy(alpha = 0.7f))
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                         .verticalScroll(scrollState)
                         .padding(14.dp)
                 ) {
@@ -192,7 +187,7 @@ fun NotePreviewDialog(
                             fontFamily = FontFamily.Monospace,
                             fontSize = 13.sp,
                             lineHeight = 20.sp,
-                            color = Color.White.copy(alpha = 0.9f)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 }
@@ -213,7 +208,7 @@ fun NotePreviewDialog(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Note",
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -228,12 +223,15 @@ fun NotePreviewDialog(
                                 onDismiss()
                             },
                             shape = RoundedCornerShape(12.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         ) {
                             Text(
                                 text = "Full Viewer",
-                                color = Color.White,
-                                fontSize = 12.sp
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
 
@@ -241,12 +239,12 @@ fun NotePreviewDialog(
                             onClick = onDismiss,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = PrimaryContainerDark
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
                             Text(
                                 text = "Done",
-                                color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
                             )

@@ -95,15 +95,10 @@ fun CreateFolderDialog(
                 .clip(RoundedCornerShape(20.dp))
                 .border(
                     width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.18f),
-                            Color.White.copy(alpha = 0.05f)
-                        )
-                    ),
+                    color = MaterialTheme.colorScheme.outlineVariant,
                     shape = RoundedCornerShape(20.dp)
                 ),
-            color = SurfaceSlateDark.copy(alpha = 0.95f),
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
             Column(
@@ -121,13 +116,13 @@ fun CreateFolderDialog(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(PrimaryContainerDark.copy(alpha = 0.25f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.CreateNewFolder,
                             contentDescription = null,
-                            tint = PrimaryDark,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -137,13 +132,13 @@ fun CreateFolderDialog(
                             text = "New Folder",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 18.sp
                         )
                         Text(
                             text = "Create a directory to organize your notes",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -168,7 +163,7 @@ fun CreateFolderDialog(
                         placeholder = {
                             Text(
                                 text = "e.g., Neuroscience, Research",
-                                color = Color.White.copy(alpha = 0.4f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 fontSize = 14.sp
                             )
                         },
@@ -183,14 +178,14 @@ fun CreateFolderDialog(
                         ),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryDark,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                             errorBorderColor = MaterialTheme.colorScheme.error,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = PrimaryDark,
-                            focusedContainerColor = SurfaceCharcoalDark.copy(alpha = 0.6f),
-                            unfocusedContainerColor = SurfaceCharcoalDark.copy(alpha = 0.4f)
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                         )
                     )
 
@@ -228,11 +223,14 @@ fun CreateFolderDialog(
                         shape = RoundedCornerShape(12.dp),
                         border = ButtonDefaults.outlinedButtonBorder.copy(
                             brush = Brush.linearGradient(
-                                listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.15f))
+                                listOf(
+                                    MaterialTheme.colorScheme.outlineVariant,
+                                    MaterialTheme.colorScheme.outlineVariant
+                                )
                             )
                         ),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White.copy(alpha = 0.8f)
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
                         Text(text = "Cancel", fontSize = 13.sp, fontWeight = FontWeight.Medium)
@@ -244,13 +242,13 @@ fun CreateFolderDialog(
                         onClick = { validateAndSubmit() },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryContainerDark
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         enabled = folderName.trim().isNotEmpty()
                     ) {
                         Text(
                             text = "Create",
-                            color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )

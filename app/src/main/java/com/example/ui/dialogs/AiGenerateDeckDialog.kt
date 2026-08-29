@@ -39,6 +39,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
@@ -63,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.SurfaceSlateDark
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -73,10 +76,11 @@ fun AiGenerateDeckDialog(
     hasCustomApiKey: Boolean = false,
     onDismiss: () -> Unit,
     onConfigureApiKeyClick: () -> Unit = {},
-    onGenerate: (topicOrNotes: String, cardCount: Int) -> Unit
+    onGenerate: (deckTitle: String, topicOrNotes: String, cardCount: Int) -> Unit
 ) {
+    var deckName by remember { mutableStateOf("") }
     var promptText by remember(initialPrompt) { mutableStateOf(initialPrompt) }
-    var selectedCardCount by remember { mutableIntStateOf(10) }
+    var selectedCardCount by remember { mutableIntStateOf(15) }
     val haptics = LocalHapticFeedback.current
 
     val infiniteTransition = rememberInfiniteTransition(label = "ai_glow")
@@ -99,8 +103,6 @@ fun AiGenerateDeckDialog(
         label = "btn_scale"
     )
 
-    val countOptions = listOf(5, 10, 15, 20)
-
     val quickTopics = listOf(
         "Cardiac Physiology",
         "Quantum Mechanics",
@@ -122,27 +124,20 @@ fun AiGenerateDeckDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF131024), // Luxury Obsidian Purple
-                            Color(0xFF090714)
-                        )
-                    )
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
                 )
                 .border(
-                    width = 1.5.dp,
-                    brush = Brush.linearGradient(
-                        listOf(
-                            Color(0xFFA855F7).copy(alpha = glowAlpha),
-                            Color(0xFFEC4899).copy(alpha = 0.4f),
-                            Color.White.copy(alpha = 0.12f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(20.dp)
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(24.dp)
                 )
-                .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = Color(0xFFA855F7))
+                .shadow(
+                    elevation = 24.dp,
+                    shape = RoundedCornerShape(24.dp),
+                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                )
                 .padding(20.dp)
                 .testTag("ai_deck_dialog")
         ) {
@@ -160,40 +155,40 @@ fun AiGenerateDeckDialog(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
                                     Brush.linearGradient(
-                                        listOf(Color(0xFF9333EA), Color(0xFFDB2777))
+                                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                                     )
                                 )
-                                .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xFFDB2777)),
+                                .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
 
                         Column {
                             Text(
-                                text = "AI Deck Generator",
+                                text = "AI Flashcards",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 18.sp
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 19.sp
                             )
                             Text(
-                                text = "Powered by Google Gemini",
+                                text = "Generate cards with Gemini AI",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFC084FC),
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 12.sp
                             )
                         }
@@ -202,13 +197,16 @@ fun AiGenerateDeckDialog(
                     if (!isGenerating) {
                         IconButton(
                             onClick = onDismiss,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
-                                tint = Color.White.copy(alpha = 0.7f),
-                                modifier = Modifier.size(20.dp)
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -218,16 +216,16 @@ fun AiGenerateDeckDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
-                            if (hasCustomApiKey) Color(0xFF064E3B).copy(alpha = 0.4f)
-                            else Color(0xFF1E1B4B).copy(alpha = 0.5f)
+                            if (hasCustomApiKey) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         )
                         .border(
                             1.dp,
-                            if (hasCustomApiKey) Color(0xFF10B981).copy(alpha = 0.4f)
-                            else Color(0xFF818CF8).copy(alpha = 0.3f),
-                            RoundedCornerShape(10.dp)
+                            if (hasCustomApiKey) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                            else MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
@@ -244,13 +242,13 @@ fun AiGenerateDeckDialog(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .clip(CircleShape)
-                                    .background(if (hasCustomApiKey) Color(0xFF10B981) else Color(0xFF818CF8))
+                                    .background(if (hasCustomApiKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary)
                             )
                             Text(
                                 text = if (hasCustomApiKey) "Tier 1: Personal Gemini API Key (BYOK)"
                                 else "Tier 2: System Gemini Cloud / Smart Taxonomy",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (hasCustomApiKey) Color(0xFF6EE7B7) else Color(0xFFC7D2FE),
+                                color = if (hasCustomApiKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -259,7 +257,7 @@ fun AiGenerateDeckDialog(
                             Text(
                                 text = "Settings",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFA78BFA),
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
                                     .clickable { onConfigureApiKeyClick() }
@@ -269,13 +267,62 @@ fun AiGenerateDeckDialog(
                     }
                 }
 
-                // Topic / Notes Input Area
+                // Field 1: Deck Name
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "STUDY TOPIC OR SYLLABUS NOTES",
+                        text = "DECK NAME",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE2E8F0),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = 0.08.sp
+                    )
+
+                    OutlinedTextField(
+                        value = deckName,
+                        onValueChange = { deckName = it },
+                        placeholder = {
+                            Text(
+                                text = "e.g. Biology Chapter 4",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                fontSize = 13.sp
+                            )
+                        },
+                        singleLine = true,
+                        enabled = !isGenerating,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .border(
+                                1.dp,
+                                if (deckName.isNotBlank()) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .testTag("ai_deck_name_input"),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    )
+                }
+
+                // Field 2: Topic / Notes Input Area
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "TOPIC OR SOURCE TEXT",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = 0.08.sp
                     )
 
@@ -284,9 +331,9 @@ fun AiGenerateDeckDialog(
                         onValueChange = { promptText = it },
                         placeholder = {
                             Text(
-                                text = "e.g. \"Cardiac Action Potentials\", \"Quantum Entanglement\", or paste raw lecture notes...",
+                                text = "Paste your notes or describe a topic...",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.4f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 fontSize = 13.sp
                             )
                         },
@@ -295,11 +342,11 @@ fun AiGenerateDeckDialog(
                             .fillMaxWidth()
                             .height(110.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF0F0E17))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                             .border(
                                 1.dp,
-                                if (promptText.isNotBlank()) Color(0xFFA855F7).copy(alpha = 0.6f)
-                                else Color.White.copy(alpha = 0.12f),
+                                if (promptText.isNotBlank()) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                else MaterialTheme.colorScheme.outlineVariant,
                                 RoundedCornerShape(12.dp)
                             )
                             .testTag("ai_prompt_input"),
@@ -310,9 +357,9 @@ fun AiGenerateDeckDialog(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            disabledTextColor = Color.White.copy(alpha = 0.5f)
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     )
                 }
@@ -324,7 +371,7 @@ fun AiGenerateDeckDialog(
                             text = "QUICK TOPICS",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF94A3B8),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp
                         )
 
@@ -336,15 +383,18 @@ fun AiGenerateDeckDialog(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(9999.dp))
-                                        .background(Color.White.copy(alpha = 0.06f))
-                                        .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(9999.dp))
-                                        .clickable { promptText = topic }
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(9999.dp))
+                                        .clickable {
+                                            promptText = topic
+                                            if (deckName.isBlank()) deckName = topic
+                                        }
                                         .padding(horizontal = 10.dp, vertical = 5.dp)
                                 ) {
                                     Text(
                                         text = topic,
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFFE2E8F0),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -353,52 +403,80 @@ fun AiGenerateDeckDialog(
                     }
                 }
 
-                // Card Count Selector
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "TARGET FLASHCARD COUNT",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE2E8F0),
-                        letterSpacing = 0.08.sp
-                    )
-
+                // Field 3: Interactive Number of Cards Slider (1 to 60) with Gesture
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        countOptions.forEach { count ->
-                            val isSelected = selectedCardCount == count
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(40.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(
-                                        if (isSelected) Brush.horizontalGradient(
-                                            listOf(Color(0xFF9333EA), Color(0xFF7C3AED))
-                                        )
-                                        else Brush.horizontalGradient(
-                                            listOf(Color.White.copy(alpha = 0.05f), Color.White.copy(alpha = 0.05f))
-                                        )
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) Color(0xFFC084FC) else Color.White.copy(alpha = 0.1f),
-                                        RoundedCornerShape(10.dp)
-                                    )
-                                    .clickable(enabled = !isGenerating) {
-                                        selectedCardCount = count
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "$count Cards",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.White else Color(0xFF94A3B8)
-                                )
-                            }
+                        Text(
+                            text = "NUMBER OF CARDS",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = 0.08.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "$selectedCardCount Cards",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    // Sliding gesture container with slider (1 to 60)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Slider(
+                            value = selectedCardCount.toFloat(),
+                            onValueChange = { newValue ->
+                                val count = newValue.roundToInt().coerceIn(1, 60)
+                                if (count != selectedCardCount) {
+                                    selectedCardCount = count
+                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                }
+                            },
+                            valueRange = 1f..60f,
+                            steps = 0,
+                            enabled = !isGenerating,
+                            colors = SliderDefaults.colors(
+                                thumbColor = MaterialTheme.colorScheme.primary,
+                                activeTrackColor = MaterialTheme.colorScheme.primary,
+                                inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+                                activeTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("ai_card_count_slider")
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("1", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            Text("15", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            Text("30", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            Text("45", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            Text("60", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                         }
                     }
                 }
@@ -407,22 +485,22 @@ fun AiGenerateDeckDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White.copy(alpha = 0.03f))
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Includes: #Definitions, #Formulas, #HighYield tags",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFA1A1AA),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp
                     )
                     Text(
                         text = "3D Recall Ready",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF10B981),
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
                     )
@@ -433,22 +511,22 @@ fun AiGenerateDeckDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF581C87).copy(alpha = 0.5f))
-                            .border(1.dp, Color(0xFFA855F7), RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         CircularProgressIndicator(
-                            color = Color(0xFFF472B6),
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.5.dp,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = progressMessage,
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -469,7 +547,7 @@ fun AiGenerateDeckDialog(
                         ) {
                             Text(
                                 text = "Cancel",
-                                color = Color(0xFF94A3B8),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -480,31 +558,21 @@ fun AiGenerateDeckDialog(
                         onClick = {
                             if (promptText.isNotBlank() && !isGenerating) {
                                 haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                onGenerate(promptText, selectedCardCount)
+                                onGenerate(deckName, promptText, selectedCardCount)
                             }
                         },
                         enabled = promptText.isNotBlank() && !isGenerating,
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            disabledContainerColor = Color.White.copy(alpha = 0.08f)
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         ),
                         modifier = Modifier
                             .weight(if (isGenerating) 1f else 2f)
                             .height(48.dp)
                             .scale(buttonScale)
-                            .background(
-                                brush = if (promptText.isNotBlank() && !isGenerating) {
-                                    Brush.horizontalGradient(
-                                        listOf(Color(0xFF9333EA), Color(0xFFDB2777))
-                                    )
-                                } else {
-                                    Brush.horizontalGradient(
-                                        listOf(Color.White.copy(alpha = 0.1f), Color.White.copy(alpha = 0.1f))
-                                    )
-                                },
-                                shape = RoundedCornerShape(14.dp)
-                            )
                             .testTag("ai_generate_submit_btn")
                     ) {
                         Row(
@@ -514,13 +582,11 @@ fun AiGenerateDeckDialog(
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = if (promptText.isNotBlank()) Color.White else Color(0xFF64748B),
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = if (isGenerating) "Synthesizing Deck..." else "Generate Study Deck",
+                                text = if (isGenerating) "Synthesizing Deck..." else "Generate Deck",
                                 fontWeight = FontWeight.Bold,
-                                color = if (promptText.isNotBlank()) Color.White else Color(0xFF64748B),
                                 fontSize = 14.sp
                             )
                         }

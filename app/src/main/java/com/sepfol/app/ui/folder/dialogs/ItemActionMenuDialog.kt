@@ -69,9 +69,10 @@ fun ItemActionMenuDialog(
             modifier = modifier
                 .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(20.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(20.dp)),
-            color = Color(0xFF141624),
-            shape = RoundedCornerShape(20.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)),
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 8.dp
         ) {
             Column(
                 modifier = Modifier
@@ -90,13 +91,13 @@ fun ItemActionMenuDialog(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(PrimaryDark.copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (item.isDirectory) Icons.Default.Folder else Icons.Default.DriveFileRenameOutline,
                             contentDescription = null,
-                            tint = PrimaryDark,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -106,7 +107,7 @@ fun ItemActionMenuDialog(
                             text = item.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             fontSize = 15.sp
@@ -114,14 +115,14 @@ fun ItemActionMenuDialog(
                         Text(
                             text = if (item.isDirectory) "Folder" else "${item.extension.uppercase()} File",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // Action Menu Items
@@ -129,7 +130,7 @@ fun ItemActionMenuDialog(
                     icon = Icons.Default.DriveFileRenameOutline,
                     label = "Rename",
                     subtitle = "Change file/folder name",
-                    iconColor = Color(0xFF60A5FA),
+                    iconColor = Color(0xFF3B82F6),
                     onClick = {
                         onDismiss()
                         onRename()
@@ -141,7 +142,7 @@ fun ItemActionMenuDialog(
                     icon = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                     label = if (item.isPinned) "Unpin from Top" else "Pin to Top",
                     subtitle = if (item.isPinned) "Remove priority pin" else "Keep item at top of list",
-                    iconColor = if (item.isPinned) Color(0xFFFBBF24) else Color.White.copy(alpha = 0.8f),
+                    iconColor = if (item.isPinned) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = {
                         onDismiss()
                         onTogglePin()
@@ -153,7 +154,7 @@ fun ItemActionMenuDialog(
                     icon = if (item.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     label = if (item.isFavorite) "Remove from Starred" else "Add to Starred",
                     subtitle = if (item.isFavorite) "Starred item" else "Quick bookmark",
-                    iconColor = if (item.isFavorite) Color(0xFFF43F5E) else Color.White.copy(alpha = 0.8f),
+                    iconColor = if (item.isFavorite) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = {
                         onDismiss()
                         onToggleFavorite()
@@ -166,7 +167,7 @@ fun ItemActionMenuDialog(
                         icon = Icons.Default.ContentCopy,
                         label = "Duplicate",
                         subtitle = "Create an identical copy",
-                        iconColor = Color(0xFF34D399),
+                        iconColor = Color(0xFF10B981),
                         onClick = {
                             onDismiss()
                             onDuplicate()
@@ -179,7 +180,7 @@ fun ItemActionMenuDialog(
                     icon = Icons.Default.DriveFileMove,
                     label = "Move to...",
                     subtitle = "Change parent folder",
-                    iconColor = Color(0xFFC084FC),
+                    iconColor = Color(0xFFA855F7),
                     onClick = {
                         onDismiss()
                         onMove()
@@ -191,7 +192,7 @@ fun ItemActionMenuDialog(
                     icon = Icons.Default.Share,
                     label = "Share",
                     subtitle = "Send or export content",
-                    iconColor = Color(0xFF38BDF8),
+                    iconColor = Color(0xFF0284C7),
                     onClick = {
                         onDismiss()
                         onShare()
@@ -200,7 +201,7 @@ fun ItemActionMenuDialog(
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(4.dp))
 
                 ActionMenuItemRow(
@@ -228,7 +229,7 @@ private fun ActionMenuItemRow(
     iconColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    textColor: Color = Color.White,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
     testTag: String = ""
 ) {
     Row(
@@ -266,7 +267,7 @@ private fun ActionMenuItemRow(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp
             )
         }

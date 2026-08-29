@@ -131,13 +131,13 @@ fun DecksDashboardScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(SurfaceSlateDark.copy(alpha = 0.8f))
-                            .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -147,7 +147,7 @@ fun DecksDashboardScreen(
                             text = "Flashcard Studio",
                             style = MaterialTheme.typography.displayLarge,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryDark,
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 28.sp
                         )
                         Text(
@@ -184,10 +184,10 @@ fun DecksDashboardScreen(
                         .fillMaxWidth()
                         .height(50.dp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = SurfaceContainerLowDark,
-                        unfocusedContainerColor = SurfaceContainerLowDark,
-                        focusedIndicatorColor = PrimaryContainerDark,
-                        unfocusedIndicatorColor = Color.White.copy(alpha = 0.08f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
                         focusedTextColor = MaterialTheme.colorScheme.onSurface,
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
@@ -319,7 +319,7 @@ fun DeckListItemCard(
             .clip(RoundedCornerShape(16.dp))
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.08f),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp)
             )
             .combinedClickable(
@@ -330,8 +330,8 @@ fun DeckListItemCard(
                 }
             )
             .testTag("deck_item_${deck.id}"),
-        backgroundColor = if (isSelected) PrimaryContainerDark.copy(alpha = 0.25f) else SurfaceSlateDark.copy(alpha = 0.65f),
-        borderColor = if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.08f),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
+        borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
         shape = RoundedCornerShape(16.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -466,7 +466,7 @@ fun DeckListItemCard(
                         .fillMaxWidth()
                         .border(
                             width = 1.dp,
-                            color = Color.White.copy(alpha = 0.05f),
+                            color = MaterialTheme.colorScheme.outlineVariant,
                             shape = RoundedCornerShape(0.dp)
                         )
                         .padding(top = 10.dp),
