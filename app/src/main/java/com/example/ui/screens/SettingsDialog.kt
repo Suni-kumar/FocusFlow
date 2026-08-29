@@ -1,9 +1,12 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,24 +21,35 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.GridOn
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.SettingsBrightness
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -52,14 +66,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.SettingsBrightness
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AccentTheme
@@ -67,6 +80,16 @@ import com.example.model.BrightnessMode
 import com.example.model.VisualEngine
 import com.example.ui.theme.AccentCyber
 
+/**
+ * Ultra-Premium, Minimalist Apple/Notion-grade Settings Architecture
+ *
+ * Streamlined into elegant, grouped frosted glass cards:
+ * 1. Appearance & Theme (Dark/Light mode, Accent Swatches, Surface Engine)
+ * 2. Interaction & Layout (Haptic Feedback, Vault Columns)
+ * 3. AI Studio Engine (Compact BYOK Key Field)
+ * 4. Vault Storage & Backup (Metrics, Instant Export/Import/Paste)
+ * 5. System Info & Version
+ */
 @Composable
 fun SettingsScreen(
     onDoneClick: () -> Unit,
@@ -74,7 +97,7 @@ fun SettingsScreen(
     brightnessMode: BrightnessMode = BrightnessMode.DARK,
     onBrightnessModeChanged: (BrightnessMode) -> Unit = {},
     onThemeToggled: (Boolean) -> Unit = {},
-    selectedEngine: VisualEngine = VisualEngine.CLASSIC_OBSIDIAN,
+    selectedEngine: VisualEngine = VisualEngine.LIQUID_GLASS_3D,
     onEngineChanged: (VisualEngine) -> Unit = {},
     gridCols: Int = 2,
     onGridColsChanged: (Int) -> Unit = {},
@@ -98,25 +121,21 @@ fun SettingsScreen(
     var showApiKey by remember { mutableStateOf(false) }
     var saveFeedback by remember { mutableStateOf(false) }
 
-    // Intercept hardware/gesture back press to return to main workspace
     BackHandler(enabled = true) {
         onDoneClick()
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Sleek, Borderless Header Bar with Subtle Bottom Hairline
+            // Header Bar
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                 border = androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                 )
             ) {
                 Row(
@@ -132,8 +151,8 @@ fun SettingsScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     Brush.linearGradient(
                                         listOf(selectedAccent.primaryColor, selectedAccent.secondaryColor)
@@ -142,15 +161,15 @@ fun SettingsScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.AutoAwesome,
+                                imageVector = Icons.Default.Palette,
                                 contentDescription = null,
                                 tint = selectedAccent.buttonTextColor,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp)
                             )
                         }
 
                         Text(
-                            text = "Settings",
+                            text = "Preferences",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -162,7 +181,7 @@ fun SettingsScreen(
                         onClick = onDoneClick,
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = selectedAccent.primaryColor.copy(alpha = 0.2f),
+                            containerColor = selectedAccent.primaryColor.copy(alpha = 0.18f),
                             contentColor = selectedAccent.primaryColor
                         ),
                         border = androidx.compose.foundation.BorderStroke(
@@ -184,827 +203,419 @@ fun SettingsScreen(
                 }
             }
 
-            // Scrollable Content
+            // Grouped Settings Content
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Global Theme & Brightness Mode Section (3-Way Toggle)
+                // Section 1: Appearance & Theme
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(selectedAccent.primaryColor, selectedAccent.secondaryColor)
-                                        )
-                                    )
-                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = selectedAccent.primaryColor),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = when (brightnessMode) {
-                                        BrightnessMode.LIGHT -> Icons.Default.LightMode
-                                        BrightnessMode.DARK -> Icons.Default.DarkMode
-                                        BrightnessMode.SYSTEM -> Icons.Default.SettingsBrightness
-                                    },
-                                    contentDescription = null,
-                                    tint = selectedAccent.buttonTextColor,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = "Theme & Appearance",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Visual brightness and dynamic accent palettes",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // 3-Way Brightness Mode Choice Buttons (Dark, Light, System)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            val modes = listOf(
-                                Triple(BrightnessMode.DARK, Icons.Default.DarkMode, "Dark"),
-                                Triple(BrightnessMode.LIGHT, Icons.Default.LightMode, "Light"),
-                                Triple(BrightnessMode.SYSTEM, Icons.Default.SettingsBrightness, "System")
-                            )
-
-                            modes.forEach { (mode, icon, label) ->
-                                val isSelected = brightnessMode == mode
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.surfaceVariant
-                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                        )
-                                        .border(
-                                            width = if (isSelected) 2.dp else 1.dp,
-                                            color = if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                            shape = RoundedCornerShape(14.dp)
-                                        )
-                                        .clickable {
-                                            onBrightnessModeChanged(mode)
-                                            when (mode) {
-                                                BrightnessMode.DARK -> onThemeToggled(true)
-                                                BrightnessMode.LIGHT -> onThemeToggled(false)
-                                                BrightnessMode.SYSTEM -> {}
-                                            }
-                                        }
-                                        .padding(vertical = 12.dp, horizontal = 8.dp)
-                                        .testTag("brightness_mode_${mode.name.lowercase()}"),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = icon,
-                                            contentDescription = null,
-                                            tint = if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Text(
-                                            text = label,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 6 Dynamic Accent Themes Matrix Section
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
+                    SettingsGroupSection(
+                        title = "APPEARANCE",
+                        icon = Icons.Default.Palette,
+                        accentColor = selectedAccent.primaryColor
+                    ) {
+                        // 1. Theme Mode Segmented Control
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "DYNAMIC ACCENT PALETTES",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                letterSpacing = 0.08.sp
-                            )
-                            Text(
-                                text = selectedAccent.label,
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "Color Scheme",
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
-                                color = selectedAccent.primaryColor
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                        }
 
-                        val themes = AccentTheme.values().toList()
-                        val rows = themes.chunked(2)
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            for (row in rows) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    for (theme in row) {
-                                        val isSelected = selectedAccent == theme
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clip(RoundedCornerShape(14.dp))
-                                                .background(
-                                                    if (isSelected) MaterialTheme.colorScheme.surfaceVariant
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                                .border(
-                                                    width = if (isSelected) 2.dp else 1.dp,
-                                                    color = if (isSelected) theme.primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                                    shape = RoundedCornerShape(14.dp)
-                                                )
-                                                .shadow(
-                                                    elevation = if (isSelected) 10.dp else 0.dp,
-                                                    shape = RoundedCornerShape(14.dp),
-                                                    spotColor = theme.primaryColor
-                                                )
-                                                .clickable { onAccentChanged(theme) }
-                                                .padding(horizontal = 12.dp, vertical = 12.dp)
-                                                .testTag("theme_accent_${theme.name.lowercase()}"),
-                                            contentAlignment = Alignment.CenterStart
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                                ) {
-                                                    // Concentric dual gradient dots
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(24.dp)
-                                                            .clip(CircleShape)
-                                                            .background(
-                                                                Brush.linearGradient(
-                                                                    listOf(theme.primaryColor, theme.secondaryColor)
-                                                                )
-                                                            )
-                                                            .border(1.5.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                                                            .shadow(if (isSelected) 6.dp else 2.dp, CircleShape, spotColor = theme.primaryColor),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(8.dp)
-                                                                .clip(CircleShape)
-                                                                .background(Color.White)
-                                                        )
-                                                    }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                                    .padding(3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val modes = listOf(
+                                    Triple(BrightnessMode.DARK, Icons.Default.DarkMode, "Dark"),
+                                    Triple(BrightnessMode.LIGHT, Icons.Default.LightMode, "Light"),
+                                    Triple(BrightnessMode.SYSTEM, Icons.Default.SettingsBrightness, "Auto")
+                                )
 
-                                                    Column {
-                                                        Text(
-                                                            text = theme.label,
-                                                            style = MaterialTheme.typography.labelLarge,
-                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                                            color = MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                        Text(
-                                                            text = theme.subtitle,
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = if (isSelected) theme.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            fontSize = 11.sp
-                                                        )
-                                                    }
-                                                }
-
-                                                if (isSelected) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(20.dp)
-                                                            .clip(CircleShape)
-                                                            .background(theme.primaryColor),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Check,
-                                                            contentDescription = "Selected",
-                                                            tint = theme.buttonTextColor,
-                                                            modifier = Modifier.size(13.dp)
-                                                        )
-                                                    }
+                                modes.forEach { (mode, icon, label) ->
+                                    val isSelected = brightnessMode == mode
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isSelected) selectedAccent.primaryColor.copy(alpha = 0.22f)
+                                                else Color.Transparent
+                                            )
+                                            .clickable {
+                                                onBrightnessModeChanged(mode)
+                                                when (mode) {
+                                                    BrightnessMode.DARK -> onThemeToggled(true)
+                                                    BrightnessMode.LIGHT -> onThemeToggled(false)
+                                                    BrightnessMode.SYSTEM -> {}
                                                 }
                                             }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Visual Engine Theme Section
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(selectedAccent.primaryColor, selectedAccent.accentGlowColor)
-                                        )
-                                    )
-                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = selectedAccent.primaryColor),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = selectedAccent.buttonTextColor,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = "Visual Surface Engine",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Toggle 3D Liquid Glass or Classic Obsidian surfaces",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // 2 Engine Buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // Classic Obsidian Option
-                            val isObsidian = selectedEngine == VisualEngine.CLASSIC_OBSIDIAN
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                    .border(
-                                        width = if (isObsidian) 2.dp else 1.dp,
-                                        color = if (isObsidian) selectedAccent.primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
-                                    .clickable { onEngineChanged(VisualEngine.CLASSIC_OBSIDIAN) }
-                                    .padding(vertical = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Classic Flat",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "Clean Structured UI",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isObsidian) selectedAccent.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-
-                            // 3D Liquid Glass Option
-                            val isGlass = selectedEngine == VisualEngine.LIQUID_GLASS_3D
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(
-                                        if (isGlass) {
-                                            Brush.linearGradient(
-                                                listOf(selectedAccent.primaryColor, selectedAccent.secondaryColor, selectedAccent.accentGlowColor)
-                                            )
-                                        } else {
-                                            Brush.linearGradient(
-                                                listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                            )
-                                        }
-                                    )
-                                    .border(
-                                        width = if (isGlass) 2.dp else 1.dp,
-                                        color = if (isGlass) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
-                                    .clickable { onEngineChanged(VisualEngine.LIQUID_GLASS_3D) }
-                                    .padding(vertical = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            .padding(vertical = 8.dp)
+                                            .testTag("brightness_mode_${mode.name.lowercase()}"),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.WaterDrop,
-                                            contentDescription = null,
-                                            tint = if (isGlass) selectedAccent.buttonTextColor else selectedAccent.primaryColor,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(
-                                            text = "3D Liquid Glass",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isGlass) selectedAccent.buttonTextColor else MaterialTheme.colorScheme.onSurface
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = null,
+                                                tint = if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
-                                    Text(
-                                        text = "Iridescent Sheen",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isGlass) selectedAccent.buttonTextColor.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 12.sp
-                                    )
                                 }
                             }
                         }
-                    }
-                }
 
-                // Vault Grid Layout Section
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text = "VAULT GRID LAYOUT",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.08.sp
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
+                            thickness = 1.dp
                         )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        // 2. Accent Theme Swatches
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            listOf(1, 2, 3, 4).forEach { cols ->
-                                val isSelected = gridCols == cols
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(42.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                        .border(
-                                            1.dp,
-                                            if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                            RoundedCornerShape(12.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Accent Palette",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = selectedAccent.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = selectedAccent.primaryColor
+                                )
+                            }
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(AccentTheme.values()) { theme ->
+                                    val isSelected = selectedAccent == theme
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable { onAccentChanged(theme) }
+                                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                                            .testTag("theme_accent_${theme.name.lowercase()}")
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    Brush.linearGradient(
+                                                        listOf(theme.primaryColor, theme.secondaryColor)
+                                                    )
+                                                )
+                                                .border(
+                                                    width = if (isSelected) 2.5.dp else 1.dp,
+                                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.3f),
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = theme.buttonTextColor,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Text(
+                                            text = theme.label.split(" ").firstOrNull() ?: "",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 10.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        .clickable { onGridColsChanged(cols) },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$cols Col${if (cols > 1) "s" else ""}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) selectedAccent.buttonTextColor else MaterialTheme.colorScheme.onSurface
-                                    )
+                                    }
                                 }
                             }
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
+                            thickness = 1.dp
+                        )
+
+                        // 3. Visual Surface Engine Switch
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "3D Liquid Glass Effect",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Translucent refraction highlights & depth",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            val isGlass = selectedEngine == VisualEngine.LIQUID_GLASS_3D
+                            Switch(
+                                checked = isGlass,
+                                onCheckedChange = { checked ->
+                                    onEngineChanged(if (checked) VisualEngine.LIQUID_GLASS_3D else VisualEngine.CLASSIC_OBSIDIAN)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = selectedAccent.primaryColor,
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            )
                         }
                     }
                 }
 
-                // Haptic Feedback Toggle
+                // Section 2: Interaction & Layout
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    SettingsGroupSection(
+                        title = "INTERACTION & LAYOUT",
+                        icon = Icons.Default.Speed,
+                        accentColor = selectedAccent.primaryColor
                     ) {
+                        // 1. Haptic Feedback Switch
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PhoneAndroid,
-                                    contentDescription = null,
-                                    tint = AccentCyber,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Haptic Touch Feedback",
                                     style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Vibrate on FAB, workspace switch & cards",
+                                    text = "Tactile vibration on tap & card flip",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 12.sp
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+
+                            Switch(
+                                checked = hapticFeedbackEnabled,
+                                onCheckedChange = {
+                                    hapticFeedbackEnabled = it
+                                    onHapticToggled(it)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = selectedAccent.primaryColor,
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            )
                         }
 
-                        Switch(
-                            checked = hapticFeedbackEnabled,
-                            onCheckedChange = {
-                                hapticFeedbackEnabled = it
-                                onHapticToggled(it)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = AccentCyber,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
+                            thickness = 1.dp
                         )
-                    }
-                }
 
-                // Data Backup & Storage (Offline-First Export & Import)
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        // 2. Vault Grid Columns
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(Color(0xFF3B82F6), Color(0xFF10B981))
-                                        )
-                                    )
-                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0xFF10B981)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Storage,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
                             Column {
                                 Text(
-                                    text = "Data Backup & Storage",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    text = "Vault Grid Density",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Full offline backup, migration & restoration",
+                                    text = "Columns shown in deck vault",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                        }
 
-                        // Storage Metrics Card
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
-                                .padding(14.dp)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "LOCAL PERSISTENT VAULT",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        letterSpacing = 0.08.sp
-                                    )
-                                    Text(
-                                        text = "100% Offline-First",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF10B981),
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // Files & Folders Stat
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                    .padding(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                listOf(1, 2, 3, 4).forEach { cols ->
+                                    val isSelected = gridCols == cols
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                            .padding(horizontal = 10.dp, vertical = 8.dp)
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Folder,
-                                                contentDescription = null,
-                                                tint = Color(0xFF38BDF8),
-                                                modifier = Modifier.size(18.dp)
+                                            .size(width = 30.dp, height = 28.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (isSelected) selectedAccent.primaryColor.copy(alpha = 0.25f)
+                                                else Color.Transparent
                                             )
-                                            Column {
-                                                Text(
-                                                    text = "$filesCount files",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = "$foldersCount folders",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // Decks & Cards Stat
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                                            .clickable { onGridColsChanged(cols) },
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Style,
-                                                contentDescription = null,
-                                                tint = Color(0xFFA855F7),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Column {
-                                                Text(
-                                                    text = "$decksCount decks",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = "$cardsCount cards",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-                                        }
+                                        Text(
+                                            text = "$cols",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                }
-                            }
-                        }
-
-                        // Export and Import Primary Buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // 1. Export Backup (JSON) with Download icon
-                            Button(
-                                onClick = onExportBackupClick,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .testTag("export_backup_btn")
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Download,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "Export Backup",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-
-                            // 2. Import Backup (JSON) with Upload icon
-                            Button(
-                                onClick = onImportBackupClick,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                                    .testTag("import_backup_btn")
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Upload,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "Import Backup",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-                        }
-
-                        // Text Action for Manual JSON Paste
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            TextButton(
-                                onClick = onPasteJsonClick,
-                                modifier = Modifier.testTag("paste_json_backup_btn")
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Code,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "Paste Raw Backup JSON",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
                                 }
                             }
                         }
                     }
                 }
 
-                // AI API Key Section (Dual-Tier BYOK)
+                // Section 3: AI Intelligence Engine
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "GEMINI API KEY (CLIENT-SIDE BYOK)",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                letterSpacing = 0.08.sp
-                            )
-
-                            if (apiKeyInput.isNotBlank()) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(9999.dp))
-                                        .background(Color(0xFF065F46).copy(alpha = 0.4f))
-                                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.5f), RoundedCornerShape(9999.dp))
-                                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "BYOK ACTIVE",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF34D399),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        Text(
-                            text = "Tier 1: Input your Google Gemini API key to run active recall deck generation with your personal quota directly from your device. If left empty, Tier 2 (System Gemini Cloud / Smart Heuristic Fallback) will run seamlessly.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 18.sp
-                        )
-
-                        OutlinedTextField(
-                            value = apiKeyInput,
-                            onValueChange = {
-                                apiKeyInput = it
-                                saveFeedback = false
-                            },
-                            placeholder = {
-                                Text(
-                                    text = "AIzaSy...",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            },
-                            visualTransformation = if (showApiKey) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+                    SettingsGroupSection(
+                        title = "AI INTELLIGENCE (BYOK)",
+                        icon = Icons.Default.AutoAwesome,
+                        accentColor = selectedAccent.primaryColor
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(54.dp)
-                                .testTag("settings_api_key_input"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                focusedIndicatorColor = AccentCyber,
-                                unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            singleLine = true
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            TextButton(
-                                onClick = { showApiKey = !showApiKey }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (showApiKey) "Hide Key" else "Show Key",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = "Gemini API Key",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
+
+                                if (apiKeyInput.isNotBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(9999.dp))
+                                            .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                            .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Active",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF34D399),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "Use your personal Gemini key for unlimited high-speed flashcard generation. If empty, standard system generation is used.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = apiKeyInput,
+                                onValueChange = {
+                                    apiKeyInput = it
+                                    saveFeedback = false
+                                },
+                                placeholder = {
+                                    Text(
+                                        text = "AIzaSy...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { showApiKey = !showApiKey }) {
+                                        Icon(
+                                            imageVector = if (showApiKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                },
+                                visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .testTag("settings_api_key_input"),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = selectedAccent.primaryColor,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                singleLine = true
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 if (apiKeyInput.isNotBlank()) {
                                     TextButton(
                                         onClick = {
@@ -1014,7 +625,7 @@ fun SettingsScreen(
                                         }
                                     ) {
                                         Text(
-                                            text = "Clear Key",
+                                            text = "Clear",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color(0xFFEF4444)
                                         )
@@ -1026,17 +637,20 @@ fun SettingsScreen(
                                         onCustomApiKeyChanged(apiKeyInput.trim())
                                         saveFeedback = true
                                     },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (saveFeedback) Color(0xFF10B981) else AccentCyber
+                                        containerColor = if (saveFeedback) Color(0xFF10B981) else selectedAccent.primaryColor,
+                                        contentColor = selectedAccent.buttonTextColor
                                     ),
-                                    modifier = Modifier.testTag("save_api_key_btn")
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                    modifier = Modifier
+                                        .height(34.dp)
+                                        .testTag("save_api_key_btn")
                                 ) {
                                     Text(
-                                        text = if (saveFeedback) "Saved!" else "Save Key",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black
+                                        text = if (saveFeedback) "Saved" else "Save Key",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
@@ -1044,10 +658,251 @@ fun SettingsScreen(
                     }
                 }
 
+                // Section 4: Data & Vault Storage
                 item {
-                    Spacer(modifier = Modifier.height(40.dp))
+                    SettingsGroupSection(
+                        title = "VAULT DATA & BACKUP",
+                        icon = Icons.Default.Storage,
+                        accentColor = selectedAccent.primaryColor
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            // Minimal Storage Metrics Pill
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                MetricItem(icon = Icons.Default.Folder, count = filesCount, label = "Files", tint = Color(0xFF38BDF8))
+                                MetricDivider()
+                                MetricItem(icon = Icons.Default.Style, count = decksCount, label = "Decks", tint = Color(0xFFA855F7))
+                                MetricDivider()
+                                MetricItem(icon = Icons.Default.AutoAwesome, count = cardsCount, label = "Cards", tint = selectedAccent.primaryColor)
+                            }
+
+                            // Compact Backup Action Buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    onClick = onExportBackupClick,
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = selectedAccent.primaryColor,
+                                        contentColor = selectedAccent.buttonTextColor
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                        .testTag("export_backup_btn")
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Download,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "Export",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Button(
+                                    onClick = onImportBackupClick,
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                        .testTag("import_backup_btn")
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Upload,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "Import",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Manual JSON Paste Link
+                            TextButton(
+                                onClick = onPasteJsonClick,
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
+                                    .testTag("paste_json_backup_btn")
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Code,
+                                        contentDescription = null,
+                                        tint = selectedAccent.primaryColor,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "Paste Raw JSON Backup",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = selectedAccent.primaryColor,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Section 5: App Version Info
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "SepFol Liquid Studio • v2.4.0",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Local-First • Jetpack Compose Powered",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * Reusable Frosted Glass Grouped Settings Card
+ */
+@Composable
+private fun SettingsGroupSection(
+    title: String,
+    icon: ImageVector,
+    accentColor: Color,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 0.08.sp,
+                fontSize = 11.sp
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricItem(
+    icon: ImageVector,
+    count: Int,
+    label: String,
+    tint: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(16.dp)
+        )
+        Column {
+            Text(
+                text = "$count",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun MetricDivider() {
+    Box(
+        modifier = Modifier
+            .height(20.dp)
+            .width(1.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+    )
 }

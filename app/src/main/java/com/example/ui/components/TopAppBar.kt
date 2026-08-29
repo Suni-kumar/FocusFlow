@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,7 +89,7 @@ fun SepFolTopAppBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.88f))
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
@@ -117,32 +116,29 @@ fun SepFolTopAppBar(
         ) { mode ->
             when (mode) {
                 "SELECTION" -> {
-                    // Multi-selection Action Mode Bar
+                    // Multi-Select Action Bar Mode
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 8.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Left: Close & Count
+                        // Left: Close Selection and Count
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             IconButton(
                                 onClick = onClearSelection,
-                                modifier = Modifier.size(34.dp)
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Cancel Selection",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                                    contentDescription = "Clear selection",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
 
@@ -150,12 +146,12 @@ fun SepFolTopAppBar(
                                 text = "$selectionCount selected",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 16.sp
                             )
                         }
 
-                        // Right: Rename (if single item selected) and Delete (Dustbin)
+                        // Right: Rename & Delete
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -163,40 +159,46 @@ fun SepFolTopAppBar(
                             if (selectionCount == 1) {
                                 IconButton(
                                     onClick = onRenameSelected,
-                                    modifier = Modifier.size(36.dp)
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.DriveFileRenameOutline,
-                                        contentDescription = "Rename",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        contentDescription = "Rename selected item",
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
 
                             IconButton(
                                 onClick = onDeleteSelected,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(20.dp)
+                                    contentDescription = "Delete selected items",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
                     }
                 }
                 "SEARCH" -> {
-                    // Active Search Bar in Top Bar (Opened by swiping left on the gear icon)
+                    // Active Search Bar Mode
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(22.dp))
+                            .height(42.dp)
+                            .clip(RoundedCornerShape(21.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(22.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(21.dp))
                             .padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -210,23 +212,23 @@ fun SepFolTopAppBar(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Close search",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(6.dp))
-
                         Box(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 6.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (searchQuery.isEmpty()) {
                                 Text(
-                                    text = "Search files, notes, folders...",
+                                    text = "Search files, notes, decks...",
                                     style = TextStyle(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        fontSize = 14.sp
+                                        fontSize = 13.5.sp
                                     )
                                 )
                             }
@@ -236,7 +238,7 @@ fun SepFolTopAppBar(
                                 singleLine = true,
                                 textStyle = TextStyle(
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.5.sp,
                                     fontWeight = FontWeight.Normal
                                 ),
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -263,7 +265,7 @@ fun SepFolTopAppBar(
                     }
                 }
                 else -> {
-                    // Clean Top Bar: Brand & Profile on Left, Settings Gear on Right (Swipe left for search)
+                    // Clean Top Bar: Brand & Profile on Left, Settings Gear on Right (Swipe left to open search)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -311,7 +313,7 @@ fun SepFolTopAppBar(
                         var dragOffset by remember { mutableFloatStateOf(0f) }
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
@@ -345,7 +347,7 @@ fun SepFolTopAppBar(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = "Settings (Swipe left to search)",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
