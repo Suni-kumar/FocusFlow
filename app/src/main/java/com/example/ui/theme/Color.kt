@@ -4,136 +4,160 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ==========================================
-// 1. CANVAS & VOID TOKENS
+// 1. CANVAS & VOID TOKENS (DARK ONLY)
 // ==========================================
-val CanvasVoidDark = Color(0xFF07060B) // 98% Pure Black Void
-val CanvasLight = Color(0xFFF8FAFC)     // Slate-50 Crisp Canvas
+val CanvasVoidDark = Color(0xFF0B1326) // Deep Midnight Navy Canvas (#0b1326)
+val CanvasLight = Color(0xFF0B1326)    // Kept dark only
+
+// Surface hierarchy tokens
+val SurfaceDark = Color(0xFF0B1326)
+val SurfaceDimDark = Color(0xFF060D20)
+val SurfaceBrightDark = Color(0xFF31394E)
+val SurfaceContainerLowestDark = Color(0xFF060D20)
+val SurfaceContainerLowDark = Color(0xFF131B2E)
+val SurfaceContainerDark = Color(0xFF171F33)
+val SurfaceContainerHighDark = Color(0xFF222A3E)
+val SurfaceContainerHighestDark = Color(0xFF2D3449)
+val SurfaceCharcoalDark = Color(0xFF060D20)
+val SurfaceSlateDark = Color(0xFF171F33)
+
+val SurfaceLight = Color(0xFF0B1326)
+val SurfaceDimLight = Color(0xFF060D20)
+val SurfaceBrightLight = Color(0xFF31394E)
+val SurfaceContainerLowestLight = Color(0xFF060D20)
+val SurfaceContainerLowLight = Color(0xFF131B2E)
+val SurfaceContainerLight = Color(0xFF171F33)
+val SurfaceContainerHighLight = Color(0xFF222A3E)
+val SurfaceContainerHighestLight = Color(0xFF2D3449)
+val SurfaceCharcoalLight = Color(0xFF060D20)
+val SurfaceSlateLight = Color(0xFF171F33)
 
 // ==========================================
-// 2. GLASS SURFACE TOKENS
+// 2. LIQUID GLASS SURFACE & REFRACTION TOKENS
 // ==========================================
-val GlassSurfaceDarkLowest = Color(0x08FFFFFF)  // rgba(255, 255, 255, 0.03)
-val GlassSurfaceDarkLow = Color(0x0DFFFFFF)     // rgba(255, 255, 255, 0.05)
-val GlassSurfaceDarkDefault = Color(0x14FFFFFF) // rgba(255, 255, 255, 0.08)
+val GlassSurfaceDarkLowest = Color(0x05FFFFFF)  // rgba(255, 255, 255, 0.02)
+val GlassSurfaceDarkLow = Color(0x0AFFFFFF)     // rgba(255, 255, 255, 0.04)
+val GlassSurfaceDarkDefault = Color(0x12FFFFFF) // rgba(255, 255, 255, 0.07)
 val GlassSurfaceDarkHigh = Color(0x1FFFFFFF)    // rgba(255, 255, 255, 0.12)
 
 val GlassBorderDarkSubtle = Color(0x14FFFFFF)   // rgba(255, 255, 255, 0.08)
 val GlassBorderDarkFrosted = Color(0x26FFFFFF)  // rgba(255, 255, 255, 0.15)
-val GlassBorderDarkHighlight = Color(0x40FFFFFF) // rgba(255, 255, 255, 0.25)
+val GlassBorderDarkHighlight = Color(0x4DFFFFFF) // rgba(255, 255, 255, 0.30) - Refraction top/left light catch
 
-// Light Glass Tokens
-val GlassSurfaceLightLowest = Color(0xE6FFFFFF)
-val GlassSurfaceLightLow = Color(0xF2FFFFFF)
-val GlassSurfaceLightDefault = Color(0xFFFFFFFF)
-val GlassBorderLightSubtle = Color(0x1A0F172A)
-val GlassBorderLightFrosted = Color(0x330F172A)
+val SurfaceGlass = Color(0x08FFFFFF)            // rgba(255, 255, 255, 0.03)
+val BorderGlass = Color(0x1FFFFFFF)             // rgba(255, 255, 255, 0.12)
+val GlassRefractionTop = Color(0x33FFFFFF)      // rgba(255, 255, 255, 0.20)
+val GlassRefractionLeft = Color(0x1AFFFFFF)     // rgba(255, 255, 255, 0.10)
 
-// Legacy compatibility surface mappings
-val SurfaceDark = Color(0xFF0D0C14)
-val SurfaceDimDark = Color(0xFF07060B)
-val SurfaceBrightDark = Color(0xFF181622)
-val SurfaceContainerLowestDark = Color(0xFF07060B)
-val SurfaceContainerLowDark = Color(0xFF0F0E18)
-val SurfaceContainerDark = Color(0xFF151422)
-val SurfaceContainerHighDark = Color(0xFF1D1C2E)
-val SurfaceContainerHighestDark = Color(0xFF27253D)
-val SurfaceCharcoalDark = Color(0xFF07060B)
-val SurfaceSlateDark = Color(0xFF151422)
-
-val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceDimLight = Color(0xFFF1F5F9)
-val SurfaceBrightLight = Color(0xFFFFFFFF)
-val SurfaceContainerLowestLight = Color(0xFFFFFFFF)
-val SurfaceContainerLowLight = Color(0xFFF8FAFC)
-val SurfaceContainerLight = Color(0xFFF1F5F9)
-val SurfaceContainerHighLight = Color(0xFFE2E8F0)
-val SurfaceContainerHighestLight = Color(0xFFCBD5E1)
-val SurfaceCharcoalLight = Color(0xFFF8FAFC)
-val SurfaceSlateLight = Color(0xFFF1F5F9)
+// Light Glass Tokens (fallback mapped to dark glass)
+val GlassSurfaceLightLowest = GlassSurfaceDarkLowest
+val GlassSurfaceLightLow = GlassSurfaceDarkLow
+val GlassSurfaceLightDefault = GlassSurfaceDarkDefault
+val GlassBorderLightSubtle = GlassBorderDarkSubtle
+val GlassBorderLightFrosted = GlassBorderDarkFrosted
 
 // ==========================================
-// 3. TYPOGRAPHY NEUTRALS
+// 3. TYPOGRAPHY NEUTRALS (HIGH CONTRAST)
 // ==========================================
-val OnSurfaceDark = Color(0xFFFFFFFF)              // 100% Crisp White
-val OnSurfaceVariantDark = Color(0xA6FFFFFF)       // 65% Translucent Soft White
-val OnSurfaceMutedDark = Color(0x59FFFFFF)         // 35% Translucent Muted White
+val OnSurfaceDark = Color(0xFFDBE2FD)              // Crisp Luminous White/Ice (#dbe2fd)
+val OnSurfaceVariantDark = Color(0xFFBBCABF)       // Muted Sage/Slate (#bbcabf)
+val OnSurfaceMutedDark = Color(0xFF86948A)         // Subdued Outline/Slate (#86948a)
 
-val OnSurfaceLight = Color(0xFF0F172A)             // 100% Slate-900
-val OnSurfaceVariantLight = Color(0xA60F172A)      // 65% Slate
-val OnSurfaceMutedLight = Color(0x590F172A)        // 35% Slate
-
-// ==========================================
-// 4. STATUS COLORS (CRISP & FUNCTIONAL)
-// ==========================================
-val StatusSuccess = Color(0xFF10B981) // Emerald Green (Mastered / Ready)
-val StatusWarning = Color(0xFFF59E0B) // Amber Orange (Weak Items / Review)
-val StatusDanger = Color(0xFFEF4444)  // Crimson Red (Delete / Critical)
-val StatusInfo = Color(0xFF3B82F6)    // Electric Sky Blue (Badges / Info)
+val OnSurfaceLight = OnSurfaceDark
+val OnSurfaceVariantLight = OnSurfaceVariantDark
+val OnSurfaceMutedLight = OnSurfaceMutedDark
 
 // ==========================================
-// 5. BASE THEME COLORS (DEFAULT INDIGO / CYBER)
+// 4. ACCENT & SEMANTIC PALETTES (FROM REFERENCES)
 // ==========================================
-val PrimaryDark = Color(0xFF6366F1)
-val OnPrimaryDark = Color(0xFFFFFFFF)
-val PrimaryContainerDark = Color(0xFF4F46E5)
-val OnPrimaryContainerDark = Color(0xFFEEF2FF)
+// Primary: Bio Matrix Emerald Glow (#4edea3 / #10b981)
+val AccentEmerald = Color(0xFF4EDEA3)
+val PrimaryEmerald = Color(0xFF4EDEA3)
+val PrimaryContainerEmerald = Color(0xFF10B981)
+val OnPrimaryEmerald = Color(0xFF003824)
+val PrimaryFixedEmerald = Color(0xFF6FFBBE)
 
-val PrimaryLight = Color(0xFF4F46E5)
-val OnPrimaryLight = Color(0xFFFFFFFF)
-val PrimaryContainerLight = Color(0xFFE0E7FF)
-val OnPrimaryContainerLight = Color(0xFF312E81)
+// Secondary: Periwinkle Indigo (#c0c1ff / #818cf8)
+val SecondaryIndigo = Color(0xFFC0C1FF)
+val SecondaryContainerIndigo = Color(0xFF3131C0)
+val OnSecondaryIndigo = Color(0xFF1000A9)
 
-val SecondaryDark = Color(0xFFA855F7)
-val OnSecondaryDark = Color(0xFFFFFFFF)
-val SecondaryContainerDark = Color(0xFF7E22CE)
-val OnSecondaryContainerDark = Color(0xFFFAF5FF)
+// Tertiary: Soft Rose / Coral / PDF (#ffb2b7 / #ff7886)
+val TertiaryRose = Color(0xFFFFB2B7)
+val TertiaryContainerRose = Color(0xFFFF7886)
+val OnTertiaryRose = Color(0xFF67001B)
 
-val SecondaryLight = Color(0xFF7C3AED)
-val OnSecondaryLight = Color(0xFFFFFFFF)
-val SecondaryContainerLight = Color(0xFFEDE9FE)
-val OnSecondaryContainerLight = Color(0xFF4C1D95)
+// Status colors
+val StatusSuccess = Color(0xFF4EDEA3) // Emerald
+val StatusWarning = Color(0xFFF59E0B) // Amber
+val StatusDanger = Color(0xFFFFB4AB)  // Rose Red (#ffb4ab)
+val StatusInfo = Color(0xFF818CF8)    // Periwinkle Blue
 
-val TertiaryDark = Color(0xFF06B6D4)
-val OnTertiaryDark = Color(0xFF082F49)
-val TertiaryContainerDark = Color(0xFF0891B2)
-val OnTertiaryContainerDark = Color(0xFFECFEFF)
+// Default Active Accent Mappings
+val PrimaryDark = Color(0xFF4EDEA3)
+val OnPrimaryDark = Color(0xFF003824)
+val PrimaryContainerDark = Color(0xFF10B981)
+val OnPrimaryContainerDark = Color(0xFF00422B)
 
-val TertiaryLight = Color(0xFF0284C7)
-val OnTertiaryLight = Color(0xFFFFFFFF)
-val TertiaryContainerLight = Color(0xFFE0F2FE)
-val OnTertiaryContainerLight = Color(0xFF075985)
+val PrimaryLight = PrimaryDark
+val OnPrimaryLight = OnPrimaryDark
+val PrimaryContainerLight = PrimaryContainerDark
+val OnPrimaryContainerLight = OnPrimaryContainerDark
 
-val OutlineDark = Color(0x26FFFFFF)
-val OutlineVariantDark = Color(0x14FFFFFF)
+val SecondaryDark = Color(0xFFC0C1FF)
+val OnSecondaryDark = Color(0xFF1000A9)
+val SecondaryContainerDark = Color(0xFF3131C0)
+val OnSecondaryContainerDark = Color(0xFFB0B2FF)
 
-val OutlineLight = Color(0xFFCBD5E1)
-val OutlineVariantLight = Color(0xFFE2E8F0)
+val SecondaryLight = SecondaryDark
+val OnSecondaryLight = OnSecondaryDark
+val SecondaryContainerLight = SecondaryContainerDark
+val OnSecondaryContainerLight = OnSecondaryContainerDark
 
-val FocusBlue = Color(0xFF3B82F6)
+val TertiaryDark = Color(0xFFFFB2B7)
+val OnTertiaryDark = Color(0xFF67001B)
+val TertiaryContainerDark = Color(0xFFFF7886)
+val OnTertiaryContainerDark = Color(0xFF780021)
+
+val TertiaryLight = TertiaryDark
+val OnTertiaryLight = OnTertiaryDark
+val TertiaryContainerLight = TertiaryContainerDark
+val OnTertiaryContainerLight = OnTertiaryContainerDark
+
+val OutlineDark = Color(0xFF86948A)
+val OutlineVariantDark = Color(0x1FFFFFFF)
+
+val OutlineLight = OutlineDark
+val OutlineVariantLight = OutlineVariantDark
+
+val FocusBlue = Color(0xFF4EDEA3)
 
 // Legacy accent color constants
 val AccentCyber = Color(0xFF6366F1)
 val AccentMidnight = Color(0xFF06B6D4)
-val AccentEmerald = Color(0xFF10B981)
 val AccentSunset = Color(0xFFF59E0B)
 val AccentNebula = Color(0xFFEF4444)
 val AccentFrosted = Color(0xFFFFFFFF)
 
 // ==========================================
-// 6. LIQUID & GLOW GRADIENTS
+// 5. LIQUID & GLOW GRADIENTS
 // ==========================================
+// FAB Gradient: from-tertiary-container (#ff7886) to secondary-container (#8b5cf6 / #3131c0)
 val FabGradient = Brush.linearGradient(
-    colors = listOf(Color(0xFF9333EA), Color(0xFFDB2777))
+    colors = listOf(Color(0xFFFF7886), Color(0xFF8B5CF6))
 )
 
+val FabAmbientGlow = Color(0x668B5CF6)
+
 val CardGlowGradient = Brush.linearGradient(
-    colors = listOf(Color(0x256366F1), Color(0x25A855F7), Color(0x25EC4899))
+    colors = listOf(Color(0x1F4EDEA3), Color(0x15C0C1FF), Color(0x10FF7886))
 )
 
 val LiquidGlassReflection = Brush.linearGradient(
-    colors = listOf(Color(0x26FFFFFF), Color(0x00FFFFFF), Color(0x1AFFFFFF))
+    colors = listOf(Color(0x33FFFFFF), Color(0x05FFFFFF), Color(0x1AFFFFFF))
 )
 
 val HeaderGradientText = Brush.linearGradient(
-    colors = listOf(Color(0xFFFFFFFF), Color(0xFFC7D2FE))
+    colors = listOf(Color(0xFF4EDEA3), Color(0xFF6FFBBE))
 )
+

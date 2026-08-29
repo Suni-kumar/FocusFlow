@@ -17,12 +17,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.example.model.AccentTheme
 
-val LocalAccentTheme = staticCompositionLocalOf { AccentTheme.CYBER_CORE }
+val LocalAccentTheme = staticCompositionLocalOf { AccentTheme.BIO_MATRIX }
 
 @Composable
 fun SepFolTheme(
     darkTheme: Boolean = true,
-    accentTheme: AccentTheme = AccentTheme.CYBER_CORE,
+    accentTheme: AccentTheme = AccentTheme.BIO_MATRIX,
     content: @Composable () -> Unit
 ) {
     // Dynamic animated color transitions for theme switching (300ms ease-out)
@@ -42,53 +42,31 @@ fun SepFolTheme(
         label = "themeTertiary"
     )
 
-    val colorScheme = if (darkTheme) {
-        darkColorScheme(
-            primary = animatedPrimary,
-            onPrimary = accentTheme.buttonTextColor,
-            primaryContainer = animatedPrimary.copy(alpha = 0.25f),
-            onPrimaryContainer = Color.White,
-            secondary = animatedSecondary,
-            onSecondary = Color.White,
-            secondaryContainer = animatedSecondary.copy(alpha = 0.25f),
-            onSecondaryContainer = Color.White,
-            tertiary = animatedTertiary,
-            onTertiary = Color.White,
-            tertiaryContainer = animatedTertiary.copy(alpha = 0.25f),
-            onTertiaryContainer = Color.White,
-            background = CanvasVoidDark,
-            onBackground = OnSurfaceDark,
-            surface = SurfaceDark,
-            onSurface = OnSurfaceDark,
-            surfaceVariant = SurfaceContainerHighestDark,
-            onSurfaceVariant = OnSurfaceVariantDark,
-            outline = OutlineDark,
-            outlineVariant = OutlineVariantDark
-        )
-    } else {
-        lightColorScheme(
-            primary = animatedPrimary,
-            onPrimary = accentTheme.buttonTextColor,
-            primaryContainer = animatedPrimary.copy(alpha = 0.15f),
-            onPrimaryContainer = animatedPrimary,
-            secondary = animatedSecondary,
-            onSecondary = Color.White,
-            secondaryContainer = animatedSecondary.copy(alpha = 0.15f),
-            onSecondaryContainer = animatedSecondary,
-            tertiary = animatedTertiary,
-            onTertiary = Color.White,
-            tertiaryContainer = animatedTertiary.copy(alpha = 0.15f),
-            onTertiaryContainer = animatedTertiary,
-            background = CanvasLight,
-            onBackground = OnSurfaceLight,
-            surface = SurfaceLight,
-            onSurface = OnSurfaceLight,
-            surfaceVariant = SurfaceContainerLight,
-            onSurfaceVariant = OnSurfaceVariantLight,
-            outline = OutlineLight,
-            outlineVariant = OutlineVariantLight
-        )
-    }
+    val colorScheme = darkColorScheme(
+        primary = animatedPrimary,
+        onPrimary = accentTheme.buttonTextColor,
+        primaryContainer = animatedPrimary.copy(alpha = 0.20f),
+        onPrimaryContainer = Color.White,
+        secondary = animatedSecondary,
+        onSecondary = Color.White,
+        secondaryContainer = animatedSecondary.copy(alpha = 0.20f),
+        onSecondaryContainer = Color.White,
+        tertiary = animatedTertiary,
+        onTertiary = Color.White,
+        tertiaryContainer = animatedTertiary.copy(alpha = 0.20f),
+        onTertiaryContainer = Color.White,
+        background = CanvasVoidDark,
+        onBackground = OnSurfaceDark,
+        surface = SurfaceDark,
+        onSurface = OnSurfaceDark,
+        surfaceVariant = SurfaceContainerDark,
+        onSurfaceVariant = OnSurfaceVariantDark,
+        surfaceContainer = SurfaceContainerDark,
+        surfaceContainerHigh = SurfaceContainerHighDark,
+        surfaceContainerHighest = SurfaceContainerHighestDark,
+        outline = OutlineDark,
+        outlineVariant = OutlineVariantDark
+    )
 
     val view = LocalView.current
     if (!view.isInEditMode) {

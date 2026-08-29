@@ -78,12 +78,12 @@ fun StudyScreen(
     val cards = deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards }
     val currentCard = cards[currentCardIndex.coerceIn(0, cards.size - 1)]
 
-    // Flip animation rotation with high-refresh spring physics
+    // Flip animation rotation with smooth perceptible 3D rotation
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = 0.78f,
-            stiffness = 500f
+        animationSpec = tween(
+            durationMillis = 500,
+            easing = FastOutSlowInEasing
         ),
         label = "cardFlip"
     )

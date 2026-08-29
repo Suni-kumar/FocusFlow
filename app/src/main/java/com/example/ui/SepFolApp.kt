@@ -43,6 +43,7 @@ import com.example.model.MockDataSource
 import com.example.model.VisualEngine
 import com.example.ui.components.AmbientLiquidOrbsBackground
 import com.example.ui.components.MainTab
+import com.example.ui.components.SepFolBottomNavBar
 import com.example.ui.components.SepFolTopAppBar
 import com.example.ui.components.WorkspaceSwitcherModal
 import com.example.ui.dialogs.AiGenerateDeckDialog
@@ -93,7 +94,7 @@ fun SepFolApp() {
             try {
                 AccentTheme.valueOf(prefsManager.accentThemeName)
             } catch (e: Exception) {
-                AccentTheme.CYBER_CORE
+                AccentTheme.BIO_MATRIX
             }
         )
     }

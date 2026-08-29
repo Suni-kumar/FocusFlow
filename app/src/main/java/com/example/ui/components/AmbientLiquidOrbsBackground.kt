@@ -100,30 +100,18 @@ fun AmbientLiquidOrbsBackground(
         label = "phase3"
     )
 
-    // Dynamic Multi-Stop Cosmic Base Gradient (Eliminates flat single-color look)
-    val baseGradient = if (isDarkTheme) {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFF0C0A1A), // Deep Cosmic Indigo
-                Color(0xFF140F2E), // Luminous Twilight Violet
-                Color(0xFF080712), // Obsidian Shadow
-                Color(0xFF0E0A22), // Midnight Amethyst
-                Color(0xFF06050C)  // Pure Void Base
-            )
+    // Dynamic Multi-Stop Deep Midnight Cosmic Base Gradient (#0b1326 / #060d20)
+    val baseGradient = Brush.verticalGradient(
+        listOf(
+            Color(0xFF0B1326), // Deep Midnight Navy Canvas
+            Color(0xFF0D162B), // Atmospheric Navy Tone
+            Color(0xFF080F22), // Shadow Midnight
+            Color(0xFF0A1224), // Void Navy
+            Color(0xFF060D20)  // Pure Void Deep Base
         )
-    } else {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFFF8FAFC), // Crisp Slate
-                Color(0xFFEEF2FF), // Soft Indigo Mist
-                Color(0xFFFAF5FF), // Soft Lavender Mist
-                Color(0xFFF1F5F9), // Crisp Canvas
-                Color(0xFFE2E8F0)  // Subtle Foundation
-            )
-        )
-    }
+    )
 
-    val orbAlphaMultiplier = if (isDarkTheme) 0.38f else 0.16f
+    val orbAlphaMultiplier = 0.28f
 
     Box(
         modifier = modifier
@@ -136,12 +124,12 @@ fun AmbientLiquidOrbsBackground(
             val canvasH = size.height
 
             // Top-Center Atmospheric Accent Beam (Gives rich 8K depth highlight)
-            val topBeamRadius = canvasW * 0.75f
+            val topBeamRadius = canvasW * 0.85f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        orb1Color.copy(alpha = orbAlphaMultiplier * 0.65f),
-                        orb2Color.copy(alpha = orbAlphaMultiplier * 0.30f),
+                        orb1Color.copy(alpha = orbAlphaMultiplier * 0.70f),
+                        orb2Color.copy(alpha = orbAlphaMultiplier * 0.35f),
                         Color.Transparent
                     ),
                     center = Offset(canvasW * 0.5f, 0f),
@@ -151,17 +139,16 @@ fun AmbientLiquidOrbsBackground(
                 center = Offset(canvasW * 0.5f, 0f)
             )
 
-            // Orb 1: Top-Left floating anchor
-            val orb1X = canvasW * 0.18f + (canvasW * 0.12f * cos(phase1.toDouble())).toFloat()
-            val orb1Y = canvasH * 0.16f + (canvasH * 0.10f * sin(phase1.toDouble())).toFloat()
-            val orb1Radius = canvasW * 0.65f
+            // Orb 1: Top-Left floating emerald aura
+            val orb1X = canvasW * 0.15f + (canvasW * 0.12f * cos(phase1.toDouble())).toFloat()
+            val orb1Y = canvasH * 0.14f + (canvasH * 0.10f * sin(phase1.toDouble())).toFloat()
+            val orb1Radius = canvasW * 0.70f
 
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        orb1Color.copy(alpha = orbAlphaMultiplier * 1.1f),
+                        orb1Color.copy(alpha = orbAlphaMultiplier * 1.15f),
                         orb1Color.copy(alpha = orbAlphaMultiplier * 0.55f),
-                        orb2Color.copy(alpha = orbAlphaMultiplier * 0.20f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -171,16 +158,16 @@ fun AmbientLiquidOrbsBackground(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Orb 2: Top-Right / Center-Right fluid anchor
-            val orb2X = canvasW * 0.85f + (canvasW * 0.14f * sin(phase2.toDouble())).toFloat()
-            val orb2Y = canvasH * 0.36f + (canvasH * 0.12f * cos(phase2.toDouble())).toFloat()
-            val orb2Radius = canvasW * 0.70f
+            // Orb 2: Top-Right / Center-Right fluid indigo aura
+            val orb2X = canvasW * 0.88f + (canvasW * 0.14f * sin(phase2.toDouble())).toFloat()
+            val orb2Y = canvasH * 0.32f + (canvasH * 0.12f * cos(phase2.toDouble())).toFloat()
+            val orb2Radius = canvasW * 0.75f
 
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
                         orb2Color.copy(alpha = orbAlphaMultiplier * 1.0f),
-                        orb3Color.copy(alpha = orbAlphaMultiplier * 0.50f),
+                        orb3Color.copy(alpha = orbAlphaMultiplier * 0.45f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
@@ -190,16 +177,16 @@ fun AmbientLiquidOrbsBackground(
                 center = Offset(orb2X, orb2Y)
             )
 
-            // Orb 3: Bottom-Left / Center-Bottom fluid anchor
-            val orb3X = canvasW * 0.22f + (canvasW * 0.15f * cos(phase3.toDouble())).toFloat()
-            val orb3Y = canvasH * 0.75f + (canvasH * 0.11f * sin(phase3.toDouble())).toFloat()
-            val orb3Radius = canvasW * 0.72f
+            // Orb 3: Bottom-Left / Center-Bottom fluid fuchsia aura
+            val orb3X = canvasW * 0.18f + (canvasW * 0.15f * cos(phase3.toDouble())).toFloat()
+            val orb3Y = canvasH * 0.72f + (canvasH * 0.11f * sin(phase3.toDouble())).toFloat()
+            val orb3Radius = canvasW * 0.70f
 
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        orb3Color.copy(alpha = orbAlphaMultiplier * 0.95f),
-                        orb1Color.copy(alpha = orbAlphaMultiplier * 0.40f),
+                        orb3Color.copy(alpha = orbAlphaMultiplier * 0.85f),
+                        orb1Color.copy(alpha = orbAlphaMultiplier * 0.35f),
                         Color.Transparent
                     ),
                     center = Offset(orb3X, orb3Y),
@@ -209,16 +196,16 @@ fun AmbientLiquidOrbsBackground(
                 center = Offset(orb3X, orb3Y)
             )
 
-            // Orb 4: Bottom-Right auxiliary glow
+            // Orb 4: Bottom-Right auxiliary emerald aura
             val orb4X = canvasW * 0.82f + (canvasW * 0.10f * sin(phase1.toDouble() + 1.5f)).toFloat()
-            val orb4Y = canvasH * 0.88f + (canvasH * 0.09f * cos(phase2.toDouble() + 1.2f)).toFloat()
-            val orb4Radius = canvasW * 0.60f
+            val orb4Y = canvasH * 0.86f + (canvasH * 0.09f * cos(phase2.toDouble() + 1.2f)).toFloat()
+            val orb4Radius = canvasW * 0.65f
 
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        orb4Color.copy(alpha = orbAlphaMultiplier * 0.85f),
-                        orb2Color.copy(alpha = orbAlphaMultiplier * 0.35f),
+                        orb4Color.copy(alpha = orbAlphaMultiplier * 0.80f),
+                        orb2Color.copy(alpha = orbAlphaMultiplier * 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb4X, orb4Y),

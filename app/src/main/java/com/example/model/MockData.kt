@@ -52,7 +52,7 @@ enum class VisualEngine {
 
 enum class BrightnessMode(val label: String, val description: String) {
     DARK("Dark Mode", "Deep void canvas & eye safety"),
-    LIGHT("Light Mode", "Crisp paper & high daytime contrast"),
+    LIGHT("Dark Mode", "Deep void canvas & eye safety"),
     SYSTEM("System Default", "Follows device system settings")
 }
 
@@ -66,40 +66,40 @@ enum class AccentTheme(
     val buttonTextColor: Color = Color.White,
     val orbColors: List<Color>
 ) {
-    // 1. Cyber Core / Indigo (Default)
-    CYBER_CORE(
-        label = "Cyber Core",
-        subtitle = "Indigo & Purple",
-        primaryColor = Color(0xFF6366F1), // Indigo 500
-        secondaryColor = Color(0xFFA855F7), // Purple 500
-        accentGlowColor = Color(0xFFEC4899), // Pink 500
-        buttonGradientColors = listOf(Color(0xFF9333EA), Color(0xFFDB2777)), // from-purple-600 to-pink-600
-        buttonTextColor = Color.White,
-        orbColors = listOf(Color(0xFF6366F1), Color(0xFFA855F7), Color(0xFFEC4899), Color(0xFF3B82F6))
-    ),
-
-    // 2. Deep Velvet / Crimson
-    DEEP_VELVET(
-        label = "Deep Velvet",
-        subtitle = "Crimson & Rose",
-        primaryColor = Color(0xFFEF4444), // Red 500
-        secondaryColor = Color(0xFFF43F5E), // Rose 500
-        accentGlowColor = Color(0xFF991B1B), // Wine Red
-        buttonGradientColors = listOf(Color(0xFFDC2626), Color(0xFFE11D48)), // from-red-600 to-rose-600
-        buttonTextColor = Color.White,
-        orbColors = listOf(Color(0xFFEF4444), Color(0xFFF43F5E), Color(0xFF991B1B), Color(0xFFBE123C))
-    ),
-
-    // 3. Bio Matrix / Emerald
+    // 1. Bio Matrix / Emerald (Default matching Reference Designs)
     BIO_MATRIX(
         label = "Bio Matrix",
         subtitle = "Emerald & Mint",
-        primaryColor = Color(0xFF10B981), // Emerald 500
-        secondaryColor = Color(0xFF14B8A6), // Teal 500
-        accentGlowColor = Color(0xFF059669), // Mint Green
-        buttonGradientColors = listOf(Color(0xFF059669), Color(0xFF0D9488)), // from-emerald-600 to-teal-600
-        buttonTextColor = Color.White,
-        orbColors = listOf(Color(0xFF10B981), Color(0xFF14B8A6), Color(0xFF059669), Color(0xFF06B6D4))
+        primaryColor = Color(0xFF4EDEA3), // Emerald 400 (#4edea3)
+        secondaryColor = Color(0xFF10B981), // Emerald 500 (#10b981)
+        accentGlowColor = Color(0xFF6FFBBE), // Light Emerald Glow (#6ffbbe)
+        buttonGradientColors = listOf(Color(0xFFFF7886), Color(0xFF8B5CF6)), // Tertiary to Indigo glow
+        buttonTextColor = Color(0xFF003824),
+        orbColors = listOf(Color(0xFF4EDEA3), Color(0xFF818CF8), Color(0xFFD946EF), Color(0xFF10B981))
+    ),
+
+    // 2. Cyber Core / Indigo
+    CYBER_CORE(
+        label = "Cyber Core",
+        subtitle = "Indigo & Purple",
+        primaryColor = Color(0xFFC0C1FF), // Periwinkle Indigo (#c0c1ff)
+        secondaryColor = Color(0xFF818CF8), // Indigo 400
+        accentGlowColor = Color(0xFFD946EF), // Fuchsia Glow
+        buttonGradientColors = listOf(Color(0xFF6366F1), Color(0xFFA855F7)),
+        buttonTextColor = Color(0xFF1000A9),
+        orbColors = listOf(Color(0xFFC0C1FF), Color(0xFF818CF8), Color(0xFFD946EF), Color(0xFF3131C0))
+    ),
+
+    // 3. Deep Velvet / Coral Rose
+    DEEP_VELVET(
+        label = "Deep Velvet",
+        subtitle = "Coral & Rose",
+        primaryColor = Color(0xFFFFB2B7), // Rose (#ffb2b7)
+        secondaryColor = Color(0xFFFF7886), // Coral Pink (#ff7886)
+        accentGlowColor = Color(0xFF780021), // Deep Wine
+        buttonGradientColors = listOf(Color(0xFFFF7886), Color(0xFFE11D48)),
+        buttonTextColor = Color(0xFF67001B),
+        orbColors = listOf(Color(0xFFFFB2B7), Color(0xFFFF7886), Color(0xFF991B1B), Color(0xFFBE123C))
     ),
 
     // 4. Neon Electric / Cyber Cyan
@@ -109,7 +109,7 @@ enum class AccentTheme(
         primaryColor = Color(0xFF06B6D4), // Cyan 500
         secondaryColor = Color(0xFF3B82F6), // Blue 500
         accentGlowColor = Color(0xFF1D4ED8), // Deep Sea Blue
-        buttonGradientColors = listOf(Color(0xFF0891B2), Color(0xFF2563EB)), // from-cyan-600 to-blue-600
+        buttonGradientColors = listOf(Color(0xFF0891B2), Color(0xFF2563EB)),
         buttonTextColor = Color.White,
         orbColors = listOf(Color(0xFF06B6D4), Color(0xFF3B82F6), Color(0xFF1D4ED8), Color(0xFF6366F1))
     ),
@@ -121,7 +121,7 @@ enum class AccentTheme(
         primaryColor = Color(0xFFF59E0B), // Amber 500
         secondaryColor = Color(0xFFEAB308), // Yellow 500
         accentGlowColor = Color(0xFFEA580C), // Sunset Amber
-        buttonGradientColors = listOf(Color(0xFFD97706), Color(0xFFEAB308)), // from-amber-600 to-yellow-500
+        buttonGradientColors = listOf(Color(0xFFD97706), Color(0xFFEAB308)),
         buttonTextColor = Color.White,
         orbColors = listOf(Color(0xFFF59E0B), Color(0xFFEAB308), Color(0xFFEA580C), Color(0xFFDC2626))
     ),
@@ -130,11 +130,11 @@ enum class AccentTheme(
     AMOLED_MONOCHROME(
         label = "AMOLED Void",
         subtitle = "Monochrome & Silver",
-        primaryColor = Color(0xFFFFFFFF), // White
+        primaryColor = Color(0xFFDBE2FD), // Ice White (#dbe2fd)
         secondaryColor = Color(0xFF9CA3AF), // Neutral Gray
         accentGlowColor = Color(0xFFE2E8F0), // Silver
-        buttonGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFF1F5F9)), // Solid White
-        buttonTextColor = Color(0xFF07060B), // High-contrast black text on white
+        buttonGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFF1F5F9)),
+        buttonTextColor = Color(0xFF0B1326),
         orbColors = listOf(Color(0xFFE2E8F0), Color(0xFF9CA3AF), Color(0xFF64748B), Color(0xFFCBD5E1))
     );
 
@@ -143,15 +143,15 @@ enum class AccentTheme(
 
     companion object {
         fun fromStorageKey(key: String?): AccentTheme {
-            if (key == null) return CYBER_CORE
+            if (key == null) return BIO_MATRIX
             return when (key.uppercase()) {
+                "BIO_MATRIX", "EMERALD_AURORA" -> BIO_MATRIX
                 "CYBER_CORE", "CYBER_AMOLED" -> CYBER_CORE
                 "DEEP_VELVET", "NEBULA_VIOLET" -> DEEP_VELVET
-                "BIO_MATRIX", "EMERALD_AURORA" -> BIO_MATRIX
                 "NEON_ELECTRIC", "MIDNIGHT_CYAN" -> NEON_ELECTRIC
                 "SOLAR_FLARE", "SUNSET_EMBER" -> SOLAR_FLARE
                 "AMOLED_MONOCHROME", "FROSTED_VELVET" -> AMOLED_MONOCHROME
-                else -> CYBER_CORE
+                else -> BIO_MATRIX
             }
         }
     }
@@ -159,10 +159,10 @@ enum class AccentTheme(
 
 object MockDataSource {
     val recentFiles = listOf(
-        VaultItem("1", "Biology Notes", "2 mins ago", VaultItemType.DOCUMENT, "description"),
-        VaultItem("2", "Q3 Report", "1 hr ago", VaultItemType.PDF, "picture_as_pdf"),
-        VaultItem("3", "Wireframes", "Yesterday", VaultItemType.IMAGE, "image"),
-        VaultItem("4", "Neuro Systems", "3 days ago", VaultItemType.DOCUMENT, "neurology")
+        VaultItem("1", "Maths_SecP1X_2026_27.pdf", "2 mins ago", VaultItemType.PDF, "picture_as_pdf"),
+        VaultItem("2", "Synaptic Pruning Notes.md", "3 mins ago", VaultItemType.DOCUMENT, "description"),
+        VaultItem("3", "Biology Overview.md", "5 mins ago", VaultItemType.DOCUMENT, "description"),
+        VaultItem("4", "Physics_Mechanics_Handbook.pdf", "1 hr ago", VaultItemType.PDF, "picture_as_pdf")
     )
 
     val folders = listOf(
@@ -204,11 +204,11 @@ object MockDataSource {
             id = "d1",
             title = "Neural Plasticity",
             description = "Advanced concepts in neurobiology and synaptic adaptation mechanisms.",
-            cardCount = 124,
+            cardCount = 112,
             lastReviewed = "2h ago",
             progress = 0.75f,
             iconName = "psychology",
-            categoryColor = Color(0xFF2563EB),
+            categoryColor = Color(0xFFC0C1FF), // Periwinkle Indigo matching reference
             cards = neuralPlasticityCards
         ),
         FlashcardDeck(
@@ -219,7 +219,7 @@ object MockDataSource {
             lastReviewed = "Yesterday",
             progress = 0.45f,
             iconName = "calculate",
-            categoryColor = Color(0xFFBC4800),
+            categoryColor = Color(0xFFFFB2B7), // Coral Rose matching reference
             cards = listOf(
                 Flashcard("q1", "What is Heisenberg's Uncertainty Principle?", "States that position and momentum cannot be measured simultaneously with arbitrary precision.", "Quantum Mechanics")
             )
@@ -232,7 +232,7 @@ object MockDataSource {
             lastReviewed = "3 days ago",
             progress = 0.30f,
             iconName = "translate",
-            categoryColor = Color(0xFF5D5F5E),
+            categoryColor = Color(0xFF4EDEA3), // Emerald matching reference
             cards = listOf(
                 Flashcard("j1", "What does 考慮 (kouryo) mean?", "Consideration, taking into account.", "JLPT N2 Vocabulary")
             )
@@ -245,7 +245,7 @@ object MockDataSource {
             lastReviewed = "1 week ago",
             progress = 0.90f,
             iconName = "terminal",
-            categoryColor = Color(0xFF3B82F6),
+            categoryColor = Color(0xFFC0C1FF), // Indigo matching reference
             cards = listOf(
                 Flashcard("s1", "What is CAP Theorem?", "In a distributed data store, you can only simultaneously provide two of Consistency, Availability, and Partition tolerance.", "System Architecture")
             )
