@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -112,7 +113,6 @@ fun FolderScreen(
     onSwipeUpFab: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scrollState = rememberScrollState()
     val context = LocalContext.current
 
     // Storage Document Picker for importing local files
@@ -202,95 +202,102 @@ fun FolderScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .then(
                     if (uiState.folderStack.size > 1 && uiState.selectedViewerItem == null) Modifier.statusBarsPadding()
                     else Modifier
-                )
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                ),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Breadcrumb Navigation Trail
-            BreadcrumbBar(
-                breadcrumbs = uiState.folderStack,
-                onBreadcrumbClick = { index -> viewModel.navigateToBreadcrumb(index) },
-                onBackClick = { viewModel.navigateUp() }
-            )
+            item(key = "breadcrumb_bar") {
+                BreadcrumbBar(
+                    breadcrumbs = uiState.folderStack,
+                    onBreadcrumbClick = { index -> viewModel.navigateToBreadcrumb(index) },
+                    onBackClick = { viewModel.navigateUp() }
+                )
+            }
 
             // Filter & Sort Toolbar
-            FilterSortToolbar(
-                activeFilterTab = uiState.activeFilterTab,
-                onFilterTabSelected = { tab -> viewModel.setActiveFilterTab(tab) },
-                currentSortOption = uiState.sortOption,
-                onSortOptionSelected = { sort -> viewModel.setSortOption(sort) }
-            )
+            item(key = "filter_sort_toolbar") {
+                FilterSortToolbar(
+                    activeFilterTab = uiState.activeFilterTab,
+                    onFilterTabSelected = { tab -> viewModel.setActiveFilterTab(tab) },
+                    currentSortOption = uiState.sortOption,
+                    onSortOptionSelected = { sort -> viewModel.setSortOption(sort) }
+                )
+            }
 
             // Search Active Filter Status Chip
             if (uiState.searchQuery.isNotBlank()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                item(key = "search_filter_chip") {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Filtered by: \"${uiState.searchQuery}\"",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp
+                            )
+                        }
                         Text(
-                            text = "Filtered by: \"${uiState.searchQuery}\"",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp
+                            text = "Clear",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { viewModel.setSearchQuery("") }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
-                    Text(
-                        text = "Clear",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable { viewModel.setSearchQuery("") }
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
                 }
             }
 
             // Recent Files Section (Only at Root and when on ALL filter and no search query)
             if (uiState.currentFolderId == null && uiState.activeFilterTab == "ALL" && uiState.searchQuery.isBlank() && uiState.recentItems.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "RECENT FILES & NOTES",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        letterSpacing = 0.08.sp
-                    )
+                item(key = "recent_files_section") {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = "RECENT FILES & NOTES",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 0.08.sp
+                        )
 
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(end = 8.dp)
-                    ) {
-                        items(uiState.recentItems) { item ->
-                            RecentNoteCard(
-                                item = item,
-                                onClick = { viewModel.selectNote(item) }
-                            )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(end = 8.dp)
+                        ) {
+                            items(uiState.recentItems, key = { "recent_${it.id}" }) { item ->
+                                RecentNoteCard(
+                                    item = item,
+                                    onClick = { viewModel.selectNote(item) }
+                                )
+                            }
                         }
                     }
                 }
@@ -301,16 +308,18 @@ fun FolderScreen(
             val files = uiState.currentItems.filter { !it.isDirectory }
 
             if (uiState.currentItems.isEmpty()) {
-                EmptyFolderState(
-                    isSearch = uiState.searchQuery.isNotBlank() || uiState.activeFilterTab != "ALL",
-                    onCreateFolderClick = { viewModel.openCreateFolderDialog() },
-                    onCreateNoteClick = { viewModel.openCreateNoteDialog() },
-                    onImportFileClick = { filePickerLauncher.launch(arrayOf("*/*")) }
-                )
+                item(key = "empty_folder_state") {
+                    EmptyFolderState(
+                        isSearch = uiState.searchQuery.isNotBlank() || uiState.activeFilterTab != "ALL",
+                        onCreateFolderClick = { viewModel.openCreateFolderDialog() },
+                        onCreateNoteClick = { viewModel.openCreateNoteDialog() },
+                        onImportFileClick = { filePickerLauncher.launch(arrayOf("*/*")) }
+                    )
+                }
             } else {
-                // Folders Grid Section
+                // Folders Section
                 if (folders.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    item(key = "folders_header") {
                         Text(
                             text = "FOLDERS (${folders.size})",
                             style = MaterialTheme.typography.labelMedium,
@@ -318,40 +327,38 @@ fun FolderScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 0.08.sp
                         )
+                    }
 
-                        val rows = folders.chunked(uiState.gridColumns.coerceIn(1, 4))
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            for (row in rows) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    for (folder in row) {
-                                        val isSelected = folder.id in uiState.selectedItemIds
-                                        Box(modifier = Modifier.weight(1f)) {
-                                            FolderCard(
-                                                folder = folder,
-                                                isSelected = isSelected,
-                                                isSelectionMode = uiState.isSelectionMode,
-                                                onClick = {
-                                                    if (uiState.isSelectionMode) {
-                                                        viewModel.toggleItemSelection(folder.id)
-                                                    } else {
-                                                        viewModel.openFolder(folder)
-                                                    }
-                                                },
-                                                onLongClick = {
-                                                    viewModel.toggleItemSelection(folder.id)
-                                                },
-                                                onMoreClick = { viewModel.openActionMenu(folder) }
-                                            )
-                                        }
-                                    }
-                                    if (row.size < uiState.gridColumns) {
-                                        repeat(uiState.gridColumns - row.size) {
-                                            Spacer(modifier = Modifier.weight(1f))
-                                        }
-                                    }
+                    val rows = folders.chunked(uiState.gridColumns.coerceIn(1, 4))
+                    itemsIndexed(rows, key = { rowIndex, _ -> "folder_row_$rowIndex" }) { _, row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            for (folder in row) {
+                                val isSelected = folder.id in uiState.selectedItemIds
+                                Box(modifier = Modifier.weight(1f)) {
+                                    FolderCard(
+                                        folder = folder,
+                                        isSelected = isSelected,
+                                        isSelectionMode = uiState.isSelectionMode,
+                                        onClick = {
+                                            if (uiState.isSelectionMode) {
+                                                viewModel.toggleItemSelection(folder.id)
+                                            } else {
+                                                viewModel.openFolder(folder)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            viewModel.toggleItemSelection(folder.id)
+                                        },
+                                        onMoreClick = { viewModel.openActionMenu(folder) }
+                                    )
+                                }
+                            }
+                            if (row.size < uiState.gridColumns) {
+                                repeat(uiState.gridColumns - row.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
@@ -360,7 +367,7 @@ fun FolderScreen(
 
                 // Documents & Markdown Notes Section
                 if (files.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    item(key = "documents_header") {
                         Text(
                             text = "DOCUMENTS & FILES (${files.size})",
                             style = MaterialTheme.typography.labelMedium,
@@ -368,33 +375,33 @@ fun FolderScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 0.08.sp
                         )
+                    }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            for (file in files) {
-                                val isSelected = file.id in uiState.selectedItemIds
-                                NoteListItemCard(
-                                    item = file,
-                                    isSelected = isSelected,
-                                    isSelectionMode = uiState.isSelectionMode,
-                                    onClick = {
-                                        if (uiState.isSelectionMode) {
-                                            viewModel.toggleItemSelection(file.id)
-                                        } else {
-                                            viewModel.selectNote(file)
-                                        }
-                                    },
-                                    onLongClick = {
-                                        viewModel.toggleItemSelection(file.id)
-                                    },
-                                    onMoreClick = { viewModel.openActionMenu(file) }
-                                )
-                            }
-                        }
+                    items(files, key = { "file_${it.id}" }) { file ->
+                        val isSelected = file.id in uiState.selectedItemIds
+                        NoteListItemCard(
+                            item = file,
+                            isSelected = isSelected,
+                            isSelectionMode = uiState.isSelectionMode,
+                            onClick = {
+                                if (uiState.isSelectionMode) {
+                                    viewModel.toggleItemSelection(file.id)
+                                } else {
+                                    viewModel.selectNote(file)
+                                }
+                            },
+                            onLongClick = {
+                                viewModel.toggleItemSelection(file.id)
+                            },
+                            onMoreClick = { viewModel.openActionMenu(file) }
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(100.dp))
+            item(key = "bottom_spacer") {
+                Spacer(modifier = Modifier.height(100.dp))
+            }
         }
 
         // Floating Animated Speed Dial FAB at Bottom Right

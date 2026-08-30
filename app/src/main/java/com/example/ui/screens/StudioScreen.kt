@@ -26,6 +26,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +36,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -97,7 +100,6 @@ fun StudioScreen(
     onClearSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val scrollState = rememberScrollState()
     val isSelectionMode = selectedDeckIds.isNotEmpty()
     var isSpeedDialOpen by remember { mutableStateOf(false) }
 
@@ -114,74 +116,74 @@ fun StudioScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Study Summary & Quick Stats Banner
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp)),
-                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                borderColor = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Row(
+            item(key = "stats_banner") {
+                GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .clip(RoundedCornerShape(16.dp)),
+                    backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                    borderColor = MaterialTheme.colorScheme.outlineVariant,
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.School,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.School,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "Active Recall Vault",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                             Text(
-                                text = "Active Recall Vault",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                text = "${decks.size} Decks • ${decks.sumOf { it.cardCount }} Flashcards in rotation",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Text(
-                            text = "${decks.size} Decks • ${decks.sumOf { it.cardCount }} Flashcards in rotation",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                            .clickable { onViewAllDecksClick() }
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "View All",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .clickable { onViewAllDecksClick() }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "View All",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
 
-            // Managed Decks Section with Multi-selection support
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Managed Decks Header
+            item(key = "managed_decks_header") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -214,9 +216,11 @@ fun StudioScreen(
                         )
                     }
                 }
+            }
 
-                // Decks Grid
-                if (decks.isEmpty()) {
+            // Decks List / Grid
+            if (decks.isEmpty()) {
+                item(key = "empty_decks_view") {
                     GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -252,43 +256,44 @@ fun StudioScreen(
                             )
                         }
                     }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        for (chunk in decks.chunked(2)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                for (deck in chunk) {
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        val isSelected = deck.id in selectedDeckIds
-                                        ManagedDeckItem(
-                                            deck = deck,
-                                            isSelected = isSelected,
-                                            isSelectionMode = isSelectionMode,
-                                            onClick = {
-                                                if (isSelectionMode) {
-                                                    onToggleSelection(deck.id)
-                                                } else {
-                                                    onDeckClick(deck)
-                                                }
-                                            },
-                                            onLongClick = {
-                                                onToggleSelection(deck.id)
-                                            }
-                                        )
+                }
+            } else {
+                val chunks = decks.chunked(2)
+                itemsIndexed(chunks, key = { index, _ -> "deck_chunk_$index" }) { _, chunk ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        for (deck in chunk) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                val isSelected = deck.id in selectedDeckIds
+                                ManagedDeckItem(
+                                    deck = deck,
+                                    isSelected = isSelected,
+                                    isSelectionMode = isSelectionMode,
+                                    onClick = {
+                                        if (isSelectionMode) {
+                                            onToggleSelection(deck.id)
+                                        } else {
+                                            onDeckClick(deck)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        onToggleSelection(deck.id)
                                     }
-                                }
-                                if (chunk.size == 1) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
+                                )
                             }
+                        }
+                        if (chunk.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(110.dp))
+            item(key = "studio_bottom_spacer") {
+                Spacer(modifier = Modifier.height(110.dp))
+            }
         }
 
         // Speed Dial Floating Action Menu with AI Generate Deck & Create Deck

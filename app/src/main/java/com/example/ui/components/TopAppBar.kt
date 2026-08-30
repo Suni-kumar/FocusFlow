@@ -9,7 +9,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -317,21 +319,19 @@ fun SepFolTopAppBar(
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
-                                .pointerInput(Unit) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { dragOffset = 0f },
-                                        onHorizontalDrag = { change, dragAmount ->
-                                            dragOffset += dragAmount
-                                            if (dragOffset < -18f) { // Left swipe gesture opens search
-                                                change.consume()
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                onSearchActiveChange(true)
-                                            }
-                                        },
-                                        onDragEnd = { dragOffset = 0f },
-                                        onDragCancel = { dragOffset = 0f }
-                                    )
-                                }
+                                .draggable(
+                                    orientation = Orientation.Horizontal,
+                                    state = rememberDraggableState { delta ->
+                                        dragOffset += delta
+                                    },
+                                    onDragStopped = { velocity ->
+                                        if (velocity < -80f || dragOffset < -20f) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            onSearchActiveChange(true)
+                                        }
+                                        dragOffset = 0f
+                                    }
+                                )
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
