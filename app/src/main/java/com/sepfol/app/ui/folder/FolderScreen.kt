@@ -513,8 +513,8 @@ fun BreadcrumbBar(
 ) {
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-        borderColor = Color.White.copy(alpha = 0.05f),
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.65f),
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -615,8 +615,8 @@ fun RecentNoteCard(
         modifier = modifier
             .width(150.dp)
             .height(135.dp),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-        borderColor = Color.White.copy(alpha = 0.05f),
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         onClick = onClick
     ) {
         Column(
@@ -701,11 +701,11 @@ fun FolderCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
+    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f)
     val borderCol = when {
-        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
         folder.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-        else -> Color.White.copy(alpha = 0.05f)
+        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
     }
 
     GlassCard(
@@ -820,11 +820,11 @@ fun NoteListItemCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
+    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f)
     val borderCol = when {
-        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
         item.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-        else -> Color.White.copy(alpha = 0.05f)
+        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
     }
 
     GlassCard(
@@ -973,8 +973,8 @@ fun EmptyFolderState(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 24.dp),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-        borderColor = Color.White.copy(alpha = 0.05f),
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(

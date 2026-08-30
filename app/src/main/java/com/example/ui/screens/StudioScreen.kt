@@ -128,8 +128,8 @@ fun StudioScreen(
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     borderWidth = 1.dp
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
@@ -192,11 +192,17 @@ fun StudioScreen(
                                     )
                                 }
                             }
-                            // Stats Row
+                            // Dynamic Stats Row
+                            val totalDecks = decks.size
+                            val totalCards = decks.sumOf { it.cards.size }
+                            val avgMastery = if (decks.isNotEmpty()) {
+                                (decks.map { it.progress }.average() * 100).toInt()
+                            } else 0
+
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                StatItem(title = "Decks", value = "${decks.size}")
-                                StatItem(title = "Cards", value = "${decks.sumOf { it.cardCount }}")
-                                StatItem(title = "Streak", value = "12", suffix = "days")
+                                StatItem(title = "Decks", value = "$totalDecks")
+                                StatItem(title = "Cards", value = "$totalCards")
+                                StatItem(title = "Mastery", value = "$avgMastery", suffix = "%")
                             }
                         }
                     }
@@ -624,19 +630,16 @@ fun ManagedDeckItem(
         modifier = modifier
             .fillMaxWidth()
             .height(135.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
-            )
             .testTag("managed_deck_${deck.id}"),
-        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-        borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.05f),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         borderWidth = if (isSelected) 1.5.dp else 1.dp,
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(14.dp),
+        onClick = onClick,
+        onLongClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onLongClick()
+        }
     ) {
         Column(
             modifier = Modifier
@@ -668,15 +671,15 @@ fun ManagedDeckItem(
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(if (isSelected) PrimaryDark else Color.Transparent)
-                                .border(1.5.dp, if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.4f), CircleShape),
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                .border(1.5.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -702,14 +705,14 @@ fun ManagedDeckItem(
                                 )
                             }
                             BadgeChip(
-                                text = "${deck.cardCount} cards",
+                                text = "${deck.cards.size} cards",
                                 backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 textColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     } else {
                         BadgeChip(
-                            text = "${deck.cardCount} cards",
+                            text = "${deck.cards.size} cards",
                             backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                             textColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -734,7 +737,7 @@ fun ManagedDeckItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (deck.progress > 0.5f) "Reviewing" else "Due: ${deck.cardCount / 2}",
+                        text = if (deck.progress > 0.5f) "Reviewing" else "Due: ${deck.cards.size.coerceAtLeast(1)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp

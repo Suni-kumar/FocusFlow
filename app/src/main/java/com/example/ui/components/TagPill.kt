@@ -32,7 +32,7 @@ fun TagPill(
     }
 
     val textColor = if (isSelected) {
-        Color.White
+        MaterialTheme.colorScheme.onPrimary
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -40,7 +40,7 @@ fun TagPill(
     val borderModifier = if (isSelected) {
         Modifier.border(1.dp, color, RoundedCornerShape(9999.dp))
     } else {
-        Modifier.border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(9999.dp))
+        Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(9999.dp))
     }
 
     val clickModifier = if (onClick != null) {

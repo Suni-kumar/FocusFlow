@@ -40,6 +40,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -96,8 +97,8 @@ fun RestoreConfirmationDialog(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(24.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp)),
-            color = Color(0xFF131522),
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         ) {
             Column(
@@ -120,7 +121,7 @@ fun RestoreConfirmationDialog(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF8B5CF6)))),
+                                .background(Brush.linearGradient(listOf(Color(0xFF3B82F6), MaterialTheme.colorScheme.primary))),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -136,12 +137,12 @@ fun RestoreConfirmationDialog(
                                 text = "Restore Backup",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Validate & Import Data",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -153,20 +154,20 @@ fun RestoreConfirmationDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color.White.copy(alpha = 0.7f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                 // Backup Summary Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f))
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -178,13 +179,13 @@ fun RestoreConfirmationDialog(
                                 text = "BACKUP SUMMARY",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = AccentCyber,
+                                color = MaterialTheme.colorScheme.primary,
                                 letterSpacing = 0.08.sp
                             )
                             Text(
                                 text = meta.exportDateFormatted.ifBlank { "Valid JSON" },
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.6f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -197,7 +198,7 @@ fun RestoreConfirmationDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color.White.copy(alpha = 0.04f))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f))
                                     .padding(10.dp)
                             ) {
                                 Row(
@@ -215,12 +216,12 @@ fun RestoreConfirmationDialog(
                                             text = "$totalFiles files",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "$totalFolders folders",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.White.copy(alpha = 0.5f),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 10.sp
                                         )
                                     }
@@ -232,7 +233,7 @@ fun RestoreConfirmationDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color.White.copy(alpha = 0.04f))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f))
                                     .padding(10.dp)
                             ) {
                                 Row(
@@ -250,12 +251,12 @@ fun RestoreConfirmationDialog(
                                             text = "$totalDecks decks",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "$totalCards cards",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.White.copy(alpha = 0.5f),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 10.sp
                                         )
                                     }
@@ -270,7 +271,7 @@ fun RestoreConfirmationDialog(
                     text = "SELECT RESTORE STRATEGY",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 0.08.sp
                 )
 
@@ -280,10 +281,10 @@ fun RestoreConfirmationDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (isMergeStrategy) PrimaryDark.copy(alpha = 0.15f) else SurfaceSlateDark.copy(alpha = 0.5f))
+                            .background(if (isMergeStrategy) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
                             .border(
                                 width = if (isMergeStrategy) 1.5.dp else 1.dp,
-                                color = if (isMergeStrategy) PrimaryDark else Color.White.copy(alpha = 0.08f),
+                                color = if (isMergeStrategy) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
                                 shape = RoundedCornerShape(14.dp)
                             )
                             .clickable {
@@ -300,7 +301,7 @@ fun RestoreConfirmationDialog(
                             RadioButton(
                                 selected = isMergeStrategy,
                                 onClick = { isMergeStrategy = true },
-                                colors = RadioButtonDefaults.colors(selectedColor = PrimaryDark, unselectedColor = Color.White.copy(alpha = 0.4f))
+                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary, unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                             )
                             Column {
                                 Row(
@@ -311,13 +312,13 @@ fun RestoreConfirmationDialog(
                                         text = "Merge with Existing (Recommended)",
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 Text(
                                     text = "Keep current files & decks, add missing items, update matching IDs.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 11.sp
                                 )
                             }
@@ -329,10 +330,10 @@ fun RestoreConfirmationDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (!isMergeStrategy) Color(0xFFEF4444).copy(alpha = 0.15f) else SurfaceSlateDark.copy(alpha = 0.5f))
+                            .background(if (!isMergeStrategy) Color(0xFFEF4444).copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
                             .border(
                                 width = if (!isMergeStrategy) 1.5.dp else 1.dp,
-                                color = if (!isMergeStrategy) Color(0xFFEF4444) else Color.White.copy(alpha = 0.08f),
+                                color = if (!isMergeStrategy) Color(0xFFEF4444) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
                                 shape = RoundedCornerShape(14.dp)
                             )
                             .clickable {
@@ -349,19 +350,19 @@ fun RestoreConfirmationDialog(
                             RadioButton(
                                 selected = !isMergeStrategy,
                                 onClick = { isMergeStrategy = false },
-                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFEF4444), unselectedColor = Color.White.copy(alpha = 0.4f))
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFEF4444), unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                             )
                             Column {
                                 Text(
                                     text = "Overwrite / Replace All",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Completely replace local vault and studio with the backup data.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 11.sp
                                 )
                             }
@@ -374,15 +375,14 @@ fun RestoreConfirmationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
+                    OutlinedButton(
                         onClick = onDismiss,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f)),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             text = "Cancel",
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -394,7 +394,7 @@ fun RestoreConfirmationDialog(
                         },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isMergeStrategy) PrimaryDark else Color(0xFFEF4444)
+                            containerColor = if (isMergeStrategy) MaterialTheme.colorScheme.primary else Color(0xFFEF4444)
                         ),
                         modifier = Modifier
                             .weight(1.3f)
@@ -407,12 +407,12 @@ fun RestoreConfirmationDialog(
                             Icon(
                                 imageVector = if (isMergeStrategy) Icons.Default.MergeType else Icons.Default.Replay,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = if (isMergeStrategy) "Merge Restore" else "Replace All",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -441,8 +441,8 @@ fun ManualJsonImportDialog(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(24.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp)),
-            color = Color(0xFF131522),
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         ) {
             Column(
@@ -460,7 +460,7 @@ fun ManualJsonImportDialog(
                         text = "Paste Backup JSON",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     IconButton(
@@ -470,7 +470,7 @@ fun ManualJsonImportDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color.White.copy(alpha = 0.7f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -478,7 +478,7 @@ fun ManualJsonImportDialog(
                 Text(
                     text = "Paste JSON content from a previously exported backup or deck file.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.65f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 // Paste from clipboard shortcut
@@ -502,14 +502,14 @@ fun ManualJsonImportDialog(
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
                             contentDescription = null,
-                            tint = AccentCyber,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Paste from Clipboard",
                             style = MaterialTheme.typography.labelSmall,
-                            color = AccentCyber,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -525,7 +525,7 @@ fun ManualJsonImportDialog(
                         Text(
                             text = "{\n  \"metadata\": { ... },\n  \"files\": [ ... ],\n  \"decks\": [ ... ]\n}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.3f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             fontFamily = FontFamily.Monospace
                         )
                     },
@@ -535,12 +535,12 @@ fun ManualJsonImportDialog(
                         .testTag("manual_json_input"),
                     shape = RoundedCornerShape(14.dp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = SurfaceSlateDark.copy(alpha = 0.8f),
-                        unfocusedContainerColor = SurfaceSlateDark.copy(alpha = 0.8f),
-                        focusedIndicatorColor = PrimaryDark,
-                        unfocusedIndicatorColor = Color.White.copy(alpha = 0.1f),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
                 )
@@ -549,7 +549,7 @@ fun ManualJsonImportDialog(
                     Text(
                         text = errorMessage ?: "",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFEF4444)
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
 
@@ -557,15 +557,14 @@ fun ManualJsonImportDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
+                    OutlinedButton(
                         onClick = onDismiss,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f)),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             text = "Cancel",
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -580,14 +579,14 @@ fun ManualJsonImportDialog(
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryDark),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .weight(1.2f)
                             .testTag("submit_manual_json_btn")
                     ) {
                         Text(
                             text = "Parse & Restore",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -619,8 +618,8 @@ fun ExportSuccessDialog(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(24.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp)),
-            color = Color(0xFF131522),
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         ) {
             Column(
@@ -659,12 +658,12 @@ fun ExportSuccessDialog(
                                 text = "Backup Generated",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Full Vault & Flashcard Package",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -676,20 +675,20 @@ fun ExportSuccessDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color.White.copy(alpha = 0.7f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                 // Stats Box
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f))
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -697,14 +696,14 @@ fun ExportSuccessDialog(
                             text = fileName,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = AccentCyber,
+                            color = MaterialTheme.colorScheme.primary,
                             fontFamily = FontFamily.Monospace
                         )
 
                         Text(
                             text = "Includes $filesCount files, $decksCount decks ($cardsCount flashcards), and preferences.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -719,7 +718,7 @@ fun ExportSuccessDialog(
                             onSaveDocument()
                         },
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryDark),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
@@ -732,20 +731,20 @@ fun ExportSuccessDialog(
                             Icon(
                                 imageVector = Icons.Default.Download,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = "Save to Files / Storage",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
 
                     // Share JSON / File Intent
-                    Button(
+                    OutlinedButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -756,11 +755,9 @@ fun ExportSuccessDialog(
                             context.startActivity(Intent.createChooser(shareIntent, "Share FocusFlow Backup"))
                         },
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SurfaceSlateDark),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(46.dp)
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(14.dp))
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -769,14 +766,14 @@ fun ExportSuccessDialog(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = "Share via Apps / AirDrop",
+                                text = "Share via Apps",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -799,13 +796,13 @@ fun ExportSuccessDialog(
                             Icon(
                                 imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
                                 contentDescription = null,
-                                tint = if (isCopied) Color(0xFF10B981) else Color.White.copy(alpha = 0.7f),
+                                tint = if (isCopied) Color(0xFF10B981) else MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = if (isCopied) "Copied JSON to Clipboard!" else "Copy JSON Content",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isCopied) Color(0xFF10B981) else Color.White.copy(alpha = 0.7f),
+                                color = if (isCopied) Color(0xFF10B981) else MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }

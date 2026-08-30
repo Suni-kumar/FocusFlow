@@ -35,7 +35,7 @@ data class FlashcardDeck(
     val id: String,
     val title: String,
     val description: String,
-    val cardCount: Int,
+    val cardCount: Int = cards.size,
     val lastReviewed: String,
     val progress: Float, // 0.0 to 1.0
     val iconName: String,
@@ -200,56 +200,71 @@ object MockDataSource {
         )
     )
 
+    val quantumMechanicsCards = listOf(
+        Flashcard("q1", "What is Heisenberg's Uncertainty Principle?", "States that position and momentum cannot be measured simultaneously with arbitrary precision.", "Quantum Mechanics"),
+        Flashcard("q2", "What is Wave-Particle Duality?", "The concept that matter and light exhibit behaviors of both waves and particles depending on the experiment.", "Quantum Mechanics"),
+        Flashcard("q3", "What is Quantum Superposition?", "A principle of quantum mechanics where a system can exist in multiple states at once until measured.", "Quantum Mechanics"),
+        Flashcard("q4", "What does Schrödinger's Wave Equation describe?", "It describes how the quantum state of a physical system changes over time.", "Quantum Mechanics")
+    )
+
+    val jlptVocabularyCards = listOf(
+        Flashcard("j1", "What does 考慮 (kouryo) mean?", "Consideration, taking into account.", "JLPT N2 Vocabulary"),
+        Flashcard("j2", "What does 改善 (kaizen) mean?", "Continuous improvement or reform for the better.", "JLPT N2 Vocabulary"),
+        Flashcard("j3", "What does 把握 (haaku) mean?", "Grasp, understanding, or holding firmly.", "JLPT N2 Vocabulary"),
+        Flashcard("j4", "What does 促進 (sokushin) mean?", "Promotion, acceleration, or spurring forward.", "JLPT N2 Vocabulary")
+    )
+
+    val systemArchitectureCards = listOf(
+        Flashcard("s1", "What is CAP Theorem?", "In a distributed data store, you can only simultaneously provide two of Consistency, Availability, and Partition tolerance.", "System Architecture"),
+        Flashcard("s2", "What is Eventual Consistency?", "A consistency model used in distributed systems where replicas will eventually converge to the same value.", "System Architecture"),
+        Flashcard("s3", "What is a Circuit Breaker pattern?", "A design pattern used to detect failures and encapsulate the logic of preventing a failure from constantly recurring.", "System Architecture"),
+        Flashcard("s4", "What is Database Sharding?", "Horizontal partitioning of a database to separate very large databases into smaller, faster parts called shards.", "System Architecture")
+    )
+
     val decks = listOf(
         FlashcardDeck(
             id = "d1",
             title = "Neural Plasticity",
             description = "Advanced concepts in neurobiology and synaptic adaptation mechanisms.",
-            cardCount = 112,
+            cardCount = neuralPlasticityCards.size,
             lastReviewed = "2h ago",
             progress = 0.75f,
             iconName = "psychology",
-            categoryColor = Color(0xFFC0C1FF), // Periwinkle Indigo matching reference
+            categoryColor = Color(0xFFC0C1FF),
             cards = neuralPlasticityCards
         ),
         FlashcardDeck(
             id = "d2",
             title = "Quantum Mechanics",
             description = "Postulates, wave functions, and Heisenberg's uncertainty principle.",
-            cardCount = 86,
+            cardCount = quantumMechanicsCards.size,
             lastReviewed = "Yesterday",
             progress = 0.45f,
             iconName = "calculate",
-            categoryColor = Color(0xFFFFB2B7), // Coral Rose matching reference
-            cards = listOf(
-                Flashcard("q1", "What is Heisenberg's Uncertainty Principle?", "States that position and momentum cannot be measured simultaneously with arbitrary precision.", "Quantum Mechanics")
-            )
+            categoryColor = Color(0xFFFFB2B7),
+            cards = quantumMechanicsCards
         ),
         FlashcardDeck(
             id = "d3",
             title = "JLPT N2 Vocabulary",
             description = "High-frequency kanji and vocabulary for the JLPT N2 exam.",
-            cardCount = 450,
+            cardCount = jlptVocabularyCards.size,
             lastReviewed = "3 days ago",
             progress = 0.30f,
             iconName = "translate",
-            categoryColor = Color(0xFF4EDEA3), // Emerald matching reference
-            cards = listOf(
-                Flashcard("j1", "What does 考慮 (kouryo) mean?", "Consideration, taking into account.", "JLPT N2 Vocabulary")
-            )
+            categoryColor = Color(0xFF4EDEA3),
+            cards = jlptVocabularyCards
         ),
         FlashcardDeck(
             id = "d4",
             title = "System Architecture",
             description = "Design patterns, microservices, and scalable infrastructure concepts.",
-            cardCount = 52,
+            cardCount = systemArchitectureCards.size,
             lastReviewed = "1 week ago",
             progress = 0.90f,
             iconName = "terminal",
-            categoryColor = Color(0xFFC0C1FF), // Indigo matching reference
-            cards = listOf(
-                Flashcard("s1", "What is CAP Theorem?", "In a distributed data store, you can only simultaneously provide two of Consistency, Availability, and Partition tolerance.", "System Architecture")
-            )
+            categoryColor = Color(0xFFC0C1FF),
+            cards = systemArchitectureCards
         )
     )
 }

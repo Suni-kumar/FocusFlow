@@ -370,19 +370,16 @@ fun DeckListItemCard(
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
-            )
             .testTag("deck_item_${deck.id}"),
-        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-        borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.05f),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         borderWidth = if (isSelected) 1.5.dp else 1.dp,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        onClick = onClick,
+        onLongClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onLongClick()
+        }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Gradient accent strip on left
@@ -440,15 +437,15 @@ fun DeckListItemCard(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSelected) PrimaryDark else Color.Transparent)
-                                    .border(1.5.dp, if (isSelected) PrimaryDark else Color.White.copy(alpha = 0.4f), CircleShape),
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                    .border(1.5.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isSelected) {
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = "Selected",
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -485,7 +482,7 @@ fun DeckListItemCard(
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "${deck.cardCount} cards",
+                                text = "${deck.cards.size} cards",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
@@ -550,7 +547,7 @@ fun DeckListItemCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "${deck.cardCount} Cards",
+                            text = "${deck.cards.size} Cards",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

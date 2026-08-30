@@ -35,11 +35,11 @@ import androidx.compose.ui.unit.dp
 fun GlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(16.dp),
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f),
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.65f),
     borderColor: Color? = null,
     borderBrush: Brush? = null,
     borderWidth: Dp = 1.dp,
-    elevation: Dp = 2.dp,
+    elevation: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
@@ -61,8 +61,8 @@ fun GlassCard(
     val defaultBorder = remember(outlineColor) {
         Brush.verticalGradient(
             listOf(
-                outlineColor.copy(alpha = 0.5f),
-                outlineColor.copy(alpha = 0.2f),
+                outlineColor.copy(alpha = 0.65f),
+                outlineColor.copy(alpha = 0.30f),
                 Color.Transparent
             )
         )
@@ -74,14 +74,15 @@ fun GlassCard(
         else -> Modifier.border(borderWidth, defaultBorder, shape)
     }
 
+    val shadowModifier = if (elevation > 0.dp) {
+        Modifier.shadow(elevation = elevation, shape = shape)
+    } else {
+        Modifier
+    }
+
     Box(
         modifier = modifier
-            .shadow(
-                elevation = elevation,
-                shape = shape,
-                
-                
-            )
+            .then(shadowModifier)
             .clip(shape)
             .background(backgroundColor)
             .then(finalBorderModifier)
@@ -96,6 +97,7 @@ fun LiquidGlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(20.dp),
     accentBrush: Brush? = null,
+    elevation: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
@@ -114,11 +116,12 @@ fun LiquidGlassCard(
     }
     
     val primaryColor = MaterialTheme.colorScheme.primary
-    val defaultBorder = remember(primaryColor) {
+    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
+    val defaultBorder = remember(primaryColor, outlineVariant) {
         Brush.linearGradient(
             listOf(
-                Color.White.copy(alpha = 0.15f),
-                primaryColor.copy(alpha = 0.20f),
+                outlineVariant.copy(alpha = 0.6f),
+                primaryColor.copy(alpha = 0.25f),
                 Color.Transparent
             )
         )
@@ -130,25 +133,26 @@ fun LiquidGlassCard(
         Modifier.border(1.dp, defaultBorder, shape)
     }
     
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceContainerHigh
     val defaultBackground = remember(surfaceColor, surfaceVariant) {
         Brush.verticalGradient(
             colors = listOf(
-                surfaceColor.copy(alpha = 0.85f),
-                surfaceVariant.copy(alpha = 0.60f)
+                surfaceColor.copy(alpha = 0.75f),
+                surfaceVariant.copy(alpha = 0.50f)
             )
         )
     }
 
+    val shadowModifier = if (elevation > 0.dp) {
+        Modifier.shadow(elevation = elevation, shape = shape)
+    } else {
+        Modifier
+    }
+
     Box(
         modifier = modifier
-            .shadow(
-                elevation = 12.dp,
-                shape = shape,
-                
-                
-            )
+            .then(shadowModifier)
             .clip(shape)
             .background(defaultBackground)
             .then(borderModifier)
