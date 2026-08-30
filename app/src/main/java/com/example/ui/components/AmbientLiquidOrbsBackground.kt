@@ -31,15 +31,26 @@ fun AmbientLiquidOrbsBackground(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val orb1TargetColor = accentTheme.orbColors.getOrElse(0) { accentTheme.primaryColor }
-    val orb2TargetColor = accentTheme.orbColors.getOrElse(1) { accentTheme.secondaryColor }
-    val orb3TargetColor = accentTheme.orbColors.getOrElse(2) { accentTheme.accentGlowColor }
-    val orb4TargetColor = accentTheme.orbColors.getOrElse(3) { accentTheme.primaryColor }
-
-    val orb1Color = if (isDarkTheme) Color(0xFF8A5CF6) else Color(0xFFF472B6) // Fairy Pink in Light Mode
-    val orb2Color = if (isDarkTheme) Color(0xFF7A38ED) else Color(0xFFC084FC) // Purple Lavender in Light Mode
-    val orb3Color = if (isDarkTheme) Color(0xFF3B82F6) else Color(0xFF38BDF8) // Soft Sky Cyan
-    val orb4Color = if (isDarkTheme) Color(0xFF6D28D9) else Color(0xFFFB7185) // Rose Pink
+    val orb1Color by animateColorAsState(
+        targetValue = accentTheme.orbColors.getOrElse(0) { accentTheme.primaryColor },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "orb1"
+    )
+    val orb2Color by animateColorAsState(
+        targetValue = accentTheme.orbColors.getOrElse(1) { accentTheme.secondaryColor },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "orb2"
+    )
+    val orb3Color by animateColorAsState(
+        targetValue = accentTheme.orbColors.getOrElse(2) { accentTheme.accentGlowColor },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "orb3"
+    )
+    val orb4Color by animateColorAsState(
+        targetValue = accentTheme.orbColors.getOrElse(3) { accentTheme.primaryColor },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "orb4"
+    )
 
     val baseGradient = remember(isDarkTheme) {
         if (isDarkTheme) {

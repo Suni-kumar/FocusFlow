@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.example.model.AccentTheme
@@ -21,18 +22,18 @@ fun SepFolTheme(
     content: @Composable () -> Unit
 ) {
     val darkColors = darkColorScheme(
-        primary = PrimaryDark,
-        onPrimary = OnPrimaryDark,
-        primaryContainer = PrimaryContainerDark,
-        onPrimaryContainer = OnPrimaryContainerDark,
-        secondary = SecondaryDark,
-        onSecondary = OnSecondaryDark,
-        secondaryContainer = SecondaryContainerDark,
-        onSecondaryContainer = OnSecondaryContainerDark,
-        tertiary = TertiaryDark,
-        onTertiary = OnTertiaryDark,
-        tertiaryContainer = TertiaryContainerDark,
-        onTertiaryContainer = OnTertiaryContainerDark,
+        primary = accentTheme.primaryColor,
+        onPrimary = accentTheme.buttonTextColor,
+        primaryContainer = accentTheme.secondaryColor.copy(alpha = 0.25f),
+        onPrimaryContainer = accentTheme.primaryColor,
+        secondary = accentTheme.secondaryColor,
+        onSecondary = Color(0xFF0B0B12),
+        secondaryContainer = accentTheme.secondaryColor.copy(alpha = 0.18f),
+        onSecondaryContainer = accentTheme.secondaryColor,
+        tertiary = accentTheme.accentGlowColor,
+        onTertiary = Color.White,
+        tertiaryContainer = accentTheme.accentGlowColor.copy(alpha = 0.25f),
+        onTertiaryContainer = accentTheme.accentGlowColor,
         error = ErrorDark,
         onError = OnErrorDark,
         errorContainer = ErrorContainerDark,
@@ -48,23 +49,23 @@ fun SepFolTheme(
         surfaceContainerHighest = SurfaceContainerHighestDark,
         surfaceContainerLow = SurfaceContainerLowDark,
         surfaceContainerLowest = SurfaceContainerLowestDark,
-        outline = OutlineDark,
+        outline = accentTheme.primaryColor.copy(alpha = 0.35f),
         outlineVariant = OutlineVariantDark
     )
 
     val lightColors = lightColorScheme(
-        primary = PrimaryLight,
-        onPrimary = OnPrimaryLight,
-        primaryContainer = PrimaryContainerLight,
-        onPrimaryContainer = OnPrimaryContainerLight,
-        secondary = SecondaryLight,
-        onSecondary = OnSecondaryLight,
-        secondaryContainer = SecondaryContainerLight,
-        onSecondaryContainer = OnSecondaryContainerLight,
-        tertiary = TertiaryLight,
-        onTertiary = OnTertiaryLight,
-        tertiaryContainer = TertiaryContainerLight,
-        onTertiaryContainer = OnTertiaryContainerLight,
+        primary = accentTheme.secondaryColor,
+        onPrimary = Color.White,
+        primaryContainer = accentTheme.primaryColor.copy(alpha = 0.22f),
+        onPrimaryContainer = accentTheme.secondaryColor,
+        secondary = accentTheme.primaryColor,
+        onSecondary = Color.White,
+        secondaryContainer = accentTheme.secondaryColor.copy(alpha = 0.12f),
+        onSecondaryContainer = accentTheme.secondaryColor,
+        tertiary = accentTheme.accentGlowColor,
+        onTertiary = Color.White,
+        tertiaryContainer = accentTheme.accentGlowColor.copy(alpha = 0.15f),
+        onTertiaryContainer = accentTheme.accentGlowColor,
         error = ErrorLight,
         onError = OnErrorLight,
         errorContainer = ErrorContainerLight,
@@ -80,7 +81,7 @@ fun SepFolTheme(
         surfaceContainerHighest = SurfaceContainerHighestLight,
         surfaceContainerLow = SurfaceContainerLowLight,
         surfaceContainerLowest = SurfaceContainerLowestLight,
-        outline = OutlineLight,
+        outline = accentTheme.secondaryColor.copy(alpha = 0.35f),
         outlineVariant = OutlineVariantLight
     )
 

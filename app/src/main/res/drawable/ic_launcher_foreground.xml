@@ -6,111 +6,186 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 1. Ambient Bloom / Soft Neon Shadow behind the ribbon -->
+    <!-- 1. Ambient Drop Shadow / Glow beneath cards -->
     <path
-        android:pathData="M37,42 C30,42 25,48 25,56 C25,64 30,70 37,70 C44,70 50,62 54,54 C58,46 64,38 71,38 C78,38 83,44 83,52 C83,60 78,66 71,66 C64,66 58,58 54,54"
-        android:strokeWidth="12"
+        android:pathData="M34,42 C34,36 40,30 48,30 L68,30 C76,30 82,36 82,44 L82,66 C82,74 76,80 68,80 L48,80 C40,80 34,74 34,66 Z"
+        android:strokeWidth="8"
         android:strokeLineCap="round"
         android:strokeLineJoin="round">
         <aapt:attr name="android:strokeColor">
             <gradient
-                android:startX="25"
-                android:startY="56"
-                android:endX="83"
-                android:endY="52"
+                android:startX="34"
+                android:startY="30"
+                android:endX="82"
+                android:endY="80"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#4000C8FF" />
-                <item android:offset="0.5" android:color="#408B5CF6" />
-                <item android:offset="1.0" android:color="#40EC4899" />
+                <item android:offset="0.0" android:color="#408B5CF6" />
+                <item android:offset="0.5" android:color="#3510B981" />
+                <item android:offset="1.0" android:color="#4006B6D4" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 2. Bottom/Back Loop Pass (Deep Vibrant Ribbon) -->
+    <!-- 2. Secondary Card (Tilted 3D Indigo/Violet Vault Card) -->
     <path
-        android:pathData="M54,54 C59,45 65,37 72,37 C80,37 86,43 86,52 C86,61 80,67 72,67 C65,67 59,59 54,54 C49,49 43,41 36,41 C28,41 22,47 22,56 C22,65 28,71 36,71 C43,71 49,63 54,54 Z"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round">
+        android:pathData="M42,28 L72,32 C77,33 81,37 80,42 L74,74 C73,79 69,82 64,81 L34,77 C29,76 25,72 26,67 L32,35 C33,30 37,27 42,28 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="26"
+                android:startY="28"
+                android:endX="80"
+                android:endY="82"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#8B5CF6" />
+                <item android:offset="0.5" android:color="#6366F1" />
+                <item android:offset="1.0" android:color="#312E81" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 2b. Secondary Card Frosted Highlight Border -->
+    <path
+        android:pathData="M42,28 L72,32 C77,33 81,37 80,42 L74,74 C73,79 69,82 64,81 L34,77 C29,76 25,72 26,67 L32,35 C33,30 37,27 42,28 Z"
+        android:strokeWidth="1.2">
         <aapt:attr name="android:strokeColor">
             <gradient
-                android:startX="22"
-                android:startY="71"
-                android:endX="86"
-                android:endY="37"
+                android:startX="26"
+                android:startY="28"
+                android:endX="80"
+                android:endY="82"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#00D2FF" />
-                <item android:offset="0.25" android:color="#2563EB" />
-                <item android:offset="0.55" android:color="#7C3AED" />
-                <item android:offset="0.8" android:color="#C026D3" />
-                <item android:offset="1.0" android:color="#38BDF8" />
+                <item android:offset="0.0" android:color="#90DDD6FE" />
+                <item android:offset="0.5" android:color="#40C4B5FD" />
+                <item android:offset="1.0" android:color="#104338CA" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 3. Foreground Flow (3D Overlay Crossing on Left Vertical Loop) -->
+    <!-- 3. Primary Hero Card (Bio-Emerald to Cyber-Cyan Flashcard) -->
     <path
-        android:pathData="M36,71 C28,71 22,65 22,56 C22,47 28,41 36,41 C43,41 49,49 54,54"
-        android:strokeWidth="7"
-        android:strokeLineCap="round">
+        android:pathData="M33,37 C33,33 36,30 40,30 L70,30 C74,30 77,33 77,37 L77,69 C77,73 74,76 70,76 L40,76 C36,76 33,73 33,69 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="33"
+                android:startY="30"
+                android:endX="77"
+                android:endY="76"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#4EDEA3" />
+                <item android:offset="0.45" android:color="#10B981" />
+                <item android:offset="0.85" android:color="#059669" />
+                <item android:offset="1.0" android:color="#047857" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3b. Hero Card Inner Glass Surface Fill -->
+    <path
+        android:pathData="M37,34 C37,32 39,30 41,30 L69,30 C73,30 75,32 75,36 L75,54 C60,50 48,58 37,56 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="37"
+                android:startY="30"
+                android:endX="75"
+                android:endY="56"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#35FFFFFF" />
+                <item android:offset="0.6" android:color="#10FFFFFF" />
+                <item android:offset="1.0" android:color="#00FFFFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3c. Hero Card Crisp Outer Border -->
+    <path
+        android:pathData="M33,37 C33,33 36,30 40,30 L70,30 C74,30 77,33 77,37 L77,69 C77,73 74,76 70,76 L40,76 C36,76 33,73 33,69 Z"
+        android:strokeWidth="1.4">
         <aapt:attr name="android:strokeColor">
             <gradient
-                android:startX="22"
-                android:startY="65"
-                android:endX="54"
-                android:endY="45"
+                android:startX="33"
+                android:startY="30"
+                android:endX="77"
+                android:endY="76"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#00F0FF" />
-                <item android:offset="0.4" android:color="#3B82F6" />
-                <item android:offset="1.0" android:color="#8B5CF6" />
+                <item android:offset="0.0" android:color="#CCFFFFFF" />
+                <item android:offset="0.3" android:color="#80A7F3D0" />
+                <item android:offset="1.0" android:color="#30065F46" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 4. Specular Highlight / Glass Reflection (Top curve) -->
+    <!-- 4. Modern Study Lines (Stylized Question/Answer Bars) -->
+    <!-- Top Header Bar -->
     <path
-        android:pathData="M25,52 C26,45 30,42 36,42 C41,42 46,47 50,52"
-        android:strokeWidth="2.2"
-        android:strokeLineCap="round">
-        <aapt:attr name="android:strokeColor">
+        android:pathData="M41,39 C41,38 42,37 43,37 L52,37 C53,37 54,38 54,39 C54,40 53,41 52,41 L43,41 C42,41 41,40 41,39 Z"
+        android:fillColor="#E6FFFFFF" />
+
+    <!-- Content Line 1 -->
+    <path
+        android:pathData="M41,46 C41,45 42,44 43,44 L67,44 C68,44 69,45 69,46 C69,47 68,48 67,48 L43,48 C42,48 41,47 41,46 Z"
+        android:fillColor="#60FFFFFF" />
+
+    <!-- Content Line 2 -->
+    <path
+        android:pathData="M41,52 C41,51 42,50 43,50 L60,50 C61,50 62,51 62,52 C62,53 61,54 60,54 L43,54 C42,54 41,53 41,52 Z"
+        android:fillColor="#45FFFFFF" />
+
+    <!-- 5. Central AI Intelligence Starburst (4-Point Diamond Sparkle) -->
+    <!-- Glow behind Sparkle -->
+    <path
+        android:pathData="M59,62m-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0">
+        <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="25"
-                android:startY="42"
-                android:endX="50"
-                android:endY="52"
-                android:type="linear">
-                <item android:offset="0.0" android:color="#80E0F2FE" />
-                <item android:offset="0.5" android:color="#CCFFFFFF" />
-                <item android:offset="1.0" android:color="#20FFFFFF" />
+                android:centerX="59"
+                android:centerY="62"
+                android:gradientRadius="10"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#70FFFFFF" />
+                <item android:offset="0.5" android:color="#356EE7B7" />
+                <item android:offset="1.0" android:color="#00000000" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 5. Specular Highlight (Right loop crest) -->
+    <!-- Starburst 4-point shape -->
     <path
-        android:pathData="M65,42 C70,38 75,38 80,41 C84,44 85,48 85,52"
-        android:strokeWidth="2.2"
-        android:strokeLineCap="round">
-        <aapt:attr name="android:strokeColor">
+        android:pathData="M59,53 C59,57.5 61.5,60 66,60 C61.5,60 59,62.5 59,67 C59,62.5 56.5,60 52,60 C56.5,60 59,57.5 59,53 Z">
+        <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="65"
-                android:startY="38"
-                android:endX="85"
-                android:endY="52"
+                android:startX="52"
+                android:startY="53"
+                android:endX="66"
+                android:endY="67"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#30FFFFFF" />
-                <item android:offset="0.6" android:color="#DDF5D0FE" />
-                <item android:offset="1.0" android:color="#5067E8F9" />
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="0.5" android:color="#F0FDF4" />
+                <item android:offset="1.0" android:color="#A7F3D0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 6. Inner Core Specular Glow Dot -->
+    <!-- Secondary Mini Sparkle (Top-Right of Star) -->
     <path
-        android:pathData="M35,43m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"
+        android:pathData="M68,52 C68,54 69,55 71,55 C69,55 68,56 68,58 C68,56 67,55 65,55 C67,55 68,54 68,52 Z"
         android:fillColor="#E0F2FE" />
 
+    <!-- 6. Top-Edge Specular Glass Glint Highlight -->
     <path
-        android:pathData="M73,39m-1.2,0a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0"
-        android:fillColor="#FDF4FF" />
+        android:pathData="M40,30.5 L60,30.5"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="40"
+                android:startY="30.5"
+                android:endX="60"
+                android:endY="30.5"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#00FFFFFF" />
+                <item android:offset="0.5" android:color="#FFFFFFFF" />
+                <item android:offset="1.0" android:color="#00FFFFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
 </vector>
