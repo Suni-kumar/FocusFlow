@@ -448,7 +448,7 @@ fun StudioSpeedDialFab(
                         accentColor = primaryColor,
                         testTag = "speed_dial_ai_generate_deck",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onAiGenerateClick()
                         }
                     )
@@ -460,7 +460,7 @@ fun StudioSpeedDialFab(
                         accentColor = tertiaryColor,
                         testTag = "speed_dial_create_deck",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onCreateDeckClick()
                         }
                     )
@@ -497,7 +497,7 @@ fun StudioSpeedDialFab(
                         },
                         onDragStopped = { velocity ->
                             if (velocity < -120f || verticalDragAccumulator < -25f) {
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 if (isExpanded) onDismiss()
                                 onSwipeUp()
                             }
@@ -508,7 +508,7 @@ fun StudioSpeedDialFab(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = true, color = Color.White)
                     ) {
-                        haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         onToggle()
                     }
                     .testTag("studio_speed_dial_main_fab"),
@@ -627,7 +627,7 @@ fun ManagedDeckItem(
         shape = RoundedCornerShape(14.dp),
         onClick = onClick,
         onLongClick = {
-            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onLongClick()
         }
     ) {

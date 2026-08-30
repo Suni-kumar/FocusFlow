@@ -314,7 +314,7 @@ fun StudyScreen(
                                         val offset = dragOffsetX.value
                                         if (offset < -140f && currentCardIndex < cardsList.size - 1) {
                                             // Swipe Left -> Next Card
-                                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                             dragOffsetX.animateTo(-500f, tween(150))
                                             isFlipped = false
                                             currentCardIndex++
@@ -322,7 +322,7 @@ fun StudyScreen(
                                             dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
                                         } else if (offset > 140f && currentCardIndex > 0) {
                                             // Swipe Right -> Previous Card
-                                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                             dragOffsetX.animateTo(500f, tween(150))
                                             isFlipped = false
                                             currentCardIndex--
@@ -349,7 +349,7 @@ fun StudyScreen(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = { 
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 isFlipped = !isFlipped 
                             }
                         ),
@@ -542,7 +542,7 @@ fun StudyScreen(
                     // Flip Button
                     Button(
                         onClick = { 
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             isFlipped = !isFlipped 
                         },
                         shape = RoundedCornerShape(12.dp),
@@ -572,7 +572,7 @@ fun StudyScreen(
                     // Mastered Button
                     Button(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             masteredCardIds = masteredCardIds + currentCard.id
                             val calculatedProgress = (masteredCardIds.size.toFloat() / cardsList.size.toFloat()).coerceIn(0f, 1f)
                             onDeckProgressUpdate?.invoke(calculatedProgress)
@@ -581,7 +581,7 @@ fun StudyScreen(
                                 isFlipped = false
                                 currentCardIndex++
                             } else {
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 isCompleted = true
                             }
                         },

@@ -92,7 +92,7 @@ fun FlippableFlashcard(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     isFlipped = !isFlipped
                     onFlipChanged(isFlipped)
                 }

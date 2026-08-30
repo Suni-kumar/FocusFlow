@@ -378,7 +378,7 @@ fun DeckListItemCard(
         shape = RoundedCornerShape(16.dp),
         onClick = onClick,
         onLongClick = {
-            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onLongClick()
         }
     ) {
@@ -493,7 +493,7 @@ fun DeckListItemCard(
                         // Star/Favorite button
                         IconButton(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 onToggleStar()
                             },
                             modifier = Modifier.size(32.dp)

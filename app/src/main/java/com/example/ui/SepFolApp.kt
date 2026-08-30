@@ -350,10 +350,16 @@ fun SepFolApp() {
                     AnimatedContent(
                         targetState = Pair(currentScreen, selectedTab),
                         transitionSpec = {
-                            fadeIn(animationSpec = tween(durationMillis = 100))
-                                .togetherWith(
-                                    fadeOut(animationSpec = tween(durationMillis = 80))
-                                )
+                            val isForward = targetState.first != ScreenState.MAIN_WORKSPACE && initialState.first == ScreenState.MAIN_WORKSPACE
+                            val isBackward = targetState.first == ScreenState.MAIN_WORKSPACE && initialState.first != ScreenState.MAIN_WORKSPACE
+
+                            if (isForward) {
+                                (androidx.compose.animation.scaleIn(initialScale = 0.85f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(200))) togetherWith (androidx.compose.animation.scaleOut(targetScale = 1.15f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(200)))
+                            } else if (isBackward) {
+                                (androidx.compose.animation.scaleIn(initialScale = 1.15f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(200))) togetherWith (androidx.compose.animation.scaleOut(targetScale = 0.85f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(200)))
+                            } else {
+                                androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) togetherWith androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(100))
+                            }
                         },
                         label = "screenTransition"
                     ) { (screen, tab) ->
@@ -409,7 +415,7 @@ fun SepFolApp() {
                                         triggerExportBackup()
                                     },
                                     onImportBackupClick = {
-                                        importFileLauncher.launch("*/*")
+                                        importFileLauncher.launch("*")
                                     },
                                     onPasteJsonClick = {
                                         isManualJsonDialogOpen = true

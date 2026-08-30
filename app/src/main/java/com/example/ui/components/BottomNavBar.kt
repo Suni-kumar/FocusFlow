@@ -192,7 +192,7 @@ private fun BottomNavItem(
                 interactionSource = interactionSource,
                 indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     onClick()
                 }
             )

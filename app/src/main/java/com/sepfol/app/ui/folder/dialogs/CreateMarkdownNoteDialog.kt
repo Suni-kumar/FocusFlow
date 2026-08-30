@@ -86,7 +86,7 @@ fun CreateMarkdownNoteDialog(
             "$trimmedTitle.md"
         }
 
-        haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
         onCreateNote(finalTitle, content)
         onDismiss()
     }

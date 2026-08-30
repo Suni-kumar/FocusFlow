@@ -477,7 +477,7 @@ fun AiGenerateDeckDialog(
                                 val count = newValue.roundToInt().coerceIn(1, 60)
                                 if (count != selectedCardCount) {
                                     selectedCardCount = count
-                                    haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 }
                             },
                             valueRange = 1f..60f,
@@ -601,7 +601,7 @@ fun AiGenerateDeckDialog(
                     Button(
                         onClick = {
                             if (promptText.isNotBlank() && !isGenerating) {
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 onGenerate(deckName, promptText, selectedCardCount)
                             }
                         },

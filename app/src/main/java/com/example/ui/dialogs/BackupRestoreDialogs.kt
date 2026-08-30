@@ -290,7 +290,7 @@ fun RestoreConfirmationDialog(
                             )
                             .clickable {
                                 isMergeStrategy = true
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             }
                             .padding(12.dp)
                             .testTag("restore_strategy_merge")
@@ -339,7 +339,7 @@ fun RestoreConfirmationDialog(
                             )
                             .clickable {
                                 isMergeStrategy = false
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             }
                             .padding(12.dp)
                             .testTag("restore_strategy_overwrite")
@@ -390,7 +390,7 @@ fun RestoreConfirmationDialog(
 
                     Button(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onConfirmRestore(isMergeStrategy)
                         },
                         shape = RoundedCornerShape(12.dp),
@@ -575,7 +575,7 @@ fun ManualJsonImportDialog(
                             if (rawJson.isBlank()) {
                                 errorMessage = "Please enter or paste valid JSON."
                             } else {
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 onImportJson(rawJson.trim())
                             }
                         },
@@ -715,7 +715,7 @@ fun ExportSuccessDialog(
                     // Save to Device Storage
                     Button(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onSaveDocument()
                         },
                         shape = RoundedCornerShape(14.dp),
@@ -747,7 +747,7 @@ fun ExportSuccessDialog(
                     // Share JSON / File Intent
                     OutlinedButton(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_SUBJECT, fileName)
@@ -786,7 +786,7 @@ fun ExportSuccessDialog(
                             val clip = ClipData.newPlainText("FocusFlow Backup", jsonContent)
                             clipboard?.setPrimaryClip(clip)
                             isCopied = true
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         },
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {

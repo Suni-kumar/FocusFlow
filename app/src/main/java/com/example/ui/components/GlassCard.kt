@@ -1,4 +1,8 @@
 package com.example.ui.components
+import androidx.compose.ui.zIndex
+
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -43,42 +47,60 @@ fun GlassCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    var isExpanding by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     var touchPosition by remember { mutableStateOf(Offset.Unspecified) }
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
 
     val interactionSource = remember { MutableInteractionSource() }
-    val haptic = androidx.compose.ui.platform.LocalView.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     val tiltX by animateFloatAsState(
-        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
-            -normalizedY * 15f // Max 7.5 degree tilt up/down
+            -normalizedY * 15f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltX"
     )
 
     val tiltY by animateFloatAsState(
-        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
-            normalizedX * 15f // Max 7.5 degree tilt left/right
+            normalizedX * 15f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltY"
     )
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        targetValue = if (isExpanding) 12f else if (isPressed) 0.94f else 1f,
+        animationSpec = if (isExpanding) androidx.compose.animation.core.tween(350, easing = androidx.compose.animation.core.FastOutSlowInEasing) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "scale"
     )
+
+    val zIndex by animateFloatAsState(targetValue = if (isExpanding || isPressed) 100f else 0f, label = "zIndex")
 
     val clickModifier = if (onClick != null || onLongClick != null) {
         Modifier.combinedClickable(
             interactionSource = interactionSource,
             indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
-            onClick = { onClick?.invoke() },
-            onLongClick = onLongClick
+            onClick = { 
+                if (onClick != null) {
+                    coroutineScope.launch {
+                        isExpanding = true
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        kotlinx.coroutines.delay(180)
+                        onClick.invoke()
+                        kotlinx.coroutines.delay(200)
+                        isExpanding = false
+                    }
+                }
+            },
+            onLongClick = {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                onLongClick?.invoke()
+            }
         )
     } else Modifier
 
@@ -105,12 +127,13 @@ fun GlassCard(
     Box(
         modifier = modifier
             .onSizeChanged { componentSize = it }
+            .zIndex(zIndex)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     touchPosition = down.position
                     isPressed = true
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     
                     do {
                         val event = awaitPointerEvent()
@@ -121,7 +144,7 @@ fun GlassCard(
                     } while (event.changes.any { it.pressed })
                     
                     isPressed = false
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     touchPosition = Offset.Unspecified
                 }
             }
@@ -168,14 +191,16 @@ fun LiquidGlassCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    var isExpanding by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     var touchPosition by remember { mutableStateOf(Offset.Unspecified) }
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
 
     val interactionSource = remember { MutableInteractionSource() }
-    val haptic = androidx.compose.ui.platform.LocalView.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     val tiltX by animateFloatAsState(
-        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
             -normalizedY * 15f
         } else 0f,
@@ -184,7 +209,7 @@ fun LiquidGlassCard(
     )
 
     val tiltY by animateFloatAsState(
-        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
             normalizedX * 15f
         } else 0f,
@@ -193,17 +218,33 @@ fun LiquidGlassCard(
     )
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        targetValue = if (isExpanding) 12f else if (isPressed) 0.94f else 1f,
+        animationSpec = if (isExpanding) androidx.compose.animation.core.tween(350, easing = androidx.compose.animation.core.FastOutSlowInEasing) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "scale"
     )
+
+    val zIndex by animateFloatAsState(targetValue = if (isExpanding || isPressed) 100f else 0f, label = "zIndex")
 
     val clickModifier = if (onClick != null || onLongClick != null) {
         Modifier.combinedClickable(
             interactionSource = interactionSource,
             indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
-            onClick = { onClick?.invoke() },
-            onLongClick = onLongClick
+            onClick = { 
+                if (onClick != null) {
+                    coroutineScope.launch {
+                        isExpanding = true
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        kotlinx.coroutines.delay(180)
+                        onClick.invoke()
+                        kotlinx.coroutines.delay(200)
+                        isExpanding = false
+                    }
+                }
+            },
+            onLongClick = {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                onLongClick?.invoke()
+            }
         )
     } else Modifier
 
@@ -238,12 +279,13 @@ fun LiquidGlassCard(
     Box(
         modifier = modifier
             .onSizeChanged { componentSize = it }
+            .zIndex(zIndex)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     touchPosition = down.position
                     isPressed = true
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     
                     do {
                         val event = awaitPointerEvent()
@@ -254,7 +296,7 @@ fun LiquidGlassCard(
                     } while (event.changes.any { it.pressed })
                     
                     isPressed = false
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     touchPosition = Offset.Unspecified
                 }
             }

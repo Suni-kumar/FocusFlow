@@ -173,7 +173,7 @@ fun SepFolSpeedDialFab(
                         accentColor = tertiaryColor,
                         testTag = "speed_dial_import_file",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onImportFileClick()
                         }
                     )
@@ -185,7 +185,7 @@ fun SepFolSpeedDialFab(
                         accentColor = Color(0xFF10B981), // Emerald
                         testTag = "speed_dial_make_notes",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onMakeNotesClick()
                         }
                     )
@@ -197,7 +197,7 @@ fun SepFolSpeedDialFab(
                         accentColor = primaryColor,
                         testTag = "speed_dial_create_folder",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             onCreateFolderClick()
                         }
                     )
@@ -234,7 +234,7 @@ fun SepFolSpeedDialFab(
                         },
                         onDragStopped = { velocity ->
                             if (velocity < -120f || verticalDragAccumulator < -25f) {
-                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 if (isExpanded) onDismiss()
                                 onSwipeUp()
                             }
@@ -245,7 +245,7 @@ fun SepFolSpeedDialFab(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = true, color = Color.White)
                     ) {
-                        haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         onToggle()
                     }
                     .testTag("speed_dial_main_fab"),

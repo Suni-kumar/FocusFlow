@@ -82,7 +82,7 @@ fun CreateFolderDialog(
                 errorMessage = "Folder name cannot contain / \\ : * ? \" < > |"
             }
             else -> {
-                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 onCreateFolder(trimmed)
                 onDismiss()
             }
