@@ -59,8 +59,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -365,7 +366,7 @@ fun DeckListItemCard(
     onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
 
     GlassCard(
         modifier = modifier
@@ -377,7 +378,7 @@ fun DeckListItemCard(
         shape = RoundedCornerShape(16.dp),
         onClick = onClick,
         onLongClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onLongClick()
         }
     ) {
@@ -492,7 +493,7 @@ fun DeckListItemCard(
                         // Star/Favorite button
                         IconButton(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 onToggleStar()
                             },
                             modifier = Modifier.size(32.dp)

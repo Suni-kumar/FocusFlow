@@ -1,0 +1,1 @@
+sed -i 's/isPressed = false\n                    touchPosition = Offset.Unspecified/isPressed = false\n                    touchPosition = Offset.Unspecified\n                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)/g' app/src/main/java/com/example/ui/components/GlassCard.kt

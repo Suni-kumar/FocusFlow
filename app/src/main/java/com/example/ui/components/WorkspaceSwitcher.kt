@@ -53,8 +53,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -72,7 +73,7 @@ fun WorkspaceSwitcherModal(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
@@ -187,7 +188,7 @@ fun WorkspaceSwitcherModal(
                             isSelected = currentTab == MainTab.FILES,
                             testTag = "workspace_option_vault",
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 onTabSelected(MainTab.FILES)
                                 onDismiss()
                             }
@@ -201,7 +202,7 @@ fun WorkspaceSwitcherModal(
                             isSelected = currentTab == MainTab.STUDIO,
                             testTag = "workspace_option_studio",
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 onTabSelected(MainTab.STUDIO)
                                 onDismiss()
                             }

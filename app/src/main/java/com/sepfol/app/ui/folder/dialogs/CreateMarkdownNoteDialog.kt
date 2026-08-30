@@ -40,8 +40,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -63,7 +64,7 @@ fun CreateMarkdownNoteDialog(
     var content by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val focusRequester = remember { FocusRequester() }
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -85,7 +86,7 @@ fun CreateMarkdownNoteDialog(
             "$trimmedTitle.md"
         }
 
-        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         onCreateNote(finalTitle, content)
         onDismiss()
     }

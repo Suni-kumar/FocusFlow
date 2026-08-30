@@ -63,8 +63,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -94,7 +95,7 @@ fun StudyScreen(
     var isCompleted by remember { mutableStateOf(false) }
     var isZenMode by remember { mutableStateOf(false) }
     
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
 
     val scope = rememberCoroutineScope()
     val dragOffsetX = remember { Animatable(0f) }
@@ -313,7 +314,7 @@ fun StudyScreen(
                                         val offset = dragOffsetX.value
                                         if (offset < -140f && currentCardIndex < cardsList.size - 1) {
                                             // Swipe Left -> Next Card
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                             dragOffsetX.animateTo(-500f, tween(150))
                                             isFlipped = false
                                             currentCardIndex++
@@ -321,7 +322,7 @@ fun StudyScreen(
                                             dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
                                         } else if (offset > 140f && currentCardIndex > 0) {
                                             // Swipe Right -> Previous Card
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                             dragOffsetX.animateTo(500f, tween(150))
                                             isFlipped = false
                                             currentCardIndex--
@@ -348,7 +349,7 @@ fun StudyScreen(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = { 
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 isFlipped = !isFlipped 
                             }
                         ),
@@ -541,7 +542,7 @@ fun StudyScreen(
                     // Flip Button
                     Button(
                         onClick = { 
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             isFlipped = !isFlipped 
                         },
                         shape = RoundedCornerShape(12.dp),
@@ -571,7 +572,7 @@ fun StudyScreen(
                     // Mastered Button
                     Button(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             masteredCardIds = masteredCardIds + currentCard.id
                             val calculatedProgress = (masteredCardIds.size.toFloat() / cardsList.size.toFloat()).coerceIn(0f, 1f)
                             onDeckProgressUpdate?.invoke(calculatedProgress)
@@ -580,7 +581,7 @@ fun StudyScreen(
                                 isFlipped = false
                                 currentCardIndex++
                             } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 isCompleted = true
                             }
                         },

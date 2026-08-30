@@ -57,7 +57,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -81,7 +82,7 @@ fun AiGenerateDeckDialog(
     var deckName by remember { mutableStateOf("") }
     var promptText by remember(initialPrompt) { mutableStateOf(initialPrompt) }
     var selectedCardCount by remember { mutableIntStateOf(15) }
-    val haptics = LocalHapticFeedback.current
+    val haptic = LocalView.current
 
     val infiniteTransition = rememberInfiniteTransition(label = "ai_glow")
     val glowAlpha by infiniteTransition.animateFloat(
@@ -476,7 +477,7 @@ fun AiGenerateDeckDialog(
                                 val count = newValue.roundToInt().coerceIn(1, 60)
                                 if (count != selectedCardCount) {
                                     selectedCardCount = count
-                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 }
                             },
                             valueRange = 1f..60f,
@@ -600,7 +601,7 @@ fun AiGenerateDeckDialog(
                     Button(
                         onClick = {
                             if (promptText.isNotBlank() && !isGenerating) {
-                                haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 onGenerate(deckName, promptText, selectedCardCount)
                             }
                         },

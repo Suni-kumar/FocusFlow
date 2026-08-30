@@ -59,8 +59,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -77,7 +78,7 @@ fun SepFolSpeedDialFab(
     onSwipeUp: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
     var verticalDragAccumulator by remember { mutableFloatStateOf(0f) }
 
     // Rotation animation: 0 deg (Plus '+') -> 135 deg (Cross '✕')
@@ -172,7 +173,7 @@ fun SepFolSpeedDialFab(
                         accentColor = tertiaryColor,
                         testTag = "speed_dial_import_file",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             onImportFileClick()
                         }
                     )
@@ -184,7 +185,7 @@ fun SepFolSpeedDialFab(
                         accentColor = Color(0xFF10B981), // Emerald
                         testTag = "speed_dial_make_notes",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             onMakeNotesClick()
                         }
                     )
@@ -196,7 +197,7 @@ fun SepFolSpeedDialFab(
                         accentColor = primaryColor,
                         testTag = "speed_dial_create_folder",
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             onCreateFolderClick()
                         }
                     )
@@ -233,7 +234,7 @@ fun SepFolSpeedDialFab(
                         },
                         onDragStopped = { velocity ->
                             if (velocity < -120f || verticalDragAccumulator < -25f) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 if (isExpanded) onDismiss()
                                 onSwipeUp()
                             }
@@ -244,7 +245,7 @@ fun SepFolSpeedDialFab(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = true, color = Color.White)
                     ) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                         onToggle()
                     }
                     .testTag("speed_dial_main_fab"),

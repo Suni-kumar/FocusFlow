@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GlassCard(
+fun HoloMorphCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(16.dp),
     backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -47,7 +47,6 @@ fun GlassCard(
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
 
     val interactionSource = remember { MutableInteractionSource() }
-    val haptic = androidx.compose.ui.platform.LocalView.current
 
     val tiltX by animateFloatAsState(
         targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
@@ -110,7 +109,6 @@ fun GlassCard(
                     val down = awaitFirstDown(requireUnconsumed = false)
                     touchPosition = down.position
                     isPressed = true
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
                     
                     do {
                         val event = awaitPointerEvent()
@@ -121,7 +119,6 @@ fun GlassCard(
                     } while (event.changes.any { it.pressed })
                     
                     isPressed = false
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
                     touchPosition = Offset.Unspecified
                 }
             }
@@ -151,135 +148,6 @@ fun GlassCard(
                 }
             }
             .then(finalBorderModifier)
-            .then(clickModifier),
-        content = content
-    )
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun LiquidGlassCard(
-    modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(20.dp),
-    accentBrush: Brush? = null,
-    elevation: Dp = 0.dp,
-    onClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    var touchPosition by remember { mutableStateOf(Offset.Unspecified) }
-    var componentSize by remember { mutableStateOf(IntSize.Zero) }
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val haptic = androidx.compose.ui.platform.LocalView.current
-
-    val tiltX by animateFloatAsState(
-        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
-            val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
-            -normalizedY * 15f
-        } else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "tiltX"
-    )
-
-    val tiltY by animateFloatAsState(
-        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
-            val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
-            normalizedX * 15f
-        } else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "tiltY"
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "scale"
-    )
-
-    val clickModifier = if (onClick != null || onLongClick != null) {
-        Modifier.combinedClickable(
-            interactionSource = interactionSource,
-            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
-            onClick = { onClick?.invoke() },
-            onLongClick = onLongClick
-        )
-    } else Modifier
-
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
-    val defaultBorder = remember(primaryColor, outlineVariant) {
-        Brush.linearGradient(
-            listOf(outlineVariant.copy(alpha = 0.6f), primaryColor.copy(alpha = 0.25f), Color.Transparent)
-        )
-    }
-
-    val borderModifier = if (accentBrush != null) {
-        Modifier.border(1.2.dp, accentBrush, shape)
-    } else {
-        Modifier.border(1.dp, defaultBorder, shape)
-    }
-    
-    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceContainerHigh
-    val defaultBackground = remember(surfaceColor, surfaceVariant) {
-        Brush.verticalGradient(
-            colors = listOf(surfaceColor.copy(alpha = 0.75f), surfaceVariant.copy(alpha = 0.50f))
-        )
-    }
-
-    val shimmerAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.2f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "shimmerAlpha"
-    )
-
-    Box(
-        modifier = modifier
-            .onSizeChanged { componentSize = it }
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    touchPosition = down.position
-                    isPressed = true
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                    
-                    do {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull()
-                        if (change != null) {
-                            touchPosition = change.position
-                        }
-                    } while (event.changes.any { it.pressed })
-                    
-                    isPressed = false
-                    haptic.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                    touchPosition = Offset.Unspecified
-                }
-            }
-            .graphicsLayer {
-                rotationX = tiltX
-                rotationY = tiltY
-                scaleX = scale
-                scaleY = scale
-                cameraDistance = 12f * density
-            }
-            .clip(shape)
-            .background(defaultBackground)
-            .drawWithContent {
-                drawContent()
-                if (shimmerAlpha > 0f) {
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color.Transparent, Color.White.copy(alpha = shimmerAlpha), Color.Transparent),
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, size.height)
-                        )
-                    )
-                }
-            }
-            .then(borderModifier)
             .then(clickModifier),
         content = content
     )

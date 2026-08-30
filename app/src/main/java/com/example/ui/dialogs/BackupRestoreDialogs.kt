@@ -58,9 +58,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -80,7 +81,7 @@ fun RestoreConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirmRestore: (merge: Boolean) -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
     var isMergeStrategy by remember { mutableStateOf(true) }
 
     val meta = payload.metadata
@@ -289,7 +290,7 @@ fun RestoreConfirmationDialog(
                             )
                             .clickable {
                                 isMergeStrategy = true
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             }
                             .padding(12.dp)
                             .testTag("restore_strategy_merge")
@@ -338,7 +339,7 @@ fun RestoreConfirmationDialog(
                             )
                             .clickable {
                                 isMergeStrategy = false
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             }
                             .padding(12.dp)
                             .testTag("restore_strategy_overwrite")
@@ -389,7 +390,7 @@ fun RestoreConfirmationDialog(
 
                     Button(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             onConfirmRestore(isMergeStrategy)
                         },
                         shape = RoundedCornerShape(12.dp),
@@ -431,7 +432,7 @@ fun ManualJsonImportDialog(
     var rawJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -574,7 +575,7 @@ fun ManualJsonImportDialog(
                             if (rawJson.isBlank()) {
                                 errorMessage = "Please enter or paste valid JSON."
                             } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 onImportJson(rawJson.trim())
                             }
                         },
@@ -607,7 +608,7 @@ fun ExportSuccessDialog(
     onSaveDocument: () -> Unit
 ) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalView.current
     var isCopied by remember { mutableStateOf(false) }
 
     Dialog(
@@ -714,7 +715,7 @@ fun ExportSuccessDialog(
                     // Save to Device Storage
                     Button(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             onSaveDocument()
                         },
                         shape = RoundedCornerShape(14.dp),
@@ -746,7 +747,7 @@ fun ExportSuccessDialog(
                     // Share JSON / File Intent
                     OutlinedButton(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_SUBJECT, fileName)
@@ -785,7 +786,7 @@ fun ExportSuccessDialog(
                             val clip = ClipData.newPlainText("FocusFlow Backup", jsonContent)
                             clipboard?.setPrimaryClip(clip)
                             isCopied = true
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                         },
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
