@@ -1,6 +1,5 @@
 package com.example.ui.components
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -25,10 +24,12 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.example.ui.util.AppHaptic
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -47,12 +48,13 @@ fun GlassCard(
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
 
     val interactionSource = remember { MutableInteractionSource() }
+    val context = LocalContext.current
     val view = LocalView.current
 
     val tiltX by animateFloatAsState(
         targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
-            -normalizedY * 12f
+            -normalizedY * 10f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltX"
@@ -61,7 +63,7 @@ fun GlassCard(
     val tiltY by animateFloatAsState(
         targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
-            normalizedX * 12f
+            normalizedX * 10f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltY"
@@ -97,11 +99,11 @@ fun GlassCard(
             interactionSource = interactionSource,
             indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
             onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                AppHaptic.vibrateClick(context, view)
                 onClick?.invoke()
             },
             onLongClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                AppHaptic.vibrateHeavy(context, view)
                 onLongClick?.invoke()
             }
         )
@@ -174,12 +176,13 @@ fun LiquidGlassCard(
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
 
     val interactionSource = remember { MutableInteractionSource() }
+    val context = LocalContext.current
     val view = LocalView.current
 
     val tiltX by animateFloatAsState(
         targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
-            -normalizedY * 12f
+            -normalizedY * 10f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltX"
@@ -188,7 +191,7 @@ fun LiquidGlassCard(
     val tiltY by animateFloatAsState(
         targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
-            normalizedX * 12f
+            normalizedX * 10f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltY"
@@ -213,7 +216,7 @@ fun LiquidGlassCard(
     } else {
         Modifier.border(1.dp, defaultBorder, shape)
     }
-    
+
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
     val surfaceVariant = MaterialTheme.colorScheme.surfaceContainerHigh
     val defaultBackground = remember(surfaceColor, surfaceVariant) {
@@ -233,11 +236,11 @@ fun LiquidGlassCard(
             interactionSource = interactionSource,
             indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
             onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                AppHaptic.vibrateClick(context, view)
                 onClick?.invoke()
             },
             onLongClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                AppHaptic.vibrateHeavy(context, view)
                 onLongClick?.invoke()
             }
         )

@@ -84,6 +84,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +95,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.components.GlassCard
 import com.example.ui.theme.PrimaryDark
 import com.example.ui.theme.PrimaryContainerDark
+import com.example.ui.util.AppHaptic
 import com.sepfol.app.ui.folder.components.FilterSortToolbar
 import com.sepfol.app.ui.folder.components.SepFolSpeedDialFab
 import com.sepfol.app.ui.folder.dialogs.CreateFolderDialog
@@ -176,6 +178,8 @@ fun FolderScreen(
         }
     }
 
+    val hapticView = LocalView.current
+
     // Intercept hardware/gesture back press when viewer, speed dial, dialogs, preview, search, selection or subfolder is active
     val isFolderBackActive = uiState.selectedViewerItem != null ||
             uiState.isSelectionMode ||
@@ -192,6 +196,7 @@ fun FolderScreen(
             uiState.folderStack.size > 1
 
     BackHandler(enabled = isFolderBackActive) {
+        AppHaptic.vibrateClick(context, hapticView)
         when {
             uiState.isSelectionMode -> viewModel.clearSelection()
             uiState.selectedViewerItem != null -> viewModel.dismissViewer()
@@ -230,8 +235,14 @@ fun FolderScreen(
             item(key = "breadcrumb_bar") {
                 BreadcrumbBar(
                     breadcrumbs = uiState.folderStack,
-                    onBreadcrumbClick = { index -> viewModel.navigateToBreadcrumb(index) },
-                    onBackClick = { viewModel.navigateUp() }
+                    onBreadcrumbClick = { index ->
+                        AppHaptic.vibrateClick(context, hapticView)
+                        viewModel.navigateToBreadcrumb(index)
+                    },
+                    onBackClick = {
+                        AppHaptic.vibrateClick(context, hapticView)
+                        viewModel.navigateUp()
+                    }
                 )
             }
 
@@ -353,6 +364,7 @@ fun FolderScreen(
                                         isSelected = isSelected,
                                         isSelectionMode = uiState.isSelectionMode,
                                         onClick = {
+                                            AppHaptic.vibrateClick(context, hapticView)
                                             if (uiState.isSelectionMode) {
                                                 viewModel.toggleItemSelection(folder.id)
                                             } else {
@@ -360,9 +372,13 @@ fun FolderScreen(
                                             }
                                         },
                                         onLongClick = {
+                                            AppHaptic.vibrateHeavy(context, hapticView)
                                             viewModel.toggleItemSelection(folder.id)
                                         },
-                                        onMoreClick = { viewModel.openActionMenu(folder) }
+                                        onMoreClick = {
+                                            AppHaptic.vibrateClick(context, hapticView)
+                                            viewModel.openActionMenu(folder)
+                                        }
                                     )
                                 }
                             }
@@ -394,6 +410,7 @@ fun FolderScreen(
                             isSelected = isSelected,
                             isSelectionMode = uiState.isSelectionMode,
                             onClick = {
+                                AppHaptic.vibrateClick(context, hapticView)
                                 if (uiState.isSelectionMode) {
                                     viewModel.toggleItemSelection(file.id)
                                 } else {
@@ -401,9 +418,13 @@ fun FolderScreen(
                                 }
                             },
                             onLongClick = {
+                                AppHaptic.vibrateHeavy(context, hapticView)
                                 viewModel.toggleItemSelection(file.id)
                             },
-                            onMoreClick = { viewModel.openActionMenu(file) }
+                            onMoreClick = {
+                                AppHaptic.vibrateClick(context, hapticView)
+                                viewModel.openActionMenu(file)
+                            }
                         )
                     }
                 }

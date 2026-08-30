@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Psychology
@@ -39,16 +41,16 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.Flashcard
+import com.example.ui.util.AppHaptic
 
 @Composable
 fun FlippableFlashcard(
@@ -58,12 +60,16 @@ fun FlippableFlashcard(
     onFlipChanged: (Boolean) -> Unit = {}
 ) {
     var isFlipped by remember(flashcard.id) { mutableStateOf(initialFlipped) }
-    val haptic = LocalView.current
+    val context = LocalContext.current
+    val hapticView = LocalView.current
     val density = LocalDensity.current.density
+
+    val frontScroll = rememberScrollState()
+    val backScroll = rememberScrollState()
 
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
         label = "flashcardFlipAnimation"
     )
 
@@ -84,15 +90,15 @@ fun FlippableFlashcard(
             .background(MaterialTheme.colorScheme.surface)
             .border(
                 1.5.dp,
-                if (isFlipped) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                if (isFlipped) Color(0xFF10B981).copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                 RoundedCornerShape(22.dp)
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    AppHaptic.vibrateClick(context, hapticView)
                     isFlipped = !isFlipped
                     onFlipChanged(isFlipped)
                 }
@@ -119,7 +125,7 @@ fun FlippableFlashcard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -137,7 +143,7 @@ fun FlippableFlashcard(
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "FRONT",
+                            text = "QUESTION",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -164,37 +170,38 @@ fun FlippableFlashcard(
                     }
                 }
 
-                // Front Question / Term
-                Text(
-                    text = flashcard.front,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 28.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-
-                // Flip Hint Footer
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                // Front Question / Term (Scrollable)
+                Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .verticalScroll(frontScroll),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = flashcard.front,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 26.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+
+                // Clean Bottom Indicator (No background boxes/text)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Autorenew,
-                        contentDescription = "Flip icon",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "Tap card to reveal answer",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        contentDescription = "Tap to flip",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -204,7 +211,7 @@ fun FlippableFlashcard(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { rotationY = 180f }
-                    .padding(24.dp),
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -222,7 +229,7 @@ fun FlippableFlashcard(
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "ANSWER / BACK",
+                            text = "ANSWER",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF10B981),
@@ -238,37 +245,38 @@ fun FlippableFlashcard(
                     )
                 }
 
-                // Back Answer / Explanation
-                Text(
-                    text = flashcard.back,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 26.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-
-                // Flip Back Footer
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                // Back Answer / Explanation (Scrollable)
+                Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .verticalScroll(backScroll),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = flashcard.back,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 25.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+
+                // Clean Bottom Indicator (No background boxes/text)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Autorenew,
-                        contentDescription = "Flip icon",
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "Tap card to view question",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        contentDescription = "Tap to flip",
+                        tint = Color(0xFF10B981).copy(alpha = 0.6f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
