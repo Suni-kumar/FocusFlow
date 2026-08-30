@@ -3,6 +3,7 @@ package com.example.ui.theme
 import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
@@ -19,7 +20,7 @@ fun SepFolTheme(
     accentTheme: AccentTheme = AccentTheme.BIO_MATRIX,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = darkColorScheme(
+    val darkColors = darkColorScheme(
         primary = PrimaryDark,
         onPrimary = OnPrimaryDark,
         primaryContainer = PrimaryContainerDark,
@@ -50,6 +51,40 @@ fun SepFolTheme(
         outline = OutlineDark,
         outlineVariant = OutlineVariantDark
     )
+
+    val lightColors = lightColorScheme(
+        primary = PrimaryLight,
+        onPrimary = OnPrimaryLight,
+        primaryContainer = PrimaryContainerLight,
+        onPrimaryContainer = OnPrimaryContainerLight,
+        secondary = SecondaryLight,
+        onSecondary = OnSecondaryLight,
+        secondaryContainer = SecondaryContainerLight,
+        onSecondaryContainer = OnSecondaryContainerLight,
+        tertiary = TertiaryLight,
+        onTertiary = OnTertiaryLight,
+        tertiaryContainer = TertiaryContainerLight,
+        onTertiaryContainer = OnTertiaryContainerLight,
+        error = ErrorLight,
+        onError = OnErrorLight,
+        errorContainer = ErrorContainerLight,
+        onErrorContainer = OnErrorContainerLight,
+        background = BackgroundLight,
+        onBackground = OnBackgroundLight,
+        surface = SurfaceLight,
+        onSurface = OnSurfaceLight,
+        surfaceVariant = SurfaceVariantLight,
+        onSurfaceVariant = OnSurfaceVariantLight,
+        surfaceContainer = SurfaceContainerLight,
+        surfaceContainerHigh = SurfaceContainerHighLight,
+        surfaceContainerHighest = SurfaceContainerHighestLight,
+        surfaceContainerLow = SurfaceContainerLowLight,
+        surfaceContainerLowest = SurfaceContainerLowestLight,
+        outline = OutlineLight,
+        outlineVariant = OutlineVariantLight
+    )
+
+    val colorScheme = if (darkTheme) darkColors else lightColors
 
     val view = LocalView.current
     if (!view.isInEditMode) {

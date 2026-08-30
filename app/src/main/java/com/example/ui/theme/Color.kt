@@ -42,6 +42,47 @@ val OnErrorContainerDark = Color(0xFFFFE4E6)
 val BackgroundDark = Color(0xFF05050A) // Ultra Deep Space
 val OnBackgroundDark = Color(0xFFF8FAFC)
 
+// -------------------------------------------------------------
+// Elegant Fairy Pink / Rose Slate Palette (Light Mode)
+// User Intent: "white ko primary colours mat rakh na frey pink type ka rakhna"
+// -------------------------------------------------------------
+val PrimaryLight = Color(0xFFDB2777) // Fairy Rose Pink (Vibrant, high-contrast, premium)
+val OnPrimaryLight = Color(0xFFFFFFFF)
+val PrimaryContainerLight = Color(0xFFFCE7F3) // Soft Rose Blush container
+val OnPrimaryContainerLight = Color(0xFF831843) // Deep Burgundy text for contrast
+
+val SecondaryLight = Color(0xFF9333EA) // Royal Violet accent
+val OnSecondaryLight = Color(0xFFFFFFFF)
+val SecondaryContainerLight = Color(0xFFF3E8FF)
+val OnSecondaryContainerLight = Color(0xFF581C87)
+
+val TertiaryLight = Color(0xFF0284C7) // Sky Cyan accent
+val OnTertiaryLight = Color(0xFFFFFFFF)
+val TertiaryContainerLight = Color(0xFFE0F2FE)
+val OnTertiaryContainerLight = Color(0xFF0369A1)
+
+val ErrorLight = Color(0xFFDC2626)
+val OnErrorLight = Color(0xFFFFFFFF)
+val ErrorContainerLight = Color(0xFFFEE2E2)
+val OnErrorContainerLight = Color(0xFF991B1B)
+
+val BackgroundLight = Color(0xFFFAF7F9) // Gentle fairy-pink neutral tinted canvas (not harsh #FFF)
+val OnBackgroundLight = Color(0xFF1E1A20) // Deep crisp obsidian
+
+val SurfaceLight = Color(0xFFFFFFFF) // Crisp surface
+val OnSurfaceLight = Color(0xFF1E1A20) // High-contrast text
+val SurfaceVariantLight = Color(0xFFF2EBF1)
+val OnSurfaceVariantLight = Color(0xFF67616C) // Readable secondary text
+
+val SurfaceContainerLowestLight = Color(0xFFFFFFFF)
+val SurfaceContainerLowLight = Color(0xFFFAF5F8)
+val SurfaceContainerLight = Color(0xFFF4EDF2)
+val SurfaceContainerHighLight = Color(0xFFEFE7EC)
+val SurfaceContainerHighestLight = Color(0xFFE8DFE5)
+
+val OutlineLight = Color(0xFFCBBEC9)
+val OutlineVariantLight = Color(0xFFE4DAE2)
+
 // Legacy Colors
 val AccentCyber = Color(0xFF06B6D4)
 val AccentEmerald = Color(0xFF10B981)

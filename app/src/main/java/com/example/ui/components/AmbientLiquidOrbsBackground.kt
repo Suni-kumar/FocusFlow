@@ -36,22 +36,32 @@ fun AmbientLiquidOrbsBackground(
     val orb3TargetColor = accentTheme.orbColors.getOrElse(2) { accentTheme.accentGlowColor }
     val orb4TargetColor = accentTheme.orbColors.getOrElse(3) { accentTheme.primaryColor }
 
-    val orb1Color = Color(0xFF8A5CF6) // Violet (0.54, 0.36, 0.96)
-    val orb2Color = Color(0xFF7A38ED) // Purple (0.48, 0.22, 0.93)
-    val orb3Color = Color(0xFF3B82F6) // Blue (0.23, 0.51, 0.96)
-    val orb4Color = Color(0xFF6D28D9) // Deep Purple
+    val orb1Color = if (isDarkTheme) Color(0xFF8A5CF6) else Color(0xFFF472B6) // Fairy Pink in Light Mode
+    val orb2Color = if (isDarkTheme) Color(0xFF7A38ED) else Color(0xFFC084FC) // Purple Lavender in Light Mode
+    val orb3Color = if (isDarkTheme) Color(0xFF3B82F6) else Color(0xFF38BDF8) // Soft Sky Cyan
+    val orb4Color = if (isDarkTheme) Color(0xFF6D28D9) else Color(0xFFFB7185) // Rose Pink
 
     val baseGradient = remember(isDarkTheme) {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFF0A0A0C), // Deep Dark Base (0.04, 0.04, 0.05)
-                Color(0xFF0D0D11),
-                Color(0xFF0A0A0C)
+        if (isDarkTheme) {
+            Brush.verticalGradient(
+                listOf(
+                    Color(0xFF0A0A0C), // Deep Dark Base (0.04, 0.04, 0.05)
+                    Color(0xFF0D0D11),
+                    Color(0xFF0A0A0C)
+                )
             )
-        )
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    Color(0xFFFAF6F9), // Soft luminous fairy pink neutral
+                    Color(0xFFF4EDF3),
+                    Color(0xFFFAF6F9)
+                )
+            )
+        }
     }
 
-    val orbAlphaMultiplier = if (isDarkTheme) 0.12f else 0.05f
+    val orbAlphaMultiplier = if (isDarkTheme) 0.12f else 0.07f
 
     Box(
         modifier = modifier

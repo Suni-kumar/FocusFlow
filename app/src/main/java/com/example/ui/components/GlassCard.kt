@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 fun GlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(16.dp),
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
-    borderColor: Color = Color.White.copy(alpha = 0.05f),
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f),
+    borderColor: Color? = null,
     borderBrush: Brush? = null,
     borderWidth: Dp = 1.dp,
     elevation: Dp = 2.dp,
@@ -57,20 +57,21 @@ fun GlassCard(
         Modifier
     }
 
-    val defaultBorder = remember {
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant
+    val defaultBorder = remember(outlineColor) {
         Brush.verticalGradient(
             listOf(
-                Color.White.copy(alpha = 0.08f), // Top specular highlight
-                Color.White.copy(alpha = 0.02f),
-                Color.White.copy(alpha = 0.00f)
+                outlineColor.copy(alpha = 0.5f),
+                outlineColor.copy(alpha = 0.2f),
+                Color.Transparent
             )
         )
     }
 
-    val finalBorderModifier = if (borderBrush != null) {
-        Modifier.border(borderWidth, borderBrush, shape)
-    } else {
-        Modifier.border(borderWidth, defaultBorder, shape)
+    val finalBorderModifier = when {
+        borderBrush != null -> Modifier.border(borderWidth, borderBrush, shape)
+        borderColor != null -> Modifier.border(borderWidth, borderColor, shape)
+        else -> Modifier.border(borderWidth, defaultBorder, shape)
     }
 
     Box(

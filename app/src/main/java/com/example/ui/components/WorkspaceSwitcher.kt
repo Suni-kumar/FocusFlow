@@ -324,7 +324,7 @@ private fun WorkspaceOptionCard(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF1EEF7),
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.5.sp
                     )
 

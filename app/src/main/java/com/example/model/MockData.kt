@@ -53,7 +53,7 @@ enum class VisualEngine {
 
 enum class BrightnessMode(val label: String, val description: String) {
     DARK("Dark Mode", "Deep void canvas & eye safety"),
-    LIGHT("Dark Mode", "Deep void canvas & eye safety"),
+    LIGHT("Light Mode", "Fairy pink glow & crisp clarity"),
     SYSTEM("System Default", "Follows device system settings")
 }
 

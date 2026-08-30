@@ -327,7 +327,7 @@ private fun PremiumSpeedDialItem(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF3F0F7),
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 13.5.sp
                 )
                 Text(

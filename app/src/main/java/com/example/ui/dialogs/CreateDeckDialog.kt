@@ -115,7 +115,7 @@ fun CreateDeckDialog(
                             text = "Create Flashcard Deck",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF1EEF7)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Add title and your own study flashcards",
@@ -231,7 +231,7 @@ fun CreateDeckDialog(
                             text = "Add Custom Cards (${cardList.size})",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF1EEF7)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (cardList.isEmpty()) {
                             Text(
