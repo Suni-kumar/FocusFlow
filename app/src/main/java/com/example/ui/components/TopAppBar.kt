@@ -96,13 +96,13 @@ fun SepFolTopAppBar(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     listOf(
                         Color.Transparent,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                     )
                 ),
                 shape = RectangleShape

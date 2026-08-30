@@ -23,6 +23,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,6 +70,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -363,27 +365,22 @@ fun StudioSpeedDialFab(
         label = "studioFabRotation"
     )
 
-    // Morphing shape animation: Circle (30dp radius) -> Rounded Square (16dp radius)
+    // Morphing shape animation: Circle (28dp radius) -> Rounded Square (18dp radius)
     val cornerRadius by animateDpAsState(
-        targetValue = if (isExpanded) 16.dp else 30.dp,
+        targetValue = if (isExpanded) 18.dp else 28.dp,
         animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
         label = "studioFabCornerRadius"
     )
 
-    // Main FAB Violet Gradient
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+
+    // Dynamic Theme-Aware FAB Gradients
     val closedGradient = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFF8B5CF6), // Royal Violet
-            Color(0xFF6366F1), // Indigo
-            Color(0xFFEC4899)  // Pink
-        )
+        colors = listOf(primaryColor, secondaryColor)
     )
-    val expandedGradient = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFF312E81), // Dark Indigo
-            Color(0xFF1E1B4B)  // Deep Obsidian Indigo
-        )
-    )
+    val expandedBgColor = MaterialTheme.colorScheme.surfaceContainerHigh
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -393,7 +390,7 @@ fun StudioSpeedDialFab(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.70f))
+                    .background(Color.Black.copy(alpha = 0.55f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -411,7 +408,7 @@ fun StudioSpeedDialFab(
                 .padding(end = 20.dp, bottom = 24.dp)
                 .wrapContentSize(),
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Speed Dial Vertical Options with clean animation
             AnimatedVisibility(
@@ -425,31 +422,29 @@ fun StudioSpeedDialFab(
                             )
                         ) +
                         scaleIn(
-                            initialScale = 0.85f,
-                            animationSpec = tween(180, easing = FastOutSlowInEasing)
+                            initialScale = 0.90f,
+                            animationSpec = tween(160, easing = FastOutSlowInEasing)
                         ),
-                exit = fadeOut(animationSpec = tween(120, easing = FastOutSlowInEasing)) +
+                exit = fadeOut(animationSpec = tween(110, easing = FastOutSlowInEasing)) +
                         slideOutVertically(
                             targetOffsetY = { it / 3 },
-                            animationSpec = tween(120)
+                            animationSpec = tween(110)
                         ) +
                         scaleOut(
-                            targetScale = 0.85f,
-                            animationSpec = tween(120)
+                            targetScale = 0.90f,
+                            animationSpec = tween(110)
                         )
             ) {
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.padding(bottom = 4.dp)
                 ) {
-                    // Option 1: AI Generate Deck (Vibrant Purple / Pink with Gemini sparkle)
-                    StudioSpeedDialItem(
+                    // Option 1: AI Generate
+                    StudioCompactSpeedDialItem(
                         icon = Icons.Default.AutoAwesome,
-                        label = "AI Generate Deck",
-                        subtitle = "Generate cards with Gemini AI",
-                        gradientColors = listOf(Color(0xFF9333EA), Color(0xFFDB2777)),
-                        glowColor = Color(0xFFC084FC),
+                        label = "AI Generate",
+                        accentColor = primaryColor,
                         testTag = "speed_dial_ai_generate_deck",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -457,13 +452,11 @@ fun StudioSpeedDialFab(
                         }
                     )
 
-                    // Option 2: Create Deck (Azure / Sky Blue)
-                    StudioSpeedDialItem(
+                    // Option 2: New Deck
+                    StudioCompactSpeedDialItem(
                         icon = Icons.Default.Style,
-                        label = "Create Deck",
-                        subtitle = "Manual flashcard deck with questions",
-                        gradientColors = listOf(Color(0xFF38BDF8), Color(0xFF0284C7)),
-                        glowColor = Color(0xFF38BDF8),
+                        label = "New Deck",
+                        accentColor = tertiaryColor,
                         testTag = "speed_dial_create_deck",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -473,21 +466,27 @@ fun StudioSpeedDialFab(
                 }
             }
 
-            // Main Action FAB Button (Morphs from Circle '+' to Rounded Square '✕')
+            // Main Action FAB Button (Morphs smoothly between '+' and '✕')
             Box(
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(56.dp)
                     .shadow(
-                        elevation = if (isExpanded) 18.dp else 12.dp,
+                        elevation = if (isExpanded) 12.dp else 16.dp,
                         shape = RoundedCornerShape(cornerRadius),
-                        ambientColor = if (isExpanded) Color(0xFF6366F1) else Color(0xFF8B5CF6),
-                        spotColor = if (isExpanded) Color(0xFF8B5CF6) else Color(0xFFEC4899)
+                        ambientColor = primaryColor.copy(alpha = 0.35f),
+                        spotColor = primaryColor.copy(alpha = 0.55f)
                     )
                     .clip(RoundedCornerShape(cornerRadius))
-                    .background(if (isExpanded) expandedGradient else closedGradient)
+                    .then(
+                        if (isExpanded) {
+                            Modifier.background(expandedBgColor)
+                        } else {
+                            Modifier.background(closedGradient)
+                        }
+                    )
                     .border(
-                        width = 1.5.dp,
-                        color = Color.White.copy(alpha = if (isExpanded) 0.25f else 0.4f),
+                        width = 1.2.dp,
+                        color = if (isExpanded) primaryColor.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.3f),
                         shape = RoundedCornerShape(cornerRadius)
                     )
                     .draggable(
@@ -517,9 +516,9 @@ fun StudioSpeedDialFab(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = if (isExpanded) "Close studio menu" else "Open studio menu",
-                    tint = Color.White,
+                    tint = if (isExpanded) primaryColor else MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(26.dp)
                         .rotate(rotation)
                 )
             }
@@ -527,88 +526,78 @@ fun StudioSpeedDialFab(
     }
 }
 
+/**
+ * Compact, Elite Rectangular Pill Action Item for Flashcards Studio
+ */
 @Composable
-fun StudioSpeedDialItem(
+fun StudioCompactSpeedDialItem(
     icon: ImageVector,
     label: String,
-    subtitle: String,
-    gradientColors: List<Color>,
-    glowColor: Color,
+    accentColor: Color,
     testTag: String,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "itemScale"
+    )
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.End,
+    Surface(
         modifier = Modifier
-            .clip(RoundedCornerShape(18.dp))
+            .scale(scale)
+            .height(44.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = accentColor.copy(alpha = 0.2f),
+                spotColor = Color.Black.copy(alpha = 0.35f)
+            )
+            .clip(RoundedCornerShape(14.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(bounded = true, color = glowColor.copy(alpha = 0.25f)),
+                indication = ripple(bounded = true, color = accentColor.copy(alpha = 0.25f)),
                 onClick = onClick
             )
-            .testTag(testTag)
-            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .testTag(testTag),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+        )
     ) {
-        // Option Text Pill Card (Obsidian Frosted Glass)
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-            border = androidx.compose.foundation.BorderStroke(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.12f)
-            ),
-            shadowElevation = 10.dp,
-            modifier = Modifier.clip(RoundedCornerShape(16.dp))
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                horizontalAlignment = Alignment.End
+            // Accent Icon Box
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(accentColor.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                    fontSize = 10.5.sp
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(16.dp)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Vibrant Gradient Icon Circle
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .shadow(
-                    elevation = 8.dp,
-                    shape = CircleShape,
-                    ambientColor = glowColor,
-                    spotColor = glowColor
-                )
-                .clip(CircleShape)
-                .background(Brush.linearGradient(colors = gradientColors))
-                .border(
-                    width = 1.5.dp,
-                    color = Color.White.copy(alpha = 0.4f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = Color.White,
-                modifier = Modifier.size(23.dp)
+            // Concise Label
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 13.5.sp
             )
         }
     }

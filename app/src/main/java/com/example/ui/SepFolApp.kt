@@ -350,10 +350,9 @@ fun SepFolApp() {
                     AnimatedContent(
                         targetState = Pair(currentScreen, selectedTab),
                         transitionSpec = {
-                            (fadeIn(animationSpec = tween(durationMillis = 140)) +
-                                    scaleIn(initialScale = 0.99f, animationSpec = tween(durationMillis = 140)))
+                            fadeIn(animationSpec = tween(durationMillis = 100))
                                 .togetherWith(
-                                    fadeOut(animationSpec = tween(durationMillis = 100))
+                                    fadeOut(animationSpec = tween(durationMillis = 80))
                                 )
                         },
                         label = "screenTransition"

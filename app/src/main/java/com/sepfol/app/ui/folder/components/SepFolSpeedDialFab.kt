@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -96,29 +97,25 @@ fun SepFolSpeedDialFab(
         label = "fabCornerRadius"
     )
 
-    // Main FAB Cohesive Gradients
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+
+    // Dynamic Theme-Aware FAB Gradients
     val closedGradient = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFFA855F7), // Royal Violet
-            Color(0xFF6366F1)  // Indigo
-        )
+        colors = listOf(primaryColor, secondaryColor)
     )
-    val expandedGradient = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFF2A2238), // Obsidian Plum
-            Color(0xFF1E172A)
-        )
-    )
+    val expandedBgColor = MaterialTheme.colorScheme.surfaceContainerHigh
 
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // Scrim backdrop: Only consumes outside clicks when speed dial is open
+        // Scrim backdrop: Consumes outside clicks when speed dial is open
         if (isExpanded) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF09080D).copy(alpha = 0.72f))
+                    .background(Color.Black.copy(alpha = 0.55f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -136,12 +133,12 @@ fun SepFolSpeedDialFab(
                 .padding(end = 20.dp, bottom = 24.dp)
                 .wrapContentSize(),
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Speed Dial Vertical Options with clean animation
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = fadeIn(animationSpec = tween(160, easing = FastOutSlowInEasing)) +
+                enter = fadeIn(animationSpec = tween(150, easing = FastOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { it / 3 },
                             animationSpec = spring(
@@ -150,31 +147,29 @@ fun SepFolSpeedDialFab(
                             )
                         ) +
                         scaleIn(
-                            initialScale = 0.85f,
-                            animationSpec = tween(180, easing = FastOutSlowInEasing)
+                            initialScale = 0.90f,
+                            animationSpec = tween(160, easing = FastOutSlowInEasing)
                         ),
-                exit = fadeOut(animationSpec = tween(120, easing = FastOutSlowInEasing)) +
+                exit = fadeOut(animationSpec = tween(110, easing = FastOutSlowInEasing)) +
                         slideOutVertically(
                             targetOffsetY = { it / 3 },
-                            animationSpec = tween(120)
+                            animationSpec = tween(110)
                         ) +
                         scaleOut(
-                            targetScale = 0.85f,
-                            animationSpec = tween(120)
+                            targetScale = 0.90f,
+                            animationSpec = tween(110)
                         )
             ) {
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.padding(bottom = 6.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(bottom = 4.dp)
                 ) {
-                    // Option 1: Import File (Azure / Sky)
-                    PremiumSpeedDialItem(
+                    // Option 1: Import File
+                    CompactSpeedDialItem(
                         icon = Icons.Default.UploadFile,
                         label = "Import File",
-                        subtitle = "Select from local storage",
-                        gradientColors = listOf(Color(0xFF38BDF8), Color(0xFF0284C7)),
-                        glowColor = Color(0xFF38BDF8),
+                        accentColor = tertiaryColor,
                         testTag = "speed_dial_import_file",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -182,13 +177,11 @@ fun SepFolSpeedDialFab(
                         }
                     )
 
-                    // Option 2: Make Notes (Mint Emerald)
-                    PremiumSpeedDialItem(
+                    // Option 2: New Note
+                    CompactSpeedDialItem(
                         icon = Icons.Default.NoteAdd,
-                        label = "Make Notes",
-                        subtitle = "Create Markdown document",
-                        gradientColors = listOf(Color(0xFF34D399), Color(0xFF059669)),
-                        glowColor = Color(0xFF34D399),
+                        label = "New Note",
+                        accentColor = Color(0xFF10B981), // Emerald
                         testTag = "speed_dial_make_notes",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -196,13 +189,11 @@ fun SepFolSpeedDialFab(
                         }
                     )
 
-                    // Option 3: Create Folder (Royal Violet)
-                    PremiumSpeedDialItem(
+                    // Option 3: New Folder
+                    CompactSpeedDialItem(
                         icon = Icons.Default.CreateNewFolder,
-                        label = "Create Folder",
-                        subtitle = "New directory category",
-                        gradientColors = listOf(Color(0xFFA78BFA), Color(0xFF7C3AED)),
-                        glowColor = Color(0xFFA78BFA),
+                        label = "New Folder",
+                        accentColor = primaryColor,
                         testTag = "speed_dial_create_folder",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -215,23 +206,24 @@ fun SepFolSpeedDialFab(
             // Main Action FAB Button (Morphs smoothly between '+' and '✕')
             Box(
                 modifier = Modifier
-                    .size(58.dp)
+                    .size(56.dp)
                     .shadow(
-                        elevation = if (isExpanded) 14.dp else 16.dp,
+                        elevation = if (isExpanded) 12.dp else 16.dp,
                         shape = RoundedCornerShape(cornerRadius),
-                        ambientColor = if (isExpanded) Color(0xFF8B5CF6).copy(alpha = 0.4f) else Color(0xFFA855F7).copy(alpha = 0.5f),
-                        spotColor = if (isExpanded) Color(0xFF6366F1).copy(alpha = 0.5f) else Color(0xFF6366F1).copy(alpha = 0.6f)
+                        ambientColor = primaryColor.copy(alpha = 0.35f),
+                        spotColor = primaryColor.copy(alpha = 0.55f)
                     )
                     .clip(RoundedCornerShape(cornerRadius))
-                    .background(if (isExpanded) expandedGradient else closedGradient)
+                    .then(
+                        if (isExpanded) {
+                            Modifier.background(expandedBgColor)
+                        } else {
+                            Modifier.background(closedGradient)
+                        }
+                    )
                     .border(
                         width = 1.2.dp,
-                        brush = Brush.linearGradient(
-                            listOf(
-                                if (isExpanded) Color(0xFFA78BFA).copy(alpha = 0.6f) else Color.White.copy(alpha = 0.45f),
-                                if (isExpanded) Color(0xFF6366F1).copy(alpha = 0.3f) else Color.White.copy(alpha = 0.15f)
-                            )
-                        ),
+                        color = if (isExpanded) primaryColor.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.3f),
                         shape = RoundedCornerShape(cornerRadius)
                     )
                     .draggable(
@@ -261,7 +253,7 @@ fun SepFolSpeedDialFab(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = if (isExpanded) "Close creation menu" else "Open creation menu",
-                    tint = if (isExpanded) Color(0xFFD0BCFF) else Color.White,
+                    tint = if (isExpanded) primaryColor else MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .size(26.dp)
                         .rotate(rotation)
@@ -271,102 +263,82 @@ fun SepFolSpeedDialFab(
     }
 }
 
+/**
+ * Sleek, Elite Rectangular Pill Action Item
+ * Displays an icon + concise label in a polished single container.
+ */
 @Composable
-private fun PremiumSpeedDialItem(
+private fun CompactSpeedDialItem(
     icon: ImageVector,
     label: String,
-    subtitle: String,
-    gradientColors: List<Color>,
-    glowColor: Color,
+    accentColor: Color,
     testTag: String,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "itemScale"
     )
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.End,
+    Surface(
         modifier = Modifier
             .scale(scale)
+            .height(44.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = accentColor.copy(alpha = 0.2f),
+                spotColor = Color.Black.copy(alpha = 0.35f)
+            )
+            .clip(RoundedCornerShape(14.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
+                indication = ripple(bounded = true, color = accentColor.copy(alpha = 0.25f)),
                 onClick = onClick
             )
-            .testTag(testTag)
-            .padding(horizontal = 2.dp, vertical = 2.dp)
+            .testTag(testTag),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+        )
     ) {
-        // Option Text Pill Card (Dark frosted glass with subtle glowing border)
-        Surface(
+        Row(
             modifier = Modifier
-                .shadow(elevation = 10.dp, shape = RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.5f))
-                .clip(RoundedCornerShape(16.dp)),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
-            border = androidx.compose.foundation.BorderStroke(
-                width = 1.dp,
-                brush = Brush.horizontalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                        glowColor.copy(alpha = 0.45f)
-                    )
-                )
-            )
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                horizontalAlignment = Alignment.End
+            // Accent Icon Container
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(accentColor.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 13.5.sp
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                    fontSize = 10.5.sp
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(16.dp)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Luminous Layered Gradient Icon Button
-        Box(
-            modifier = Modifier
-                .size(50.dp)
-                .shadow(
-                    elevation = 14.dp,
-                    shape = CircleShape,
-                    ambientColor = glowColor.copy(alpha = 0.45f),
-                    spotColor = glowColor.copy(alpha = 0.65f)
-                )
-                .clip(CircleShape)
-                .background(Brush.linearGradient(gradientColors))
-                .border(
-                    width = 1.2.dp,
-                    color = Color.White.copy(alpha = 0.35f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
+            // Concise Label
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 13.5.sp
             )
         }
     }
 }
+
 

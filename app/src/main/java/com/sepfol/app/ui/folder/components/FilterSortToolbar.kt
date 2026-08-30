@@ -126,8 +126,8 @@ fun FilterSortToolbar(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .clickable { isSortMenuOpen = true }
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
                     .testTag("sort_menu_button")
                     .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
@@ -213,20 +213,6 @@ private fun FilterTabPill(
     testTag: String = ""
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = when {
-            isPressed -> 0.92f
-            isSelected -> 1.04f
-            else -> 1.0f
-        },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "filterPillScale"
-    )
 
     val contentColor by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -235,25 +221,21 @@ private fun FilterTabPill(
     )
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
-        else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+        else MaterialTheme.colorScheme.surfaceContainerHigh,
         animationSpec = tween(durationMillis = 200),
         label = "filterBgColor"
     )
 
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
         animationSpec = tween(durationMillis = 200),
         label = "filterBorderColor"
     )
 
     Box(
         modifier = Modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
             .clip(RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = interactionSource,

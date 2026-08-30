@@ -61,7 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Ultra-Minimalist, High-End Workspace Switcher Modal
+ * Ultra-Sleek, High-End Workspace Switcher Modal
  * Triggered seamlessly by swiping up on the Plus FAB.
  */
 @Composable
@@ -73,6 +73,9 @@ fun WorkspaceSwitcherModal(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
     if (isOpen) {
         Box(
@@ -83,7 +86,7 @@ fun WorkspaceSwitcherModal(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f))
+                    .background(Color.Black.copy(alpha = 0.55f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -94,7 +97,7 @@ fun WorkspaceSwitcherModal(
             // Animated Bottom Sheet Panel
             AnimatedVisibility(
                 visible = isOpen,
-                enter = fadeIn(animationSpec = tween(160, easing = FastOutSlowInEasing)) +
+                enter = fadeIn(animationSpec = tween(150, easing = FastOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { it },
                             animationSpec = spring(
@@ -102,118 +105,85 @@ fun WorkspaceSwitcherModal(
                                 stiffness = Spring.StiffnessMedium
                             )
                         ),
-                exit = fadeOut(animationSpec = tween(140, easing = FastOutSlowInEasing)) +
+                exit = fadeOut(animationSpec = tween(120, easing = FastOutSlowInEasing)) +
                         slideOutVertically(
                             targetOffsetY = { it },
-                            animationSpec = tween(140)
+                            animationSpec = tween(120)
                         ),
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = 500.dp)
-                        .padding(horizontal = 16.dp, vertical = 18.dp)
+                        .widthIn(max = 480.dp)
+                        .padding(horizontal = 16.dp, vertical = 16.dp)
                         .navigationBarsPadding()
                         .shadow(
-                            elevation = 28.dp,
-                            shape = RoundedCornerShape(26.dp),
-                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            elevation = 24.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            ambientColor = primaryColor.copy(alpha = 0.2f),
+                            spotColor = primaryColor.copy(alpha = 0.25f)
                         ),
-                    shape = RoundedCornerShape(26.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                            )
-                        )
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                     )
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 18.dp, vertical = 16.dp),
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Drag Indicator Bar
                         Box(
                             modifier = Modifier
-                                .width(36.dp)
+                                .width(32.dp)
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.30f))
                         )
 
                         // Modal Header
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                                Column {
-                                    Text(
-                                        text = "Workspace Switcher",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 16.sp
-                                    )
-                                    Text(
-                                        text = "Select active workspace",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 11.sp
-                                    )
-                                }
-                            }
+                            Text(
+                                text = "Switch Workspace",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 15.sp
+                            )
 
                             IconButton(
                                 onClick = onDismiss,
                                 modifier = Modifier
-                                    .size(30.dp)
+                                    .size(28.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close switcher",
-                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(15.dp)
                                 )
                             }
                         }
 
-                        // Workspace Option 1: Vault (Files & Notes)
-                        WorkspaceOptionCard(
-                            title = "Vault Workspace",
-                            subtitle = "Files, Markdown notes, study docs & categories",
+                        // Workspace Option 1: Vault Workspace
+                        EliteWorkspaceOptionCard(
+                            title = "Vault",
                             icon = Icons.Default.Folder,
-                            gradientColors = listOf(Color(0xFFA855F7), Color(0xFF6366F1)),
-                            glowColor = Color(0xFFA855F7),
+                            accentColor = primaryColor,
                             isSelected = currentTab == MainTab.FILES,
                             testTag = "workspace_option_vault",
                             onClick = {
@@ -224,12 +194,10 @@ fun WorkspaceSwitcherModal(
                         )
 
                         // Workspace Option 2: Flashcards Studio
-                        WorkspaceOptionCard(
-                            title = "Flashcards Studio",
-                            subtitle = "AI study cards, deck reviews & active recall",
+                        EliteWorkspaceOptionCard(
+                            title = "Flashcards",
                             icon = Icons.Default.Style,
-                            gradientColors = listOf(Color(0xFFEC4899), Color(0xFF8B5CF6)),
-                            glowColor = Color(0xFFEC4899),
+                            accentColor = secondaryColor,
                             isSelected = currentTab == MainTab.STUDIO,
                             testTag = "workspace_option_studio",
                             onClick = {
@@ -245,13 +213,14 @@ fun WorkspaceSwitcherModal(
     }
 }
 
+/**
+ * Concise, theme-adaptive workspace option card
+ */
 @Composable
-private fun WorkspaceOptionCard(
+private fun EliteWorkspaceOptionCard(
     title: String,
-    subtitle: String,
     icon: ImageVector,
-    gradientColors: List<Color>,
-    glowColor: Color,
+    accentColor: Color,
     isSelected: Boolean,
     testTag: String,
     onClick: () -> Unit
@@ -261,11 +230,11 @@ private fun WorkspaceOptionCard(
         label = "cardScale"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) glowColor.copy(alpha = 0.55f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
+        targetValue = if (isSelected) accentColor.copy(alpha = 0.65f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
         label = "borderColor"
     )
     val containerBg by animateColorAsState(
-        targetValue = if (isSelected) glowColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.50f),
+        targetValue = if (isSelected) accentColor.copy(alpha = 0.09f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.60f),
         label = "containerBg"
     )
 
@@ -273,14 +242,15 @@ private fun WorkspaceOptionCard(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(18.dp))
+            .height(58.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, color = glowColor.copy(alpha = 0.25f)),
+                indication = ripple(bounded = true, color = accentColor.copy(alpha = 0.20f)),
                 onClick = onClick
             )
             .testTag(testTag),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = containerBg,
         border = androidx.compose.foundation.BorderStroke(
             width = if (isSelected) 1.2.dp else 1.dp,
@@ -289,90 +259,88 @@ private fun WorkspaceOptionCard(
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Gradient Icon Box
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.linearGradient(gradientColors))
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            // Title & Description
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 14.5.sp
-                    )
-
-                    if (isSelected) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(9999.dp))
-                                .background(glowColor.copy(alpha = 0.16f))
-                                .border(0.8.dp, glowColor.copy(alpha = 0.45f), RoundedCornerShape(9999.dp))
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "ACTIVE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = glowColor,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                    fontSize = 11.5.sp,
-                    lineHeight = 15.sp
-                )
-            }
-
-            // Selected Checkmark Pill
-            if (isSelected) {
+                // Accent Icon Container
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(gradientColors))
-                        .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape),
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(
+                            if (isSelected) {
+                                Brush.linearGradient(
+                                    listOf(accentColor, accentColor.copy(alpha = 0.75f))
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    listOf(accentColor.copy(alpha = 0.15f), accentColor.copy(alpha = 0.10f))
+                                )
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = Color.White,
-                        modifier = Modifier.size(14.dp)
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (isSelected) Color.White else accentColor,
+                        modifier = Modifier.size(19.dp)
                     )
+                }
+
+                // Title
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp
+                )
+            }
+
+            // Active Badge & Checkmark Pill
+            if (isSelected) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(9999.dp))
+                            .background(accentColor.copy(alpha = 0.15f))
+                            .border(0.8.dp, accentColor.copy(alpha = 0.40f), RoundedCornerShape(9999.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "ACTIVE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = accentColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 9.5.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(accentColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Active",
+                            tint = Color.White,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
                 }
             }
         }
