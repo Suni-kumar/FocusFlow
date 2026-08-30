@@ -1,8 +1,14 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -112,7 +118,14 @@ fun SepFolTopAppBar(
                 else -> "NORMAL"
             },
             transitionSpec = {
-                (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+                val enterSpec = spring<Float>(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+                val exitSpec = tween<Float>(durationMillis = 180)
+
+                (slideInHorizontally(animationSpec = spring(stiffness = Spring.StiffnessMedium)) { if (targetState == "SEARCH") it else -it } + fadeIn(animationSpec = enterSpec))
+                    .togetherWith(slideOutHorizontally(animationSpec = tween(180)) { if (initialState == "SEARCH") it else -it } + fadeOut(animationSpec = exitSpec))
             },
             label = "topAppBarModeTransition"
         ) { mode ->
@@ -251,7 +264,11 @@ fun SepFolTopAppBar(
                             )
                         }
 
-                        if (searchQuery.isNotEmpty()) {
+                        AnimatedVisibility(
+                            visible = searchQuery.isNotEmpty(),
+                            enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                            exit = scaleOut() + fadeOut()
+                        ) {
                             IconButton(
                                 onClick = { onSearchQueryChange("") },
                                 modifier = Modifier.size(32.dp)
@@ -311,41 +328,20 @@ fun SepFolTopAppBar(
                             )
                         }
 
-                        // Action Icon: Settings Gear (Tap -> Settings, Swipe Left -> Opens Search Bar)
-                        var dragOffset by remember { mutableFloatStateOf(0f) }
-                        Box(
+                        // Action Icon: Settings Gear
+                        IconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSettingsClick()
+                            },
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .pointerInput(Unit) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { dragOffset = 0f },
-                                        onHorizontalDrag = { change, dragAmount ->
-                                            dragOffset += dragAmount
-                                            if (dragOffset < -18f) { // Left swipe gesture opens search
-                                                change.consume()
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                onSearchActiveChange(true)
-                                            }
-                                        },
-                                        onDragEnd = { dragOffset = 0f },
-                                        onDragCancel = { dragOffset = 0f }
-                                    )
-                                }
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onSettingsClick()
-                                    }
-                                )
-                                .testTag("top_bar_settings_gear"),
-                            contentAlignment = Alignment.Center
+                                .testTag("top_bar_settings_gear")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings (Swipe left to search)",
+                                contentDescription = "Settings",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )

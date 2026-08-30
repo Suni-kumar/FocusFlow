@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -9,6 +10,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,7 +49,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,6 +79,8 @@ fun StudyScreen(
 ) {
     var currentCardIndex by remember { mutableIntStateOf(0) }
     var isFlipped by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val dragOffsetX = remember { Animatable(0f) }
 
     val cards = deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards }
     val currentCard = cards[currentCardIndex.coerceIn(0, cards.size - 1)]
@@ -239,14 +246,53 @@ fun StudyScreen(
                         .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
                 )
 
-                // Layer 1: Flippable 3D Front/Back Card
+                // Layer 1: Flippable 3D Front/Back Card with Ultra-Smooth Swipe Gestures
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(bottom = 12.dp)
                         .graphicsLayer {
+                            translationX = dragOffsetX.value
+                            rotationZ = (dragOffsetX.value / 35f).coerceIn(-12f, 12f)
                             rotationY = rotation
                             cameraDistance = 12f * density
+                        }
+                        .pointerInput(currentCardIndex) {
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { _, dragAmount ->
+                                    scope.launch {
+                                        dragOffsetX.snapTo(dragOffsetX.value + dragAmount)
+                                    }
+                                },
+                                onDragEnd = {
+                                    scope.launch {
+                                        val offset = dragOffsetX.value
+                                        if (offset < -140f && currentCardIndex < cards.size - 1) {
+                                            // Swipe Left -> Next Card
+                                            dragOffsetX.animateTo(-500f, tween(150))
+                                            isFlipped = false
+                                            currentCardIndex++
+                                            dragOffsetX.snapTo(400f)
+                                            dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
+                                        } else if (offset > 140f && currentCardIndex > 0) {
+                                            // Swipe Right -> Previous Card
+                                            dragOffsetX.animateTo(500f, tween(150))
+                                            isFlipped = false
+                                            currentCardIndex--
+                                            dragOffsetX.snapTo(-400f)
+                                            dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
+                                        } else {
+                                            // Snap back to center
+                                            dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                                        }
+                                    }
+                                },
+                                onDragCancel = {
+                                    scope.launch {
+                                        dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                                    }
+                                }
+                            )
                         }
                         .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
                         .clip(RoundedCornerShape(20.dp))

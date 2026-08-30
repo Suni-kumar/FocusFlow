@@ -350,10 +350,10 @@ fun SepFolApp() {
                     AnimatedContent(
                         targetState = Pair(currentScreen, selectedTab),
                         transitionSpec = {
-                            (fadeIn(animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)) +
-                                    scaleIn(initialScale = 0.98f, animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)))
+                            (fadeIn(animationSpec = tween(durationMillis = 140)) +
+                                    scaleIn(initialScale = 0.99f, animationSpec = tween(durationMillis = 140)))
                                 .togetherWith(
-                                    fadeOut(animationSpec = tween(120))
+                                    fadeOut(animationSpec = tween(durationMillis = 100))
                                 )
                         },
                         label = "screenTransition"

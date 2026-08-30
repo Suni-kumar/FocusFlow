@@ -85,19 +85,28 @@ fun AiGenerateDeckDialog(
 
     val infiniteTransition = rememberInfiniteTransition(label = "ai_glow")
     val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 0.9f,
+        initialValue = 0.35f,
+        targetValue = 0.95f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
+            animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "glow_alpha"
+    )
+    val shimmerOffset by infiniteTransition.animateFloat(
+        initialValue = -200f,
+        targetValue = 600f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer_offset"
     )
     val buttonScale by infiniteTransition.animateFloat(
         initialValue = 1.0f,
         targetValue = if (isGenerating) 1.03f else 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(900, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "btn_scale"
@@ -163,17 +172,36 @@ fun AiGenerateDeckDialog(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
                                     Brush.linearGradient(
-                                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.tertiary
+                                        )
                                     )
                                 )
-                                .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                                .border(
+                                    width = 1.5.dp,
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = glowAlpha),
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .shadow(
+                                    elevation = (8 * glowAlpha).dp,
+                                    shape = RoundedCornerShape(12.dp),
+                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha * 0.6f)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .scale(0.95f + 0.08f * glowAlpha)
                             )
                         }
 
@@ -506,14 +534,29 @@ fun AiGenerateDeckDialog(
                     )
                 }
 
-                // Loading Indicator / Status Banner
+                // Loading Indicator / Status Banner with Shimmering Aurora Wave
                 AnimatedVisibility(visible = isGenerating) {
+                    val shimmerBrush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.25f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                        ),
+                        start = androidx.compose.ui.geometry.Offset(shimmerOffset, 0f),
+                        end = androidx.compose.ui.geometry.Offset(shimmerOffset + 300f, 100f)
+                    )
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                            .background(shimmerBrush)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
+                                RoundedCornerShape(12.dp)
+                            )
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -527,7 +570,7 @@ fun AiGenerateDeckDialog(
                             text = progressMessage,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }

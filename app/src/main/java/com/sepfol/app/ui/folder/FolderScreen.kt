@@ -7,8 +7,17 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -196,6 +205,10 @@ fun FolderScreen(
         }
     }
 
+    val folders = remember(uiState.currentItems) { uiState.currentItems.filter { it.isDirectory } }
+    val files = remember(uiState.currentItems) { uiState.currentItems.filter { !it.isDirectory } }
+    val folderRows = remember(folders, uiState.gridColumns) { folders.chunked(uiState.gridColumns.coerceIn(1, 4)) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -302,9 +315,6 @@ fun FolderScreen(
             }
 
             // Active Folder Content
-            val folders = uiState.currentItems.filter { it.isDirectory }
-            val files = uiState.currentItems.filter { !it.isDirectory }
-
             if (uiState.currentItems.isEmpty()) {
                 item(key = "empty_folder_state") {
                     EmptyFolderState(
@@ -327,8 +337,7 @@ fun FolderScreen(
                         )
                     }
 
-                    val rows = folders.chunked(uiState.gridColumns.coerceIn(1, 4))
-                    itemsIndexed(rows, key = { rowIndex, _ -> "folder_row_$rowIndex" }) { _, row ->
+                    itemsIndexed(folderRows, key = { rowIndex, _ -> "folder_row_$rowIndex" }) { _, row ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -513,19 +522,25 @@ fun BreadcrumbBar(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (breadcrumbs.size > 1) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Navigate Up",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
+            AnimatedVisibility(
+                visible = breadcrumbs.size > 1,
+                enter = slideInHorizontally(animationSpec = spring(stiffness = Spring.StiffnessMedium)) { -it } + fadeIn(),
+                exit = slideOutHorizontally { -it } + fadeOut()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Navigate Up",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
                 }
-                Spacer(modifier = Modifier.width(4.dp))
             }
 
             LazyRow(
@@ -533,9 +548,18 @@ fun BreadcrumbBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                itemsIndexed(breadcrumbs) { index, crumb ->
+                itemsIndexed(
+                    items = breadcrumbs,
+                    key = { _, crumb -> crumb.id ?: "root_folder" }
+                ) { index, crumb ->
                     val isLast = index == breadcrumbs.lastIndex
                     val isFirst = index == 0
+
+                    val textColor by animateColorAsState(
+                        targetValue = if (isLast) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "crumbTextColor"
+                    )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -544,22 +568,24 @@ fun BreadcrumbBar(
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .clickable(enabled = !isLast) { onBreadcrumbClick(index) },
+                                .clickable(enabled = !isLast) { onBreadcrumbClick(index) }
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (isFirst) {
                                 Icon(
                                     imageVector = Icons.Default.FolderOpen,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = if (isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                             Text(
                                 text = crumb.name,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (isLast) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                fontWeight = if (isLast) FontWeight.SemiBold else FontWeight.Normal,
+                                color = textColor
                             )
                         }
 

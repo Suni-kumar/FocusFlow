@@ -102,6 +102,7 @@ fun StudioScreen(
 ) {
     val isSelectionMode = selectedDeckIds.isNotEmpty()
     var isSpeedDialOpen by remember { mutableStateOf(false) }
+    val deckChunks = remember(decks) { decks.chunked(2) }
 
     // Intercept back button if speed dial is open or in selection mode
     BackHandler(enabled = isSpeedDialOpen || isSelectionMode) {
@@ -273,8 +274,7 @@ fun StudioScreen(
                     }
                 }
             } else {
-                val chunks = decks.chunked(2)
-                itemsIndexed(chunks, key = { index, _ -> "deck_chunk_$index" }) { _, chunk ->
+                itemsIndexed(deckChunks, key = { index, _ -> "deck_chunk_$index" }) { _, chunk ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
