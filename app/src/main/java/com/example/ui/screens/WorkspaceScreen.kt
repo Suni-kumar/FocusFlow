@@ -216,8 +216,8 @@ fun RecentFileCard(
         modifier = modifier
             .width(145.dp)
             .height(135.dp),
-        backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        borderColor = MaterialTheme.colorScheme.outlineVariant,
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+        borderColor = Color.White.copy(alpha = 0.05f),
         onClick = onClick
     ) {
         Column(
@@ -278,8 +278,8 @@ fun FolderGridCard(
         modifier = modifier
             .fillMaxWidth()
             .height(58.dp),
-        backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        borderColor = MaterialTheme.colorScheme.outlineVariant,
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+        borderColor = Color.White.copy(alpha = 0.05f),
         shape = RoundedCornerShape(14.dp),
         onClick = onClick
     ) {

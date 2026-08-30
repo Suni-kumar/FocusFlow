@@ -588,8 +588,8 @@ fun RecentNoteCard(
         modifier = modifier
             .width(150.dp)
             .height(135.dp),
-        backgroundColor = MaterialTheme.colorScheme.surface,
-        borderColor = MaterialTheme.colorScheme.outlineVariant,
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+        borderColor = Color.White.copy(alpha = 0.05f),
         onClick = onClick
     ) {
         Column(
@@ -674,11 +674,11 @@ fun FolderCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface
+    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
     val borderCol = when {
-        isSelected -> MaterialTheme.colorScheme.primary
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
         folder.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-        else -> MaterialTheme.colorScheme.outlineVariant
+        else -> Color.White.copy(alpha = 0.05f)
     }
 
     GlassCard(
@@ -793,11 +793,11 @@ fun NoteListItemCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface
+    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
     val borderCol = when {
-        isSelected -> MaterialTheme.colorScheme.primary
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
         item.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-        else -> MaterialTheme.colorScheme.outlineVariant
+        else -> Color.White.copy(alpha = 0.05f)
     }
 
     GlassCard(
@@ -946,8 +946,8 @@ fun EmptyFolderState(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 24.dp),
-        backgroundColor = MaterialTheme.colorScheme.surface,
-        borderColor = MaterialTheme.colorScheme.outlineVariant,
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+        borderColor = Color.White.copy(alpha = 0.05f),
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(

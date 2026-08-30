@@ -165,7 +165,7 @@ fun RestoreConfirmationDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceSlateDark.copy(alpha = 0.8f))
+                        .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f))
                         .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {
@@ -688,7 +688,7 @@ fun ExportSuccessDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceSlateDark.copy(alpha = 0.8f))
+                        .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f))
                         .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {

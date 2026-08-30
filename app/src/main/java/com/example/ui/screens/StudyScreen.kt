@@ -225,8 +225,8 @@ fun StudyScreen(
                         .fillMaxSize()
                         .padding(top = 28.dp, start = 16.dp, end = 16.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f))
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
                 )
 
                 // Layer 2 (Middle)
@@ -235,8 +235,8 @@ fun StudyScreen(
                         .fillMaxSize()
                         .padding(top = 14.dp, start = 8.dp, end = 8.dp, bottom = 6.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
                 )
 
                 // Layer 1: Flippable 3D Front/Back Card
@@ -250,8 +250,8 @@ fun StudyScreen(
                         }
                         .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
                         .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f))
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
                         .clickable { isFlipped = !isFlipped },
                     contentAlignment = Alignment.Center
                 ) {
