@@ -57,20 +57,20 @@ fun GlassCard(
         Modifier
     }
 
+    val defaultBorder = remember {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.08f), // Top specular highlight
+                Color.White.copy(alpha = 0.02f),
+                Color.White.copy(alpha = 0.00f)
+            )
+        )
+    }
+
     val finalBorderModifier = if (borderBrush != null) {
         Modifier.border(borderWidth, borderBrush, shape)
     } else {
-        Modifier.border(
-            borderWidth,
-            Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.08f), // Top specular highlight
-                    Color.White.copy(alpha = 0.02f),
-                    Color.White.copy(alpha = 0.00f)
-                )
-            ),
-            shape
-        )
+        Modifier.border(borderWidth, defaultBorder, shape)
     }
 
     Box(
@@ -78,8 +78,8 @@ fun GlassCard(
             .shadow(
                 elevation = elevation,
                 shape = shape,
-                spotColor = Color.Black.copy(alpha = 0.2f),
-                ambientColor = Color.Black.copy(alpha = 0.1f)
+                
+                
             )
             .clip(shape)
             .background(backgroundColor)
@@ -111,20 +111,32 @@ fun LiquidGlassCard(
     } else {
         Modifier
     }
+    
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val defaultBorder = remember(primaryColor) {
+        Brush.linearGradient(
+            listOf(
+                Color.White.copy(alpha = 0.15f),
+                primaryColor.copy(alpha = 0.20f),
+                Color.Transparent
+            )
+        )
+    }
 
     val borderModifier = if (accentBrush != null) {
         Modifier.border(1.2.dp, accentBrush, shape)
     } else {
-        Modifier.border(
-            1.dp,
-            Brush.linearGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.15f),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
-                    Color.Transparent
-                )
-            ),
-            shape
+        Modifier.border(1.dp, defaultBorder, shape)
+    }
+    
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val defaultBackground = remember(surfaceColor, surfaceVariant) {
+        Brush.verticalGradient(
+            colors = listOf(
+                surfaceColor.copy(alpha = 0.85f),
+                surfaceVariant.copy(alpha = 0.60f)
+            )
         )
     }
 
@@ -133,18 +145,11 @@ fun LiquidGlassCard(
             .shadow(
                 elevation = 12.dp,
                 shape = shape,
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                ambientColor = Color.Black.copy(alpha = 0.2f)
+                
+                
             )
             .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f)
-                    )
-                )
-            )
+            .background(defaultBackground)
             .then(borderModifier)
             .then(clickModifier),
         content = content

@@ -1,0 +1,2 @@
+sed -i 's/val finalBorderModifier = if (borderBrush != null) {/val defaultBorder = remember { Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.08f), Color.White.copy(alpha = 0.02f), Color.White.copy(alpha = 0.00f))) }\n    val finalBorderModifier = if (borderBrush != null) {/g' app/src/main/java/com/example/ui/components/GlassCard.kt
+sed -i 's/Brush.verticalGradient(/defaultBorder/g' app/src/main/java/com/example/ui/components/GlassCard.kt

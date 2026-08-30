@@ -104,6 +104,7 @@ import com.sepfol.app.ui.viewer.PdfImageViewerScreen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+private val dateFormat = SimpleDateFormat("MMM d", Locale.getDefault())
 
 private data class FileBadgeInfo(
     val badgeText: String,
@@ -1102,6 +1103,6 @@ private fun formatRelativeTime(timestamp: Long): String {
         mins < 60 -> "$mins mins ago"
         hours < 24 -> "$hours hrs ago"
         days < 7 -> "$days days ago"
-        else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(timestamp))
+        else -> dateFormat.format(Date(timestamp))
     }
 }
