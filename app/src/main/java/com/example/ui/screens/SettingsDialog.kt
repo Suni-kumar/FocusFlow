@@ -78,7 +78,6 @@ import androidx.compose.ui.unit.sp
 import com.example.model.AccentTheme
 import com.example.model.BrightnessMode
 import com.example.model.VisualEngine
-import com.example.ui.theme.AccentCyber
 
 /**
  * Ultra-Premium, Minimalist Apple/Notion-grade Settings Architecture
@@ -128,52 +127,46 @@ fun SettingsScreen(
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header Bar
-            Surface(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                border = androidx.compose.foundation.BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                )
+                    .height(64.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            )
+                        ),
+                        shape = androidx.compose.ui.graphics.RectangleShape
+                    )
+                    .statusBarsPadding()
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(selectedAccent.primaryColor, selectedAccent.secondaryColor)
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Palette,
-                                contentDescription = null,
-                                tint = selectedAccent.buttonTextColor,
-                                modifier = Modifier.size(17.dp)
-                            )
-                        }
-
+                        Icon(
+                            imageVector = Icons.Default.SettingsBrightness,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
                         Text(
-                            text = "Preferences",
+                            text = "Settings",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 18.sp
+                            fontSize = 20.sp
                         )
                     }
 
@@ -181,23 +174,18 @@ fun SettingsScreen(
                         onClick = onDoneClick,
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = selectedAccent.primaryColor.copy(alpha = 0.18f),
-                            contentColor = selectedAccent.primaryColor
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            selectedAccent.primaryColor.copy(alpha = 0.4f)
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            contentColor = MaterialTheme.colorScheme.primary
                         ),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                         modifier = Modifier
-                            .height(34.dp)
+                            .height(36.dp)
                             .testTag("settings_done_button")
                     ) {
                         Text(
                             text = "Done",
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = selectedAccent.primaryColor
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -848,12 +836,12 @@ private fun SettingsGroupSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
                 .border(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                    shape = RoundedCornerShape(16.dp)
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(20.dp)
                 )
         ) {
             Column {

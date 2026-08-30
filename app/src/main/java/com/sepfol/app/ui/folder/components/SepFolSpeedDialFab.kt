@@ -61,7 +61,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.SurfaceSlateDark
 
 @Composable
 fun SepFolSpeedDialFab(
@@ -97,15 +96,14 @@ fun SepFolSpeedDialFab(
     // Main FAB Colorful Gradients
     val closedGradient = Brush.linearGradient(
         colors = listOf(
-            Color(0xFF8B5CF6), // Neon Purple
-            Color(0xFFEC4899), // Neon Pink
-            Color(0xFF06B6D4)  // Neon Cyan
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.secondaryContainer
         )
     )
     val expandedGradient = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFFF3366), // Hot Crimson
-            Color(0xFFFF5E3A)  // Sunset Coral
+            Color(0xFFFF5252), // Red
+            Color(0xFFFF8A80)
         )
     )
 
@@ -167,13 +165,12 @@ fun SepFolSpeedDialFab(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.padding(bottom = 4.dp)
                 ) {
-                    // Option 1: Import File (Vibrant Cyan / Sky Blue)
+                    // Option 1: Import File (Cyan)
                     ColorfulSpeedDialItem(
                         icon = Icons.Default.UploadFile,
                         label = "Import File",
                         subtitle = "Select from local storage",
-                        gradientColors = listOf(Color(0xFF00E5FF), Color(0xFF0091EA)),
-                        glowColor = Color(0xFF00E5FF),
+                        solidColor = Color(0xFF00C8F5),
                         testTag = "speed_dial_import_file",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -181,13 +178,12 @@ fun SepFolSpeedDialFab(
                         }
                     )
 
-                    // Option 2: Make Notes (Vibrant Emerald / Mint Green)
+                    // Option 2: Make Notes (Mint)
                     ColorfulSpeedDialItem(
                         icon = Icons.Default.NoteAdd,
                         label = "Make Notes",
                         subtitle = "Create Markdown document",
-                        gradientColors = listOf(Color(0xFF00E676), Color(0xFF00C853)),
-                        glowColor = Color(0xFF00E676),
+                        solidColor = Color(0xFF00E676),
                         testTag = "speed_dial_make_notes",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -195,13 +191,12 @@ fun SepFolSpeedDialFab(
                         }
                     )
 
-                    // Option 3: Create Folder (Vibrant Fuchsia / Purple)
+                    // Option 3: Create Folder (Purple)
                     ColorfulSpeedDialItem(
                         icon = Icons.Default.CreateNewFolder,
                         label = "Create Folder",
                         subtitle = "New directory category",
-                        gradientColors = listOf(Color(0xFFE040FB), Color(0xFF7C4DFF)),
-                        glowColor = Color(0xFFE040FB),
+                        solidColor = Color(0xFFB388FF),
                         testTag = "speed_dial_create_folder",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -270,8 +265,7 @@ private fun ColorfulSpeedDialItem(
     icon: ImageVector,
     label: String,
     subtitle: String,
-    gradientColors: List<Color>,
-    glowColor: Color,
+    solidColor: Color,
     testTag: String,
     onClick: () -> Unit
 ) {
@@ -281,72 +275,69 @@ private fun ColorfulSpeedDialItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(bounded = true, color = glowColor.copy(alpha = 0.3f)),
+                indication = null,
                 onClick = onClick
             )
             .testTag(testTag)
             .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
-        // Option Text Pill Card (Theme-aware with glow border)
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-            border = androidx.compose.foundation.BorderStroke(
-                width = 1.2.dp,
-                color = glowColor.copy(alpha = 0.5f)
-            ),
-            shadowElevation = 8.dp,
-            modifier = Modifier.clip(RoundedCornerShape(14.dp))
+        // Option Text Pill Card
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .border(
+                    width = 2.dp,
+                    color = solidColor,
+                    shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp) // Just right side is tricky in compose, simpler to approximate
+                )
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp
+                    color = Color.White
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 10.sp
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-        // Vibrant Gradient Icon Circle
+        // Solid Color Icon Circle
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .shadow(
-                    elevation = 8.dp,
+                    elevation = 12.dp,
                     shape = CircleShape,
-                    ambientColor = glowColor,
-                    spotColor = glowColor
+                    ambientColor = solidColor,
+                    spotColor = solidColor
                 )
                 .clip(CircleShape)
-                .background(Brush.linearGradient(colors = gradientColors))
-                .border(
-                    width = 1.5.dp,
-                    color = Color.White.copy(alpha = 0.4f),
-                    shape = CircleShape
-                ),
+                .background(solidColor),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color.White,
-                modifier = Modifier.size(23.dp)
+                tint = Color.Black,
+                modifier = Modifier.size(28.dp)
             )
         }
     }

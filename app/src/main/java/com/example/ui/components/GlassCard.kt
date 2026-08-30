@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 fun GlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(16.dp),
-    backgroundColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
+    borderColor: Color = Color.White.copy(alpha = 0.05f),
     borderBrush: Brush? = null,
     borderWidth: Dp = 1.dp,
     elevation: Dp = 2.dp,
@@ -64,10 +64,9 @@ fun GlassCard(
             borderWidth,
             Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = 0.22f),
-                    borderColor,
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    Color.Transparent
+                    Color.White.copy(alpha = 0.20f), // Top reflection
+                    Color.White.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.02f)
                 )
             ),
             shape
@@ -79,18 +78,11 @@ fun GlassCard(
             .shadow(
                 elevation = elevation,
                 shape = shape,
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                ambientColor = Color.Black.copy(alpha = 0.05f)
+                spotColor = Color.Black.copy(alpha = 0.2f),
+                ambientColor = Color.Black.copy(alpha = 0.1f)
             )
             .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        backgroundColor,
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f)
-                    )
-                )
-            )
+            .background(backgroundColor)
             .then(finalBorderModifier)
             .then(clickModifier),
         content = content

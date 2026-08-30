@@ -76,34 +76,36 @@ fun SepFolBottomNavBar(
                 spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
             )
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     listOf(
-                        GlassRefractionTop,
-                        BorderGlass,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                         Color.Transparent
                     )
                 ),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             )
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. VAULT Tab (Files)
+            // 1. STUDIO Tab (Flashcards Dashboard)
+            BottomNavItem(
+                label = "Studio",
+                activeIcon = Icons.Filled.BubbleChart,
+                inactiveIcon = Icons.Outlined.BubbleChart,
+                isSelected = selectedTab == MainTab.STUDIO,
+                testTag = "bottom_nav_studio",
+                onClick = { onTabSelected(MainTab.STUDIO) }
+            )
+
+            // 2. VAULT Tab (Files)
             BottomNavItem(
                 label = "Vault",
                 activeIcon = Icons.Filled.Folder,
@@ -113,34 +115,14 @@ fun SepFolBottomNavBar(
                 onClick = { onTabSelected(MainTab.FILES) }
             )
 
-            // 2. STUDY Tab (Flashcards)
+            // 3. STUDY Tab (Placeholder for Review)
             BottomNavItem(
                 label = "Study",
                 activeIcon = Icons.Filled.MenuBook,
                 inactiveIcon = Icons.Outlined.MenuBook,
-                isSelected = selectedTab == MainTab.STUDIO,
+                isSelected = false,
                 testTag = "bottom_nav_study",
                 onClick = { onTabSelected(MainTab.STUDIO) }
-            )
-
-            // 3. STATS Tab (Recall Analytics / Quick switch)
-            BottomNavItem(
-                label = "Stats",
-                activeIcon = Icons.Filled.BubbleChart,
-                inactiveIcon = Icons.Outlined.BubbleChart,
-                isSelected = false,
-                testTag = "bottom_nav_stats",
-                onClick = { onTabSelected(MainTab.STUDIO) }
-            )
-
-            // 4. PROFILE / SETTINGS Tab
-            BottomNavItem(
-                label = "Settings",
-                activeIcon = Icons.Filled.Settings,
-                inactiveIcon = Icons.Filled.Settings,
-                isSelected = false,
-                testTag = "bottom_nav_settings",
-                onClick = onSettingsClick
             )
         }
     }
@@ -158,66 +140,35 @@ private fun BottomNavItem(
     val interactionSource = remember { MutableInteractionSource() }
 
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "navContentColor"
-    )
-
-    val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.08f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 500f),
-        label = "navIconScale"
     )
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(9999.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 onClick = onClick
             )
+            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
             .testTag(testTag)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = 24.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+        verticalArrangement = Arrangement.Center
     ) {
-        // Active glowing top accent indicator
-        Box(
-            modifier = Modifier
-                .height(3.dp)
-                .width(if (isSelected) 24.dp else 0.dp)
-                .clip(CircleShape)
-                .then(
-                    if (isSelected) {
-                        Modifier.background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                )
-                            )
-                        )
-                    } else {
-                        Modifier.background(Color.Transparent)
-                    }
-                )
-        )
-
         Icon(
             imageVector = if (isSelected) activeIcon else inactiveIcon,
             contentDescription = label,
             tint = contentColor,
-            modifier = Modifier
-                .size(24.dp)
-                .scale(iconScale)
+            modifier = Modifier.size(24.dp)
         )
 
         Text(
             text = label,
             color = contentColor,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )
     }

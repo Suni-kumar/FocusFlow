@@ -1,18 +1,12 @@
 package com.example.ui.theme
 
 import android.app.Activity
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.example.model.AccentTheme
@@ -25,45 +19,34 @@ fun SepFolTheme(
     accentTheme: AccentTheme = AccentTheme.BIO_MATRIX,
     content: @Composable () -> Unit
 ) {
-    // Dynamic animated color transitions for theme switching (300ms ease-out)
-    val animatedPrimary by animateColorAsState(
-        targetValue = accentTheme.primaryColor,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "themePrimary"
-    )
-    val animatedSecondary by animateColorAsState(
-        targetValue = accentTheme.secondaryColor,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "themeSecondary"
-    )
-    val animatedTertiary by animateColorAsState(
-        targetValue = accentTheme.accentGlowColor,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "themeTertiary"
-    )
-
     val colorScheme = darkColorScheme(
-        primary = animatedPrimary,
-        onPrimary = accentTheme.buttonTextColor,
-        primaryContainer = animatedPrimary.copy(alpha = 0.20f),
-        onPrimaryContainer = Color.White,
-        secondary = animatedSecondary,
-        onSecondary = Color.White,
-        secondaryContainer = animatedSecondary.copy(alpha = 0.20f),
-        onSecondaryContainer = Color.White,
-        tertiary = animatedTertiary,
-        onTertiary = Color.White,
-        tertiaryContainer = animatedTertiary.copy(alpha = 0.20f),
-        onTertiaryContainer = Color.White,
-        background = CanvasVoidDark,
-        onBackground = OnSurfaceDark,
+        primary = PrimaryDark,
+        onPrimary = OnPrimaryDark,
+        primaryContainer = PrimaryContainerDark,
+        onPrimaryContainer = OnPrimaryContainerDark,
+        secondary = SecondaryDark,
+        onSecondary = OnSecondaryDark,
+        secondaryContainer = SecondaryContainerDark,
+        onSecondaryContainer = OnSecondaryContainerDark,
+        tertiary = TertiaryDark,
+        onTertiary = OnTertiaryDark,
+        tertiaryContainer = TertiaryContainerDark,
+        onTertiaryContainer = OnTertiaryContainerDark,
+        error = ErrorDark,
+        onError = OnErrorDark,
+        errorContainer = ErrorContainerDark,
+        onErrorContainer = OnErrorContainerDark,
+        background = BackgroundDark,
+        onBackground = OnBackgroundDark,
         surface = SurfaceDark,
         onSurface = OnSurfaceDark,
-        surfaceVariant = SurfaceContainerDark,
+        surfaceVariant = SurfaceContainerHighestDark,
         onSurfaceVariant = OnSurfaceVariantDark,
         surfaceContainer = SurfaceContainerDark,
         surfaceContainerHigh = SurfaceContainerHighDark,
         surfaceContainerHighest = SurfaceContainerHighestDark,
+        surfaceContainerLow = SurfaceContainerLowDark,
+        surfaceContainerLowest = SurfaceContainerLowestDark,
         outline = OutlineDark,
         outlineVariant = OutlineVariantDark
     )

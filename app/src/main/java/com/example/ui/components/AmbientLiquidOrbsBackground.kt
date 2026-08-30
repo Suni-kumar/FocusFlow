@@ -36,50 +36,22 @@ fun AmbientLiquidOrbsBackground(
     val orb3TargetColor = accentTheme.orbColors.getOrElse(2) { accentTheme.accentGlowColor }
     val orb4TargetColor = accentTheme.orbColors.getOrElse(3) { accentTheme.primaryColor }
 
-    val orb1Color by animateColorAsState(
-        targetValue = orb1TargetColor,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
-        label = "orb1Color"
-    )
-    val orb2Color by animateColorAsState(
-        targetValue = orb2TargetColor,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
-        label = "orb2Color"
-    )
-    val orb3Color by animateColorAsState(
-        targetValue = orb3TargetColor,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
-        label = "orb3Color"
-    )
-    val orb4Color by animateColorAsState(
-        targetValue = orb4TargetColor,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
-        label = "orb4Color"
-    )
+    val orb1Color = Color(0xFF8A5CF6) // Violet (0.54, 0.36, 0.96)
+    val orb2Color = Color(0xFF7A38ED) // Purple (0.48, 0.22, 0.93)
+    val orb3Color = Color(0xFF3B82F6) // Blue (0.23, 0.51, 0.96)
+    val orb4Color = Color(0xFF6D28D9) // Deep Purple
 
     val baseGradient = remember(isDarkTheme) {
-        if (isDarkTheme) {
-            Brush.verticalGradient(
-                listOf(
-                    Color(0xFF0B1326),
-                    Color(0xFF0D162B),
-                    Color(0xFF080F22),
-                    Color(0xFF0A1224),
-                    Color(0xFF060D20)
-                )
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF0A0A0C), // Deep Dark Base (0.04, 0.04, 0.05)
+                Color(0xFF0D0D11),
+                Color(0xFF0A0A0C)
             )
-        } else {
-            Brush.verticalGradient(
-                listOf(
-                    Color(0xFFF8FAFC),
-                    Color(0xFFEDE9FE),
-                    Color(0xFFE2E8F0)
-                )
-            )
-        }
+        )
     }
 
-    val orbAlphaMultiplier = if (isDarkTheme) 0.25f else 0.12f
+    val orbAlphaMultiplier = if (isDarkTheme) 0.12f else 0.05f
 
     Box(
         modifier = modifier

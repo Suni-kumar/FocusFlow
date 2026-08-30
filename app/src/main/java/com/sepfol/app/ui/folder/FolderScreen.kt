@@ -83,8 +83,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.components.GlassCard
 import com.example.ui.theme.PrimaryDark
 import com.example.ui.theme.PrimaryContainerDark
-import com.example.ui.theme.SurfaceCharcoalDark
-import com.example.ui.theme.SurfaceSlateDark
 import com.sepfol.app.ui.folder.components.FilterSortToolbar
 import com.sepfol.app.ui.folder.components.SepFolSpeedDialFab
 import com.sepfol.app.ui.folder.dialogs.CreateFolderDialog
@@ -505,14 +503,14 @@ fun BreadcrumbBar(
 ) {
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        backgroundColor = MaterialTheme.colorScheme.surface,
-        borderColor = MaterialTheme.colorScheme.outlineVariant,
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+        borderColor = Color.White.copy(alpha = 0.05f),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (breadcrumbs.size > 1) {
@@ -523,8 +521,8 @@ fun BreadcrumbBar(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Navigate Up",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -533,7 +531,7 @@ fun BreadcrumbBar(
             LazyRow(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 itemsIndexed(breadcrumbs) { index, crumb ->
                     val isLast = index == breadcrumbs.lastIndex
@@ -541,30 +539,27 @@ fun BreadcrumbBar(
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .clickable(enabled = !isLast) { onBreadcrumbClick(index) }
-                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                                .clickable(enabled = !isLast) { onBreadcrumbClick(index) },
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             if (isFirst) {
                                 Icon(
                                     imageVector = Icons.Default.FolderOpen,
                                     contentDescription = null,
-                                    tint = if (isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                             Text(
                                 text = crumb.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = if (isLast) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isLast) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -573,7 +568,7 @@ fun BreadcrumbBar(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }

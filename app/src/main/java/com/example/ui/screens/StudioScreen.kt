@@ -123,18 +123,33 @@ fun StudioScreen(
         ) {
             // Study Summary & Quick Stats Banner
             item(key = "stats_banner") {
-                GlassCard(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                    borderColor = MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f)
+                                )
+                            )
+                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), Color.Transparent)
+                                )
+                            )
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(20.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -166,10 +181,10 @@ fun StudioScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                                 .clickable { onViewAllDecksClick() }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = "View All",

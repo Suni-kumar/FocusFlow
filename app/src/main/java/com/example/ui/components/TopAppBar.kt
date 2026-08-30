@@ -9,9 +9,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,19 +89,21 @@ fun SepFolTopAppBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.88f))
+            .height(64.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     listOf(
                         Color.Transparent,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                     )
                 ),
                 shape = RectangleShape
             )
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 20.dp),
+        contentAlignment = Alignment.Center
     ) {
         AnimatedContent(
             targetState = when {
@@ -317,21 +317,21 @@ fun SepFolTopAppBar(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
-                                .draggable(
-                                    orientation = Orientation.Horizontal,
-                                    state = rememberDraggableState { delta ->
-                                        dragOffset += delta
-                                    },
-                                    onDragStopped = { velocity ->
-                                        if (velocity < -80f || dragOffset < -20f) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onSearchActiveChange(true)
-                                        }
-                                        dragOffset = 0f
-                                    }
-                                )
+                                .pointerInput(Unit) {
+                                    detectHorizontalDragGestures(
+                                        onDragStart = { dragOffset = 0f },
+                                        onHorizontalDrag = { change, dragAmount ->
+                                            dragOffset += dragAmount
+                                            if (dragOffset < -18f) { // Left swipe gesture opens search
+                                                change.consume()
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onSearchActiveChange(true)
+                                            }
+                                        },
+                                        onDragEnd = { dragOffset = 0f },
+                                        onDragCancel = { dragOffset = 0f }
+                                    )
+                                }
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
@@ -347,7 +347,7 @@ fun SepFolTopAppBar(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = "Settings (Swipe left to search)",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }

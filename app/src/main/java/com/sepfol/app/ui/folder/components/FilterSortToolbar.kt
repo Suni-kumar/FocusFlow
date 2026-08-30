@@ -114,30 +114,24 @@ fun FilterSortToolbar(
 
         // Sort Selector Button with Popup Menu
         Box(modifier = Modifier.padding(start = 8.dp)) {
-            Surface(
+            Box(
                 modifier = Modifier
-                    .shadow(
-                        elevation = 2.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                    )
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .clickable { isSortMenuOpen = true }
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    .testTag("sort_menu_button"),
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(12.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                    .testTag("sort_menu_button")
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sort,
                         contentDescription = "Sort Options",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
                     )
                     Text(
                         text = when (currentSortOption) {
@@ -147,10 +141,8 @@ fun FilterSortToolbar(
                             SortOption.DATE_ASC -> "Oldest"
                             SortOption.SIZE_DESC -> "Size"
                         },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -212,42 +204,40 @@ private fun FilterTabPill(
     onClick: () -> Unit,
     testTag: String = ""
 ) {
-    Surface(
+    Box(
         modifier = Modifier
-            .shadow(
-                elevation = if (isSelected) 2.dp else 1.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            )
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+            )
             .border(
                 1.dp,
-                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(16.dp)
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) 
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                RoundedCornerShape(20.dp)
             )
-            .testTag(testTag),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(16.dp)
+            .testTag(testTag)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(18.dp)
             )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 12.sp
-            )
+            if (label.isNotEmpty()) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
