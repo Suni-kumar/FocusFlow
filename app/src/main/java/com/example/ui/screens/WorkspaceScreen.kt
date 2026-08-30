@@ -141,18 +141,49 @@ fun WorkspaceScreen(
             }
         }
 
-        // Recent Files Horizontal Scroll
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "RECENT",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 0.08.sp
-            )
+        // Storage & Sync Widget
+        com.example.ui.components.GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+            borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            borderWidth = 1.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Box(
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha=0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(text = "Local Storage", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = "1.2 GB used • 8.8 GB free", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Box(modifier = Modifier.clip(RoundedCornerShape(9999.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 12.dp, vertical = 6.dp)) {
+                    Text(text = "Manage", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                }
+            }
+        }
 
+        // Recent Files Horizontal Scroll
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = "RECENT FILES",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(end = 8.dp)
             ) {
                 items(MockDataSource.recentFiles) { item ->
@@ -165,23 +196,22 @@ fun WorkspaceScreen(
         }
 
         // Folders Grid Section
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
                 text = "FOLDERS",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 0.08.sp
             )
 
             // Grid items
             val folders = MockDataSource.folders
             val rows = folders.chunked(gridColumns.coerceIn(1, 4))
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 for (row in rows) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         for (folder in row) {
                             Box(modifier = Modifier.weight(1f)) {

@@ -217,7 +217,7 @@ fun WorkspaceSwitcherModal(
                             isSelected = currentTab == MainTab.FILES,
                             testTag = "workspace_option_vault",
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onTabSelected(MainTab.FILES)
                                 onDismiss()
                             }
@@ -233,7 +233,7 @@ fun WorkspaceSwitcherModal(
                             isSelected = currentTab == MainTab.STUDIO,
                             testTag = "workspace_option_studio",
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onTabSelected(MainTab.STUDIO)
                                 onDismiss()
                             }

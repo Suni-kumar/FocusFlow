@@ -1,6 +1,9 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -12,6 +15,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +63,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -86,6 +92,9 @@ fun StudyScreen(
     var isFlipped by remember { mutableStateOf(false) }
     var masteredCardIds by remember(deck) { mutableStateOf(setOf<String>()) }
     var isCompleted by remember { mutableStateOf(false) }
+    var isZenMode by remember { mutableStateOf(false) }
+    
+    val haptic = LocalHapticFeedback.current
 
     val scope = rememberCoroutineScope()
     val dragOffsetX = remember { Animatable(0f) }
@@ -95,9 +104,9 @@ fun StudyScreen(
     // Flip animation rotation with smooth perceptible 3D rotation
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = tween(
-            durationMillis = 500,
-            easing = FastOutSlowInEasing
+        animationSpec = spring(
+            dampingRatio = 0.6f, // Medium bouncy
+            stiffness = 150f // Spring stiffness
         ),
         label = "cardFlip"
     )
@@ -110,6 +119,12 @@ fun StudyScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                isZenMode = !isZenMode
+            }
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
@@ -122,13 +137,18 @@ fun StudyScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header: Topic Badge, Back Button, Theme Toggle & Progress
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            AnimatedVisibility(
+                visible = !isZenMode,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -223,6 +243,7 @@ fun StudyScreen(
                     )
                 }
             }
+            } // Close AnimatedVisibility
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -233,6 +254,22 @@ fun StudyScreen(
                     .aspectRatio(4f / 3.2f),
                 contentAlignment = Alignment.Center
             ) {
+                // Ambient Liquid Glow (Mesh-like) behind the cards
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(24.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+
                 // Layer 3 (Bottom)
                 Box(
                     modifier = Modifier
@@ -276,6 +313,7 @@ fun StudyScreen(
                                         val offset = dragOffsetX.value
                                         if (offset < -140f && currentCardIndex < cardsList.size - 1) {
                                             // Swipe Left -> Next Card
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             dragOffsetX.animateTo(-500f, tween(150))
                                             isFlipped = false
                                             currentCardIndex++
@@ -283,6 +321,7 @@ fun StudyScreen(
                                             dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
                                         } else if (offset > 140f && currentCardIndex > 0) {
                                             // Swipe Right -> Previous Card
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             dragOffsetX.animateTo(500f, tween(150))
                                             isFlipped = false
                                             currentCardIndex--
@@ -305,7 +344,14 @@ fun StudyScreen(
                         .clip(RoundedCornerShape(20.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f))
                         .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
-                        .clickable { isFlipped = !isFlipped },
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { 
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                isFlipped = !isFlipped 
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     // Glass reflection gradient overlay
@@ -453,6 +499,11 @@ fun StudyScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Action Controls Area
+            AnimatedVisibility(
+                visible = !isZenMode,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -489,7 +540,10 @@ fun StudyScreen(
 
                     // Flip Button
                     Button(
-                        onClick = { isFlipped = !isFlipped },
+                        onClick = { 
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            isFlipped = !isFlipped 
+                        },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -517,6 +571,7 @@ fun StudyScreen(
                     // Mastered Button
                     Button(
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             masteredCardIds = masteredCardIds + currentCard.id
                             val calculatedProgress = (masteredCardIds.size.toFloat() / cardsList.size.toFloat()).coerceIn(0f, 1f)
                             onDeckProgressUpdate?.invoke(calculatedProgress)
@@ -525,6 +580,7 @@ fun StudyScreen(
                                 isFlipped = false
                                 currentCardIndex++
                             } else {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 isCompleted = true
                             }
                         },
@@ -601,6 +657,7 @@ fun StudyScreen(
                     )
                 }
             }
+            } // Close AnimatedVisibility
 
             Spacer(modifier = Modifier.height(16.dp))
         }

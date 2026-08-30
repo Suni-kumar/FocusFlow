@@ -64,9 +64,9 @@ fun GlassCard(
             borderWidth,
             Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = 0.20f), // Top reflection
-                    Color.White.copy(alpha = 0.05f),
-                    Color.White.copy(alpha = 0.02f)
+                    Color.White.copy(alpha = 0.08f), // Top specular highlight
+                    Color.White.copy(alpha = 0.02f),
+                    Color.White.copy(alpha = 0.00f)
                 )
             ),
             shape
@@ -116,11 +116,11 @@ fun LiquidGlassCard(
         Modifier.border(1.2.dp, accentBrush, shape)
     } else {
         Modifier.border(
-            1.2.dp,
+            1.dp,
             Brush.linearGradient(
                 listOf(
-                    Color.White.copy(alpha = 0.30f),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
+                    Color.White.copy(alpha = 0.15f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                     Color.Transparent
                 )
             ),
@@ -131,17 +131,17 @@ fun LiquidGlassCard(
     Box(
         modifier = modifier
             .shadow(
-                elevation = 4.dp,
+                elevation = 12.dp,
                 shape = shape,
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
-                ambientColor = Color.Black.copy(alpha = 0.06f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                ambientColor = Color.Black.copy(alpha = 0.2f)
             )
             .clip(shape)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f)
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f)
                     )
                 )
             )

@@ -476,7 +476,7 @@ fun AiGenerateDeckDialog(
                                 val count = newValue.roundToInt().coerceIn(1, 60)
                                 if (count != selectedCardCount) {
                                     selectedCardCount = count
-                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 }
                             },
                             valueRange = 1f..60f,

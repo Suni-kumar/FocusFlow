@@ -331,7 +331,7 @@ fun SepFolTopAppBar(
                         // Action Icon: Settings Gear
                         IconButton(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onSettingsClick()
                             },
                             modifier = Modifier

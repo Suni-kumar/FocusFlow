@@ -124,75 +124,80 @@ fun StudioScreen(
         ) {
             // Study Summary & Quick Stats Banner
             item(key = "stats_banner") {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-                                    MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f)
-                                )
-                            )
-                        )
-                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                // Professional Glassmorphic Dashboard Widget
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                    borderWidth = 1.dp
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), Color.Transparent)
-                                )
-                            )
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.School,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = "Active Recall Vault",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = "${decks.size} Decks • ${decks.sumOf { it.cardCount }} Flashcards in rotation",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Background ambient glow
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                                .clickable { onViewAllDecksClick() }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .align(Alignment.TopEnd)
+                                .size(120.dp)
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), Color.Transparent)
+                                    )
+                                )
+                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
-                            Text(
-                                text = "View All",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Icon(
+                                            imageVector = Icons.Default.School,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Text(
+                                            text = "Active Recall",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Text(
+                                        text = "Your daily learning progress",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                        .clickable { onViewAllDecksClick() }
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "View All",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            // Stats Row
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                StatItem(title = "Decks", value = "${decks.size}")
+                                StatItem(title = "Cards", value = "${decks.sumOf { it.cardCount }}")
+                                StatItem(title = "Streak", value = "12", suffix = "days")
+                            }
                         }
                     }
                 }
@@ -759,6 +764,35 @@ fun ManagedDeckItem(
                             .background(deck.categoryColor)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(title: String, value: String, suffix: String = "") {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+        )
+        Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = value,
+                style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+            )
+            if (suffix.isNotEmpty()) {
+                Text(
+                    text = suffix,
+                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
             }
         }
     }

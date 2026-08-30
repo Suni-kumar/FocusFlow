@@ -125,21 +125,21 @@ fun DecksDashboardScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Header Section
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     IconButton(
                         onClick = {
                             if (isSelectionMode) onClearSelection() else onBackClick()
                         },
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
@@ -148,21 +148,20 @@ fun DecksDashboardScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = "Flashcard Studio",
                             style = MaterialTheme.typography.displayLarge,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary,
-                            fontSize = 28.sp
+                            fontSize = 32.sp
                         )
                         Text(
                             text = if (isSelectionMode) "${selectedDeckIds.size} decks selected" else "Select or create flashcard decks to study.",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -402,8 +401,8 @@ fun DeckListItemCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 18.dp, end = 16.dp, top = 16.dp, bottom = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(start = 24.dp, end = 20.dp, top = 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
