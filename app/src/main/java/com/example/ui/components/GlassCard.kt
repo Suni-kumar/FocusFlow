@@ -1,9 +1,6 @@
 package com.example.ui.components
-import androidx.compose.ui.zIndex
 
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -11,8 +8,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -30,6 +25,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -47,62 +43,35 @@ fun GlassCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
-    var isExpanding by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
     var touchPosition by remember { mutableStateOf(Offset.Unspecified) }
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
 
     val interactionSource = remember { MutableInteractionSource() }
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val view = LocalView.current
 
     val tiltX by animateFloatAsState(
-        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
-            -normalizedY * 15f
+            -normalizedY * 12f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltX"
     )
 
     val tiltY by animateFloatAsState(
-        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
-            normalizedX * 15f
+            normalizedX * 12f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltY"
     )
 
     val scale by animateFloatAsState(
-        targetValue = if (isExpanding) 12f else if (isPressed) 0.94f else 1f,
-        animationSpec = if (isExpanding) androidx.compose.animation.core.tween(350, easing = androidx.compose.animation.core.FastOutSlowInEasing) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "scale"
     )
-
-    val zIndex by animateFloatAsState(targetValue = if (isExpanding || isPressed) 100f else 0f, label = "zIndex")
-
-    val clickModifier = if (onClick != null || onLongClick != null) {
-        Modifier.combinedClickable(
-            interactionSource = interactionSource,
-            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
-            onClick = { 
-                if (onClick != null) {
-                    coroutineScope.launch {
-                        isExpanding = true
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                        kotlinx.coroutines.delay(180)
-                        onClick.invoke()
-                        kotlinx.coroutines.delay(200)
-                        isExpanding = false
-                    }
-                }
-            },
-            onLongClick = {
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                onLongClick?.invoke()
-            }
-        )
-    } else Modifier
 
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val defaultBorder = remember(outlineColor) {
@@ -117,35 +86,45 @@ fun GlassCard(
         Modifier.border(borderWidth, defaultBorder, shape)
     }
 
-    // Shimmer/Glow calculation based on tilt
     val shimmerAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.15f else 0f,
+        targetValue = if (isPressed) 0.18f else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "shimmerAlpha"
     )
 
+    val clickModifier = if (onClick != null || onLongClick != null) {
+        Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick?.invoke()
+            },
+            onLongClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                onLongClick?.invoke()
+            }
+        )
+    } else Modifier
+
     Box(
         modifier = modifier
             .onSizeChanged { componentSize = it }
-            .zIndex(zIndex)
             .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    touchPosition = down.position
-                    isPressed = true
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    
-                    do {
+                awaitPointerEventScope {
+                    while (true) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull()
                         if (change != null) {
-                            touchPosition = change.position
+                            if (change.pressed) {
+                                isPressed = true
+                                touchPosition = change.position
+                            } else {
+                                isPressed = false
+                                touchPosition = Offset.Unspecified
+                            }
                         }
-                    } while (event.changes.any { it.pressed })
-                    
-                    isPressed = false
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    touchPosition = Offset.Unspecified
+                    }
                 }
             }
             .graphicsLayer {
@@ -191,62 +170,35 @@ fun LiquidGlassCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
-    var isExpanding by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
     var touchPosition by remember { mutableStateOf(Offset.Unspecified) }
     var componentSize by remember { mutableStateOf(IntSize.Zero) }
 
     val interactionSource = remember { MutableInteractionSource() }
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val view = LocalView.current
 
     val tiltX by animateFloatAsState(
-        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
-            -normalizedY * 15f
+            -normalizedY * 12f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltX"
     )
 
     val tiltY by animateFloatAsState(
-        targetValue = if (isPressed && !isExpanding && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
+        targetValue = if (isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
             val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
-            normalizedX * 15f
+            normalizedX * 12f
         } else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "tiltY"
     )
 
     val scale by animateFloatAsState(
-        targetValue = if (isExpanding) 12f else if (isPressed) 0.94f else 1f,
-        animationSpec = if (isExpanding) androidx.compose.animation.core.tween(350, easing = androidx.compose.animation.core.FastOutSlowInEasing) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "scale"
     )
-
-    val zIndex by animateFloatAsState(targetValue = if (isExpanding || isPressed) 100f else 0f, label = "zIndex")
-
-    val clickModifier = if (onClick != null || onLongClick != null) {
-        Modifier.combinedClickable(
-            interactionSource = interactionSource,
-            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
-            onClick = { 
-                if (onClick != null) {
-                    coroutineScope.launch {
-                        isExpanding = true
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                        kotlinx.coroutines.delay(180)
-                        onClick.invoke()
-                        kotlinx.coroutines.delay(200)
-                        isExpanding = false
-                    }
-                }
-            },
-            onLongClick = {
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                onLongClick?.invoke()
-            }
-        )
-    } else Modifier
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val outlineVariant = MaterialTheme.colorScheme.outlineVariant
@@ -271,33 +223,44 @@ fun LiquidGlassCard(
     }
 
     val shimmerAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.2f else 0f,
+        targetValue = if (isPressed) 0.22f else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "shimmerAlpha"
     )
 
+    val clickModifier = if (onClick != null || onLongClick != null) {
+        Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick?.invoke()
+            },
+            onLongClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                onLongClick?.invoke()
+            }
+        )
+    } else Modifier
+
     Box(
         modifier = modifier
             .onSizeChanged { componentSize = it }
-            .zIndex(zIndex)
             .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    touchPosition = down.position
-                    isPressed = true
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    
-                    do {
+                awaitPointerEventScope {
+                    while (true) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull()
                         if (change != null) {
-                            touchPosition = change.position
+                            if (change.pressed) {
+                                isPressed = true
+                                touchPosition = change.position
+                            } else {
+                                isPressed = false
+                                touchPosition = Offset.Unspecified
+                            }
                         }
-                    } while (event.changes.any { it.pressed })
-                    
-                    isPressed = false
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    touchPosition = Offset.Unspecified
+                    }
                 }
             }
             .graphicsLayer {

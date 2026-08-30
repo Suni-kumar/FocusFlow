@@ -354,11 +354,31 @@ fun SepFolApp() {
                             val isBackward = targetState.first == ScreenState.MAIN_WORKSPACE && initialState.first != ScreenState.MAIN_WORKSPACE
 
                             if (isForward) {
-                                (androidx.compose.animation.scaleIn(initialScale = 0.85f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(200))) togetherWith (androidx.compose.animation.scaleOut(targetScale = 1.15f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(200)))
+                                (androidx.compose.animation.slideInHorizontally(
+                                    animationSpec = androidx.compose.animation.core.tween(260, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                ) { (it * 0.20f).toInt() } + androidx.compose.animation.fadeIn(
+                                    animationSpec = androidx.compose.animation.core.tween(220)
+                                )) togetherWith (androidx.compose.animation.slideOutHorizontally(
+                                    animationSpec = androidx.compose.animation.core.tween(240, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                ) { -(it * 0.10f).toInt() } + androidx.compose.animation.fadeOut(
+                                    animationSpec = androidx.compose.animation.core.tween(180)
+                                ))
                             } else if (isBackward) {
-                                (androidx.compose.animation.scaleIn(initialScale = 1.15f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(200))) togetherWith (androidx.compose.animation.scaleOut(targetScale = 0.85f, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(200)))
+                                (androidx.compose.animation.slideInHorizontally(
+                                    animationSpec = androidx.compose.animation.core.tween(260, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                ) { -(it * 0.10f).toInt() } + androidx.compose.animation.fadeIn(
+                                    animationSpec = androidx.compose.animation.core.tween(220)
+                                )) togetherWith (androidx.compose.animation.slideOutHorizontally(
+                                    animationSpec = androidx.compose.animation.core.tween(240, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                ) { (it * 0.20f).toInt() } + androidx.compose.animation.fadeOut(
+                                    animationSpec = androidx.compose.animation.core.tween(180)
+                                ))
                             } else {
-                                androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) togetherWith androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(100))
+                                androidx.compose.animation.fadeIn(
+                                    animationSpec = androidx.compose.animation.core.tween(160)
+                                ) togetherWith androidx.compose.animation.fadeOut(
+                                    animationSpec = androidx.compose.animation.core.tween(120)
+                                )
                             }
                         },
                         label = "screenTransition"

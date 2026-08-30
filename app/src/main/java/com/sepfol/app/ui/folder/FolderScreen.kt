@@ -17,7 +17,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -496,11 +498,17 @@ fun FolderScreen(
     }
 
     // Full Screen PDF & Image Viewer (matching Screenshots)
-    uiState.selectedViewerItem?.let { viewerItem ->
-        PdfImageViewerScreen(
-            item = viewerItem,
-            onBackClick = { viewModel.dismissViewer() }
-        )
+    AnimatedVisibility(
+        visible = uiState.selectedViewerItem != null,
+        enter = slideInVertically(animationSpec = tween(280, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
+        exit = slideOutVertically(animationSpec = tween(240, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeOut(tween(160))
+    ) {
+        uiState.selectedViewerItem?.let { viewerItem ->
+            PdfImageViewerScreen(
+                item = viewerItem,
+                onBackClick = { viewModel.dismissViewer() }
+            )
+        }
     }
 }
 
