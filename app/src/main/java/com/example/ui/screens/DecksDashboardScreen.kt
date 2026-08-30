@@ -38,6 +38,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.FloatingActionButton
@@ -80,6 +82,7 @@ fun DecksDashboardScreen(
     onDeckClick: (FlashcardDeck) -> Unit = {},
     onCreateDeckClick: () -> Unit = {},
     onAiGenerateClick: () -> Unit = {},
+    onToggleStar: (String) -> Unit = {},
     decks: List<FlashcardDeck> = emptyList(),
     selectedDeckIds: Set<String> = emptySet(),
     onToggleSelection: (String) -> Unit = {},
@@ -102,8 +105,16 @@ fun DecksDashboardScreen(
     }
 
     val filteredDecks = decks.filter { deck ->
-        if (searchQuery.isBlank()) true
-        else deck.title.contains(searchQuery, ignoreCase = true) || deck.description.contains(searchQuery, ignoreCase = true)
+        val matchesSearch = if (searchQuery.isBlank()) true
+        else deck.title.contains(searchQuery, ignoreCase = true) || deck.description.contains(searchQuery, ignoreCase = true) || deck.tags.any { it.contains(searchQuery, ignoreCase = true) }
+
+        val matchesFilter = when (selectedFilter) {
+            "Recently Reviewed" -> deck.progress > 0f || deck.lastReviewed.contains("Just", ignoreCase = true) || deck.lastReviewed.contains("Today", ignoreCase = true) || deck.lastReviewed.contains("ago", ignoreCase = true)
+            "Favorites" -> deck.isStarred
+            else -> true
+        }
+
+        matchesSearch && matchesFilter
     }
 
     Box(
@@ -250,24 +261,68 @@ fun DecksDashboardScreen(
                 }
             }
 
-            // Decks List
-            items(filteredDecks, key = { it.id }) { deck ->
-                val isSelected = deck.id in selectedDeckIds
-                DeckListItemCard(
-                    deck = deck,
-                    isSelected = isSelected,
-                    isSelectionMode = isSelectionMode,
-                    onClick = {
-                        if (isSelectionMode) {
-                            onToggleSelection(deck.id)
-                        } else {
-                            onDeckClick(deck)
+            // Decks List or Empty State
+            if (filteredDecks.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp, horizontal = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (selectedFilter == "Favorites") Icons.Default.StarBorder else Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                            Text(
+                                text = if (selectedFilter == "Favorites") "No favorite decks yet" else "No decks found",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (selectedFilter == "Favorites") "Star any deck to quickly access your favorite topics here." else "Try adjusting your search or filters, or create a new deck!",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
                         }
-                    },
-                    onLongClick = {
-                        onToggleSelection(deck.id)
                     }
-                )
+                }
+            } else {
+                items(filteredDecks, key = { it.id }) { deck ->
+                    val isSelected = deck.id in selectedDeckIds
+                    DeckListItemCard(
+                        deck = deck,
+                        isSelected = isSelected,
+                        isSelectionMode = isSelectionMode,
+                        onToggleStar = { onToggleStar(deck.id) },
+                        onClick = {
+                            if (isSelectionMode) {
+                                onToggleSelection(deck.id)
+                            } else {
+                                onDeckClick(deck)
+                            }
+                        },
+                        onLongClick = {
+                            onToggleSelection(deck.id)
+                        }
+                    )
+                }
             }
 
             // Bottom space for FAB and bottom nav
@@ -306,6 +361,7 @@ fun DeckListItemCard(
     deck: FlashcardDeck,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
+    onToggleStar: () -> Unit = {},
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -434,6 +490,22 @@ fun DeckListItemCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        // Star/Favorite button
+                        IconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onToggleStar()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (deck.isStarred) Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = if (deck.isStarred) "Unstar deck" else "Star deck",
+                                tint = if (deck.isStarred) Color(0xFFFBBF24) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }

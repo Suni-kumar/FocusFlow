@@ -1,6 +1,7 @@
 package com.sepfol.app.ui.folder.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -20,6 +21,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -86,24 +89,24 @@ fun SepFolSpeedDialFab(
         label = "fabRotation"
     )
 
-    // Morphing shape animation: Circle (30dp radius) -> Rounded Square (16dp radius)
+    // Morphing shape animation: Circle (28dp radius) -> Rounded Square (18dp radius)
     val cornerRadius by animateDpAsState(
-        targetValue = if (isExpanded) 16.dp else 30.dp,
+        targetValue = if (isExpanded) 18.dp else 28.dp,
         animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
         label = "fabCornerRadius"
     )
 
-    // Main FAB Colorful Gradients
+    // Main FAB Cohesive Gradients
     val closedGradient = Brush.linearGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.secondaryContainer
+            Color(0xFFA855F7), // Royal Violet
+            Color(0xFF6366F1)  // Indigo
         )
     )
     val expandedGradient = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFFF5252), // Red
-            Color(0xFFFF8A80)
+            Color(0xFF2A2238), // Obsidian Plum
+            Color(0xFF1E172A)
         )
     )
 
@@ -115,7 +118,7 @@ fun SepFolSpeedDialFab(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f))
+                    .background(Color(0xFF09080D).copy(alpha = 0.72f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -138,7 +141,7 @@ fun SepFolSpeedDialFab(
             // Speed Dial Vertical Options with clean animation
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = fadeIn(animationSpec = tween(150, easing = FastOutSlowInEasing)) +
+                enter = fadeIn(animationSpec = tween(160, easing = FastOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { it / 3 },
                             animationSpec = spring(
@@ -163,14 +166,15 @@ fun SepFolSpeedDialFab(
                 Column(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier.padding(bottom = 6.dp)
                 ) {
-                    // Option 1: Import File (Cyan)
-                    ColorfulSpeedDialItem(
+                    // Option 1: Import File (Azure / Sky)
+                    PremiumSpeedDialItem(
                         icon = Icons.Default.UploadFile,
                         label = "Import File",
                         subtitle = "Select from local storage",
-                        solidColor = Color(0xFF00C8F5),
+                        gradientColors = listOf(Color(0xFF38BDF8), Color(0xFF0284C7)),
+                        glowColor = Color(0xFF38BDF8),
                         testTag = "speed_dial_import_file",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -178,12 +182,13 @@ fun SepFolSpeedDialFab(
                         }
                     )
 
-                    // Option 2: Make Notes (Mint)
-                    ColorfulSpeedDialItem(
+                    // Option 2: Make Notes (Mint Emerald)
+                    PremiumSpeedDialItem(
                         icon = Icons.Default.NoteAdd,
                         label = "Make Notes",
                         subtitle = "Create Markdown document",
-                        solidColor = Color(0xFF00E676),
+                        gradientColors = listOf(Color(0xFF34D399), Color(0xFF059669)),
+                        glowColor = Color(0xFF34D399),
                         testTag = "speed_dial_make_notes",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -191,12 +196,13 @@ fun SepFolSpeedDialFab(
                         }
                     )
 
-                    // Option 3: Create Folder (Purple)
-                    ColorfulSpeedDialItem(
+                    // Option 3: Create Folder (Royal Violet)
+                    PremiumSpeedDialItem(
                         icon = Icons.Default.CreateNewFolder,
                         label = "Create Folder",
                         subtitle = "New directory category",
-                        solidColor = Color(0xFFB388FF),
+                        gradientColors = listOf(Color(0xFFA78BFA), Color(0xFF7C3AED)),
+                        glowColor = Color(0xFFA78BFA),
                         testTag = "speed_dial_create_folder",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -206,21 +212,26 @@ fun SepFolSpeedDialFab(
                 }
             }
 
-            // Main Action FAB Button (Morphs from Circle '+' to Rounded Square '✕')
+            // Main Action FAB Button (Morphs smoothly between '+' and '✕')
             Box(
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(58.dp)
                     .shadow(
-                        elevation = if (isExpanded) 18.dp else 12.dp,
+                        elevation = if (isExpanded) 14.dp else 16.dp,
                         shape = RoundedCornerShape(cornerRadius),
-                        ambientColor = if (isExpanded) Color(0xFFFF3366) else Color(0xFF8B5CF6),
-                        spotColor = if (isExpanded) Color(0xFFFF5E3A) else Color(0xFFEC4899)
+                        ambientColor = if (isExpanded) Color(0xFF8B5CF6).copy(alpha = 0.4f) else Color(0xFFA855F7).copy(alpha = 0.5f),
+                        spotColor = if (isExpanded) Color(0xFF6366F1).copy(alpha = 0.5f) else Color(0xFF6366F1).copy(alpha = 0.6f)
                     )
                     .clip(RoundedCornerShape(cornerRadius))
                     .background(if (isExpanded) expandedGradient else closedGradient)
                     .border(
-                        width = 1.5.dp,
-                        color = Color.White.copy(alpha = 0.35f),
+                        width = 1.2.dp,
+                        brush = Brush.linearGradient(
+                            listOf(
+                                if (isExpanded) Color(0xFFA78BFA).copy(alpha = 0.6f) else Color.White.copy(alpha = 0.45f),
+                                if (isExpanded) Color(0xFF6366F1).copy(alpha = 0.3f) else Color.White.copy(alpha = 0.15f)
+                            )
+                        ),
                         shape = RoundedCornerShape(cornerRadius)
                     )
                     .draggable(
@@ -250,9 +261,9 @@ fun SepFolSpeedDialFab(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = if (isExpanded) "Close creation menu" else "Open creation menu",
-                    tint = Color.White,
+                    tint = if (isExpanded) Color(0xFFD0BCFF) else Color.White,
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(26.dp)
                         .rotate(rotation)
                 )
             }
@@ -261,84 +272,101 @@ fun SepFolSpeedDialFab(
 }
 
 @Composable
-private fun ColorfulSpeedDialItem(
+private fun PremiumSpeedDialItem(
     icon: ImageVector,
     label: String,
     subtitle: String,
-    solidColor: Color,
+    gradientColors: List<Color>,
+    glowColor: Color,
     testTag: String,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "itemScale"
+    )
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
         modifier = Modifier
+            .scale(scale)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
             .testTag(testTag)
-            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .padding(horizontal = 2.dp, vertical = 2.dp)
     ) {
-        // Option Text Pill Card
-        Box(
+        // Option Text Pill Card (Dark frosted glass with subtle glowing border)
+        Surface(
             modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(16.dp)
+                .shadow(elevation = 10.dp, shape = RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.5f))
+                .clip(RoundedCornerShape(16.dp)),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                brush = Brush.horizontalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        glowColor.copy(alpha = 0.45f)
+                    )
                 )
-                .border(
-                    width = 2.dp,
-                    color = solidColor,
-                    shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp) // Just right side is tricky in compose, simpler to approximate
-                )
+            )
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color(0xFFF3F0F7),
+                    fontSize = 13.5.sp
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                    fontSize = 10.5.sp
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-        // Solid Color Icon Circle
+        // Luminous Layered Gradient Icon Button
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(50.dp)
                 .shadow(
-                    elevation = 12.dp,
+                    elevation = 14.dp,
                     shape = CircleShape,
-                    ambientColor = solidColor,
-                    spotColor = solidColor
+                    ambientColor = glowColor.copy(alpha = 0.45f),
+                    spotColor = glowColor.copy(alpha = 0.65f)
                 )
                 .clip(CircleShape)
-                .background(solidColor),
+                .background(Brush.linearGradient(gradientColors))
+                .border(
+                    width = 1.2.dp,
+                    color = Color.White.copy(alpha = 0.35f),
+                    shape = CircleShape
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color.Black,
-                modifier = Modifier.size(28.dp)
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
             )
         }
     }
 }
+

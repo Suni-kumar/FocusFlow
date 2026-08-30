@@ -42,7 +42,8 @@ data class FlashcardDeck(
     val categoryColor: Color,
     val cards: List<Flashcard>,
     val tags: List<String> = emptyList(),
-    val isAiGenerated: Boolean = false
+    val isAiGenerated: Boolean = false,
+    val isStarred: Boolean = false
 )
 
 enum class VisualEngine {

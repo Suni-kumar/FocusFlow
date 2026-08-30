@@ -180,21 +180,65 @@ class DeckViewModel(
         }
     }
 
+    fun updateDeckProgress(deckId: String, progress: Float, lastReviewed: String = "Just now") {
+        _uiState.update { state ->
+            val updatedDecks = state.decks.map { deck ->
+                if (deck.id == deckId) {
+                    deck.copy(
+                        progress = progress.coerceIn(0f, 1f),
+                        lastReviewed = lastReviewed
+                    )
+                } else deck
+            }
+            state.copy(decks = updatedDecks)
+        }
+    }
+
     fun createDeck(
         title: String,
         description: String,
         topic: String,
-        categoryColor: Color
+        categoryColor: Color,
+        customCards: List<Pair<String, String>> = emptyList()
     ) {
         val trimmedTitle = title.trim()
         if (trimmedTitle.isEmpty()) return
+
+        val flashcards = if (customCards.isNotEmpty()) {
+            customCards.mapIndexed { idx, pair ->
+                Flashcard(
+                    id = "c_${System.currentTimeMillis()}_$idx",
+                    front = pair.first.trim(),
+                    back = pair.second.trim(),
+                    topic = topic.ifBlank { trimmedTitle },
+                    tags = listOf("#Custom", "#HighYield")
+                )
+            }
+        } else {
+            listOf(
+                Flashcard(
+                    id = "c_" + System.currentTimeMillis(),
+                    front = "What is the key objective of $trimmedTitle?",
+                    back = "Master the core concepts, definitions, and applications.",
+                    topic = topic.ifBlank { trimmedTitle },
+                    tags = listOf("#HighYield")
+                ),
+                Flashcard(
+                    id = "c_" + System.currentTimeMillis() + "_2",
+                    front = "Core principle & fundamentals of $trimmedTitle",
+                    back = "Understand key mechanisms and practical problem solving techniques.",
+                    topic = topic.ifBlank { trimmedTitle },
+                    tags = listOf("#Fundamental")
+                )
+            )
+        }
 
         val newDeck = FlashcardDeck(
             id = "deck_" + System.currentTimeMillis(),
             title = trimmedTitle,
             description = description.ifBlank { "Custom flashcard study deck." },
-            cardCount = 1,
-            lastReviewed = "Just now",
+            cardCount = flashcards.size,
+            lastReviewed = "Just created",
             progress = 0f,
             iconName = when (topic.lowercase()) {
                 "math", "physics" -> "calculate"
@@ -203,15 +247,7 @@ class DeckViewModel(
                 else -> "psychology"
             },
             categoryColor = categoryColor,
-            cards = listOf(
-                Flashcard(
-                    id = "c_" + System.currentTimeMillis(),
-                    front = "What is the key objective of $trimmedTitle?",
-                    back = "Master the core concepts, definitions, and applications.",
-                    topic = topic.ifBlank { trimmedTitle },
-                    tags = listOf("#HighYield")
-                )
-            ),
+            cards = flashcards,
             tags = listOf("#Custom")
         )
 
@@ -219,7 +255,7 @@ class DeckViewModel(
             state.copy(
                 decks = listOf(newDeck) + state.decks,
                 isCreateDeckDialogOpen = false,
-                statusMessage = "Created deck \"$trimmedTitle\""
+                statusMessage = "Created deck \"$trimmedTitle\" with ${flashcards.size} cards"
             )
         }
     }
@@ -317,6 +353,15 @@ class DeckViewModel(
                 decks = updated,
                 statusMessage = "Imported deck \"${deck.title}\""
             )
+        }
+    }
+
+    fun toggleStarDeck(deckId: String) {
+        _uiState.update { state ->
+            val updated = state.decks.map { deck ->
+                if (deck.id == deckId) deck.copy(isStarred = !deck.isStarred) else deck
+            }
+            state.copy(decks = updated)
         }
     }
 

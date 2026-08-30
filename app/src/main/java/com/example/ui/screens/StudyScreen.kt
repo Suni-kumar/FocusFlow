@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.model.FlashcardDeck
 import com.example.model.MockDataSource
 import com.example.ui.theme.FocusBlue
@@ -75,15 +76,21 @@ fun StudyScreen(
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
     onBackClick: () -> Unit = {},
+    onDeckProgressUpdate: ((progress: Float) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var currentCardIndex by remember { mutableIntStateOf(0) }
+    var cardsList by remember(deck) {
+        mutableStateOf(deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards })
+    }
+    var currentCardIndex by remember(cardsList) { mutableIntStateOf(0) }
     var isFlipped by remember { mutableStateOf(false) }
+    var masteredCardIds by remember(deck) { mutableStateOf(setOf<String>()) }
+    var isCompleted by remember { mutableStateOf(false) }
+
     val scope = rememberCoroutineScope()
     val dragOffsetX = remember { Animatable(0f) }
 
-    val cards = deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards }
-    val currentCard = cards[currentCardIndex.coerceIn(0, cards.size - 1)]
+    val currentCard = cardsList[currentCardIndex.coerceIn(0, cardsList.size - 1)]
 
     // Flip animation rotation with smooth perceptible 3D rotation
     val rotation by animateFloatAsState(
@@ -198,7 +205,7 @@ fun StudyScreen(
                             .clip(RoundedCornerShape(9999.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        val progressFraction = (currentCardIndex + 1).toFloat() / cards.size.toFloat()
+                        val progressFraction = (currentCardIndex + 1).toFloat() / cardsList.size.toFloat()
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(progressFraction)
@@ -209,7 +216,7 @@ fun StudyScreen(
                     }
 
                     Text(
-                        text = "${currentCardIndex + 1}/${cards.size}",
+                        text = "${currentCardIndex + 1}/${cardsList.size}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.SemiBold
@@ -267,7 +274,7 @@ fun StudyScreen(
                                 onDragEnd = {
                                     scope.launch {
                                         val offset = dragOffsetX.value
-                                        if (offset < -140f && currentCardIndex < cards.size - 1) {
+                                        if (offset < -140f && currentCardIndex < cardsList.size - 1) {
                                             // Swipe Left -> Next Card
                                             dragOffsetX.animateTo(-500f, tween(150))
                                             isFlipped = false
@@ -510,9 +517,15 @@ fun StudyScreen(
                     // Mastered Button
                     Button(
                         onClick = {
-                            isFlipped = false
-                            if (currentCardIndex < cards.size - 1) {
+                            masteredCardIds = masteredCardIds + currentCard.id
+                            val calculatedProgress = (masteredCardIds.size.toFloat() / cardsList.size.toFloat()).coerceIn(0f, 1f)
+                            onDeckProgressUpdate?.invoke(calculatedProgress)
+
+                            if (currentCardIndex < cardsList.size - 1) {
+                                isFlipped = false
                                 currentCardIndex++
+                            } else {
+                                isCompleted = true
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
@@ -542,12 +555,14 @@ fun StudyScreen(
                     // Next Card
                     IconButton(
                         onClick = {
-                            if (currentCardIndex < cards.size - 1) {
+                            if (currentCardIndex < cardsList.size - 1) {
                                 isFlipped = false
                                 currentCardIndex++
+                            } else {
+                                isCompleted = true
                             }
                         },
-                        enabled = currentCardIndex < cards.size - 1,
+                        enabled = true,
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
@@ -557,7 +572,7 @@ fun StudyScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Next Card",
-                            tint = if (currentCardIndex < cards.size - 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -566,8 +581,9 @@ fun StudyScreen(
                 // Shuffle Deck Action
                 TextButton(
                     onClick = {
-                        isFlipped = false
+                        cardsList = cardsList.shuffled()
                         currentCardIndex = 0
+                        isFlipped = false
                     }
                 ) {
                     Icon(
@@ -587,6 +603,100 @@ fun StudyScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Deck Completion Celebration Dialog
+        if (isCompleted) {
+            Dialog(onDismissRequest = { isCompleted = false }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .padding(24.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Celebration Icon
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(Color(0xFF10B981), Color(0xFF059669))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.TaskAlt,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "Deck Completed!",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        val masteryPercent = if (cardsList.isNotEmpty()) {
+                            ((masteredCardIds.size.toFloat() / cardsList.size.toFloat()) * 100).toInt()
+                        } else 100
+
+                        Text(
+                            text = "You reviewed all ${cardsList.size} cards!\nMastery Score: ${masteredCardIds.size}/${cardsList.size} ($masteryPercent%)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 22.sp
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    cardsList = cardsList.shuffled()
+                                    currentCardIndex = 0
+                                    masteredCardIds = emptySet()
+                                    isFlipped = false
+                                    isCompleted = false
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Shuffle & Restart", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
+                            }
+
+                            Button(
+                                onClick = {
+                                    isCompleted = false
+                                    onBackClick()
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Done", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

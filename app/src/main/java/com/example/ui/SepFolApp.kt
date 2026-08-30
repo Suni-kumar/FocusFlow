@@ -427,7 +427,10 @@ fun SepFolApp() {
                                         prefsManager.brightnessModeName = nextMode.name
                                         prefsManager.isDarkTheme = (nextMode == BrightnessMode.DARK)
                                     },
-                                    onBackClick = navigateBack
+                                    onBackClick = navigateBack,
+                                    onDeckProgressUpdate = { progress ->
+                                        deckViewModel.updateDeckProgress(activeDeck.id, progress)
+                                    }
                                 )
                             }
                         screen == ScreenState.ALL_DECKS -> {
@@ -437,6 +440,7 @@ fun SepFolApp() {
                                 selectedDeckIds = deckUiState.selectedDeckIds,
                                 onToggleSelection = { deckViewModel.toggleDeckSelection(it) },
                                 onClearSelection = { deckViewModel.clearSelection() },
+                                onToggleStar = { deckViewModel.toggleStarDeck(it) },
                                 onDeckClick = { deck ->
                                     activeDeck = deck
                                     screenStack = screenStack + ScreenState.STUDY_STAGE
@@ -516,8 +520,8 @@ fun SepFolApp() {
                 if (deckUiState.isCreateDeckDialogOpen) {
                     CreateDeckDialog(
                         onDismiss = { deckViewModel.dismissCreateDeckDialog() },
-                        onCreateDeck = { title, desc, topic, color ->
-                            deckViewModel.createDeck(title, desc, topic, color)
+                        onCreateDeck = { title, desc, topic, color, customCards ->
+                            deckViewModel.createDeck(title, desc, topic, color, customCards)
                         }
                     )
                 }

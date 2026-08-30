@@ -212,8 +212,8 @@ fun WorkspaceSwitcherModal(
                             title = "Vault Workspace",
                             subtitle = "Files, Markdown notes, study docs & categories",
                             icon = Icons.Default.Folder,
-                            gradientColors = listOf(Color(0xFF00E5FF), Color(0xFF0284C7)),
-                            glowColor = Color(0xFF00E5FF),
+                            gradientColors = listOf(Color(0xFFA855F7), Color(0xFF6366F1)),
+                            glowColor = Color(0xFFA855F7),
                             isSelected = currentTab == MainTab.FILES,
                             testTag = "workspace_option_vault",
                             onClick = {
@@ -228,8 +228,8 @@ fun WorkspaceSwitcherModal(
                             title = "Flashcards Studio",
                             subtitle = "AI study cards, deck reviews & active recall",
                             icon = Icons.Default.Style,
-                            gradientColors = listOf(Color(0xFFFF3366), Color(0xFF9333EA)),
-                            glowColor = Color(0xFFFF3366),
+                            gradientColors = listOf(Color(0xFFEC4899), Color(0xFF8B5CF6)),
+                            glowColor = Color(0xFFEC4899),
                             isSelected = currentTab == MainTab.STUDIO,
                             testTag = "workspace_option_studio",
                             onClick = {
@@ -261,11 +261,11 @@ private fun WorkspaceOptionCard(
         label = "cardScale"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) glowColor.copy(alpha = 0.65f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+        targetValue = if (isSelected) glowColor.copy(alpha = 0.55f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
         label = "borderColor"
     )
     val containerBg by animateColorAsState(
-        targetValue = if (isSelected) glowColor.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+        targetValue = if (isSelected) glowColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.50f),
         label = "containerBg"
     )
 
@@ -273,17 +273,17 @@ private fun WorkspaceOptionCard(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, color = glowColor.copy(alpha = 0.3f)),
+                indication = ripple(bounded = true, color = glowColor.copy(alpha = 0.25f)),
                 onClick = onClick
             )
             .testTag(testTag),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = containerBg,
         border = androidx.compose.foundation.BorderStroke(
-            width = if (isSelected) 1.5.dp else 1.dp,
+            width = if (isSelected) 1.2.dp else 1.dp,
             color = borderColor
         )
     ) {
@@ -297,10 +297,10 @@ private fun WorkspaceOptionCard(
             // Gradient Icon Box
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Brush.linearGradient(gradientColors))
-                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -324,7 +324,7 @@ private fun WorkspaceOptionCard(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color(0xFFF1EEF7),
                         fontSize = 14.5.sp
                     )
 
@@ -332,8 +332,8 @@ private fun WorkspaceOptionCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(9999.dp))
-                                .background(glowColor.copy(alpha = 0.18f))
-                                .border(0.5.dp, glowColor.copy(alpha = 0.5f), RoundedCornerShape(9999.dp))
+                                .background(glowColor.copy(alpha = 0.16f))
+                                .border(0.8.dp, glowColor.copy(alpha = 0.45f), RoundedCornerShape(9999.dp))
                                 .padding(horizontal = 7.dp, vertical = 2.dp)
                         ) {
                             Text(
@@ -341,7 +341,8 @@ private fun WorkspaceOptionCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = glowColor,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp
+                                fontSize = 9.sp,
+                                letterSpacing = 0.5.sp
                             )
                         }
                     }
@@ -350,7 +351,7 @@ private fun WorkspaceOptionCard(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
                     fontSize = 11.5.sp,
                     lineHeight = 15.sp
                 )
@@ -362,14 +363,14 @@ private fun WorkspaceOptionCard(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .background(glowColor)
-                        .border(1.dp, Color.White.copy(alpha = 0.4f), CircleShape),
+                        .background(Brush.linearGradient(gradientColors))
+                        .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Selected",
-                        tint = Color.Black,
+                        tint = Color.White,
                         modifier = Modifier.size(14.dp)
                     )
                 }
