@@ -56,6 +56,7 @@ import com.example.ui.screens.DecksDashboardScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.StudioScreen
 import com.example.ui.screens.StudyScreen
+import com.example.ui.screens.VoiceSettingsScreen
 import com.example.ui.theme.SepFolTheme
 import com.example.viewmodel.DeckViewModel
 import com.sepfol.app.ui.folder.FolderScreen
@@ -66,7 +67,8 @@ enum class ScreenState {
     MAIN_WORKSPACE,
     ALL_DECKS,
     STUDY_STAGE,
-    SETTINGS
+    SETTINGS,
+    VOICE_SETTINGS
 }
 
 @Composable
@@ -435,6 +437,9 @@ fun SepFolApp() {
                                     foldersCount = folderUiState.allItems.count { it.isDirectory },
                                     decksCount = deckUiState.decks.size,
                                     cardsCount = deckUiState.decks.sumOf { it.cards.size },
+                                    onVoicesClick = {
+                                        screenStack = screenStack + ScreenState.VOICE_SETTINGS
+                                    },
                                     onExportBackupClick = {
                                         triggerExportBackup()
                                     },
@@ -444,6 +449,12 @@ fun SepFolApp() {
                                     onPasteJsonClick = {
                                         isManualJsonDialogOpen = true
                                     }
+                                )
+                            }
+                            screen == ScreenState.VOICE_SETTINGS -> {
+                                VoiceSettingsScreen(
+                                    onBackClick = navigateBack,
+                                    selectedAccent = selectedAccent
                                 )
                             }
                             screen == ScreenState.STUDY_STAGE -> {

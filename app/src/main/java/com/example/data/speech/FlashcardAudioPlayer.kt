@@ -5,6 +5,8 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.media.MediaPlayer
+import android.media.PlaybackParams
+import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -12,6 +14,7 @@ import android.speech.tts.Voice
 import android.util.Base64
 import android.util.Log
 import com.example.BuildConfig
+import com.example.data.preferences.UserPreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,13 +36,14 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Natural, lifelike Speech & Audio Engine for Flashcards.
- * Uses Gemini Official AI Voice API when online/available, and high-fidelity
- * Android TextToSpeech with smart multilingual accent detection (Hindi/English/Japanese)
- * for instant, natural pronunciations.
+ * Uses Gemini Official AI Voice API with conversational Live voices (Aoede, Kore, Puck, Charon, Fenrir)
+ * when online/available, and high-fidelity Android TextToSpeech with smart multilingual accent detection
+ * (Hindi/English/Regional) for 100% offline reliability.
  */
 class FlashcardAudioPlayer private constructor(private val appContext: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val prefsManager = UserPreferencesManager(appContext)
 
     private val _isSpeaking = MutableStateFlow(false)
     val isSpeaking: StateFlow<Boolean> = _isSpeaking.asStateFlow()
@@ -49,6 +53,9 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _currentEngineType = MutableStateFlow("Offline Engine")
+    val currentEngineType: StateFlow<String> = _currentEngineType.asStateFlow()
 
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
@@ -97,7 +104,8 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
 
     /**
      * Reads out the text in natural, expressive cadence.
-     * Detects Hindi (Devanagari & Hinglish) vs English vs Japanese accents automatically.
+     * Uses Gemini Live Voice if API key is active and preferGeminiVoice is enabled,
+     * otherwise smoothly falls back to high-grade local offline engine.
      */
     fun speak(text: String, onDone: () -> Unit = {}) {
         val cleanText = text.trim()
@@ -112,22 +120,56 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         stop()
         _currentText.value = cleanText
 
-        val lang = detectLanguage(cleanText)
+        val lang = resolveLocaleForText(cleanText)
+        val selectedVoice = prefsManager.geminiVoiceName
+        val preferGemini = prefsManager.isPreferGeminiVoice
 
         scope.launch {
             // Attempt high-fidelity Gemini Official Voice first if API key configured
             val apiKey = getGeminiApiKey()
-            if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
+            if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
                 _isLoading.value = true
-                val geminiSuccess = tryGeminiTts(cleanText, lang, apiKey)
+                val geminiSuccess = tryGeminiTts(cleanText, lang, apiKey, selectedVoice)
                 _isLoading.value = false
                 if (geminiSuccess) {
+                    _currentEngineType.value = "Gemini Live ($selectedVoice)"
                     return@launch
                 }
             }
 
             // Fallback to optimized high-grade Local TTS engine with natural voice & accent tuning
+            _currentEngineType.value = "Offline Engine"
             playWithLocalTts(cleanText, lang)
+        }
+    }
+
+    /**
+     * Previews a specific Gemini Voice persona with a demo sentence.
+     */
+    fun previewVoice(voiceName: String, customPhrase: String? = null) {
+        val sample = customPhrase ?: if (prefsManager.voiceAccent == "HINDI_IN") {
+            "नमस्ते! मैं आपका FocusFlow AI ट्यूटर हूँ। चलिए साथ मिलकर अध्ययन करते हैं।"
+        } else {
+            "Hello! I am your FocusFlow AI tutor. Ready to master your cards today?"
+        }
+
+        stop()
+        _currentText.value = sample
+
+        val lang = resolveLocaleForText(sample)
+        scope.launch {
+            val apiKey = getGeminiApiKey()
+            if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
+                _isLoading.value = true
+                val geminiSuccess = tryGeminiTts(sample, lang, apiKey, voiceName)
+                _isLoading.value = false
+                if (geminiSuccess) {
+                    _currentEngineType.value = "Gemini Live ($voiceName)"
+                    return@launch
+                }
+            }
+            // If no key, play offline sample with note
+            playWithLocalTts(sample, lang)
         }
     }
 
@@ -151,6 +193,16 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         _currentText.value = null
     }
 
+    private fun resolveLocaleForText(text: String): Locale {
+        return when (prefsManager.voiceAccent) {
+            "HINDI_IN" -> Locale.forLanguageTag("hi-IN")
+            "ENGLISH_IN" -> Locale.forLanguageTag("en-IN")
+            "ENGLISH_US" -> Locale.US
+            "ENGLISH_UK" -> Locale.UK
+            else -> detectLanguage(text)
+        }
+    }
+
     private fun playWithLocalTts(text: String, locale: Locale) {
         if (!isTtsReady || tts == null) {
             initTts()
@@ -162,14 +214,16 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 engine.setLanguage(Locale.US)
             }
 
+            val userSpeed = prefsManager.voiceSpeed
+            val userPitch = prefsManager.voicePitch
+
             // Tune natural prosody & human-like cadence
             if (locale.language == "hi") {
-                // Natural pitch for clear Hindi pronunciation
-                engine.setPitch(1.02f)
-                engine.setSpeechRate(0.95f) // Slightly relaxed speed for clear pronunciation
+                engine.setPitch(userPitch * 1.02f)
+                engine.setSpeechRate(userSpeed * 0.95f)
             } else {
-                engine.setPitch(1.0f)
-                engine.setSpeechRate(0.98f)
+                engine.setPitch(userPitch)
+                engine.setSpeechRate(userSpeed * 0.98f)
             }
 
             // Select highest quality voice if available
@@ -194,19 +248,23 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         }
     }
 
-    private suspend fun tryGeminiTts(text: String, locale: Locale, apiKey: String): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun tryGeminiTts(
+        text: String,
+        locale: Locale,
+        apiKey: String,
+        voiceName: String
+    ): Boolean = withContext(Dispatchers.IO) {
         val models = listOf("gemini-2.5-flash-preview-tts", "gemini-2.5-flash")
         for (model in models) {
             try {
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-                
-                // Voice selection: "Aoede" / "Kore" for ultra natural delivery
-                val voiceName = if (locale.language == "hi") "Kore" else "Aoede"
 
-                val promptInstruction = if (locale.language == "hi") {
-                    "कृपया निम्नलिखित पाठ को स्पष्ट, मधुर और प्राकृतिक भारतीय हिंदी उच्चारण में पढ़ें:\n$text"
+                val promptInstruction = if (locale.language == "hi" || prefsManager.voiceAccent == "HINDI_IN") {
+                    "You are a friendly and clear tutor in a live conversation. Speak the following text clearly in a natural, warm Indian Hindi pronunciation without reading punctuation labels:\n$text"
+                } else if (prefsManager.voiceAccent == "ENGLISH_IN") {
+                    "You are a friendly tutor in a live study session. Speak the following text in a natural, warm Indian English accent:\n$text"
                 } else {
-                    "Read the following text clearly in a natural, expressive, tutor voice:\n$text"
+                    "You are a friendly tutor in a live study session. Read the following text in a clear, natural, expressive voice with human cadence:\n$text"
                 }
 
                 val requestJson = JSONObject().apply {
@@ -272,7 +330,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Gemini Voice API attempt on $model failed, trying fallback: ${e.message}")
+                Log.w(TAG, "Gemini Voice API attempt on $model failed: ${e.message}")
             }
         }
         return@withContext false
@@ -289,6 +347,21 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 mediaPlayer?.release()
                 mediaPlayer = MediaPlayer().apply {
                     setDataSource(tempFile.absolutePath)
+                    
+                    // Apply speed setting if supported
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        try {
+                            val speed = prefsManager.voiceSpeed
+                            if (speed != 1.0f) {
+                                playbackParams = PlaybackParams().apply {
+                                    this.speed = speed
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.d(TAG, "PlaybackParams speed setup: ${e.message}")
+                        }
+                    }
+
                     setOnPreparedListener {
                         _isSpeaking.value = true
                         start()
@@ -315,6 +388,10 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     }
 
     private fun getGeminiApiKey(): String {
+        val userKey = prefsManager.customApiKey.trim()
+        if (userKey.isNotBlank()) {
+            return userKey
+        }
         return try {
             BuildConfig.GEMINI_API_KEY
         } catch (e: Exception) {

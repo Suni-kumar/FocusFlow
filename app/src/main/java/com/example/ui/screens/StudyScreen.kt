@@ -10,17 +10,22 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -108,6 +113,7 @@ fun StudyScreen(
     var masteredCardIds by remember(deck) { mutableStateOf(setOf<String>()) }
     var isCompleted by remember { mutableStateOf(false) }
     var isZenMode by remember { mutableStateOf(false) }
+    var showTags by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val hapticView = LocalView.current
@@ -124,6 +130,10 @@ fun StudyScreen(
     LaunchedEffect(currentCardIndex, isFlipped) {
         frontScrollState.scrollTo(0)
         backScrollState.scrollTo(0)
+    }
+
+    LaunchedEffect(currentCardIndex) {
+        showTags = false
     }
 
     // Flip animation rotation with smooth perceptible 3D rotation
@@ -348,7 +358,13 @@ fun StudyScreen(
                     )
                 }
 
-                // Main Flippable Card with Horizontal Swipe + Vertical Expand Swipe
+                // Main Flippable Card with Horizontal Swipe
+                val horizontalDraggableState = rememberDraggableState { delta ->
+                    scope.launch {
+                        dragOffsetX.snapTo(dragOffsetX.value + delta)
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -358,42 +374,32 @@ fun StudyScreen(
                             rotationY = rotation
                             cameraDistance = 12f * density
                         }
-                        .pointerInput(currentCardIndex, isCardExpanded) {
-                            detectHorizontalDragGestures(
-                                onHorizontalDrag = { _, dragAmount ->
-                                    scope.launch {
-                                        dragOffsetX.snapTo(dragOffsetX.value + dragAmount)
-                                    }
-                                },
-                                onDragEnd = {
-                                    scope.launch {
-                                        val offset = dragOffsetX.value
-                                        if (offset < -130f && currentCardIndex < cardsList.size - 1) {
-                                            AppHaptic.vibrateClick(context, hapticView)
-                                            dragOffsetX.animateTo(-500f, tween(150))
-                                            isFlipped = false
-                                            currentCardIndex++
-                                            dragOffsetX.snapTo(400f)
-                                            dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
-                                        } else if (offset > 130f && currentCardIndex > 0) {
-                                            AppHaptic.vibrateClick(context, hapticView)
-                                            dragOffsetX.animateTo(500f, tween(150))
-                                            isFlipped = false
-                                            currentCardIndex--
-                                            dragOffsetX.snapTo(-400f)
-                                            dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
-                                        } else {
-                                            dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
-                                        }
-                                    }
-                                },
-                                onDragCancel = {
-                                    scope.launch {
+                        .draggable(
+                            state = horizontalDraggableState,
+                            orientation = Orientation.Horizontal,
+                            onDragStopped = { velocity ->
+                                scope.launch {
+                                    val offset = dragOffsetX.value
+                                    if ((offset < -120f || velocity < -500f) && currentCardIndex < cardsList.size - 1) {
+                                        AppHaptic.vibrateClick(context, hapticView)
+                                        dragOffsetX.animateTo(-500f, tween(140))
+                                        isFlipped = false
+                                        currentCardIndex++
+                                        dragOffsetX.snapTo(400f)
+                                        dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
+                                    } else if ((offset > 120f || velocity > 500f) && currentCardIndex > 0) {
+                                        AppHaptic.vibrateClick(context, hapticView)
+                                        dragOffsetX.animateTo(500f, tween(140))
+                                        isFlipped = false
+                                        currentCardIndex--
+                                        dragOffsetX.snapTo(-400f)
+                                        dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
+                                    } else {
                                         dragOffsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
                                     }
                                 }
-                            )
-                        }
+                            }
+                        )
                         .shadow(16.dp, RoundedCornerShape(22.dp), spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.28f))
                         .clip(RoundedCornerShape(22.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f))
@@ -429,14 +435,14 @@ fun StudyScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Top Row: Tag & Expand button
+                            // Top Row: Label badge, Hashtag button & Audio button
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Box(
@@ -455,21 +461,46 @@ fun StudyScreen(
                                         )
                                     }
 
-                                    currentCard.tags.take(2).forEach { tag ->
+                                    if (currentCard.tags.isNotEmpty()) {
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(9999.dp))
-                                                .background(Color(0xFF8B5CF6).copy(alpha = 0.15f))
-                                                .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.3f), RoundedCornerShape(9999.dp))
-                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                                .background(
+                                                    if (showTags) Color(0xFF8B5CF6).copy(alpha = 0.28f)
+                                                    else Color(0xFF8B5CF6).copy(alpha = 0.14f)
+                                                )
+                                                .border(
+                                                    width = if (showTags) 1.5.dp else 1.dp,
+                                                    color = if (showTags) Color(0xFFC084FC) else Color(0xFF8B5CF6).copy(alpha = 0.35f),
+                                                    shape = RoundedCornerShape(9999.dp)
+                                                )
+                                                .clickable {
+                                                    AppHaptic.vibrateClick(context, hapticView)
+                                                    showTags = !showTags
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .testTag("toggle_tags_front_button"),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Text(
-                                                text = tag,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Color(0xFFC084FC),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Medium
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                            ) {
+                                                Text(
+                                                    text = "#",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = Color(0xFFC084FC),
+                                                    fontSize = 12.sp
+                                                )
+                                                Text(
+                                                    text = "${currentCard.tags.size}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (showTags) Color.White else Color(0xFFE9D5FF),
+                                                    fontSize = 11.sp
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -479,6 +510,41 @@ fun StudyScreen(
                                     textToSpeak = currentCard.front,
                                     activeColor = MaterialTheme.colorScheme.primary
                                 )
+                            }
+
+                            // Inline Animated Tag Row (Revealed inline upon tapping # button without popups)
+                            AnimatedVisibility(
+                                visible = showTags && currentCard.tags.isNotEmpty(),
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp)
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    currentCard.tags.forEach { tag ->
+                                        val formattedTag = if (tag.startsWith("#")) tag else "#$tag"
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(9999.dp))
+                                                .background(Color(0xFF8B5CF6).copy(alpha = 0.18f))
+                                                .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = formattedTag,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color(0xFFE9D5FF),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
                             }
 
                             // SCROLLABLE QUESTION TEXT CONTAINER (Prevents any clipping of long text)
@@ -512,18 +578,7 @@ fun StudyScreen(
                                         AppHaptic.vibrateClick(context, hapticView)
                                         isCardExpanded = !isCardExpanded
                                     }
-                                    .pointerInput(Unit) {
-                                        detectVerticalDragGestures { _, dragAmount ->
-                                            if (dragAmount > 15f && !isCardExpanded) {
-                                                AppHaptic.vibrateClick(context, hapticView)
-                                                isCardExpanded = true
-                                            } else if (dragAmount < -15f && isCardExpanded) {
-                                                AppHaptic.vibrateClick(context, hapticView)
-                                                isCardExpanded = false
-                                            }
-                                        }
-                                    }
-                                    .padding(vertical = 2.dp),
+                                    .padding(vertical = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -544,14 +599,14 @@ fun StudyScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Top Row: Tag & Expand button
+                            // Top Row: Label badge, Hashtag button & Audio button
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Box(
@@ -570,21 +625,46 @@ fun StudyScreen(
                                         )
                                     }
 
-                                    currentCard.tags.take(2).forEach { tag ->
+                                    if (currentCard.tags.isNotEmpty()) {
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(9999.dp))
-                                                .background(Color(0xFF10B981).copy(alpha = 0.12f))
-                                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.3f), RoundedCornerShape(9999.dp))
-                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                                .background(
+                                                    if (showTags) Color(0xFF10B981).copy(alpha = 0.28f)
+                                                    else Color(0xFF10B981).copy(alpha = 0.14f)
+                                                )
+                                                .border(
+                                                    width = if (showTags) 1.5.dp else 1.dp,
+                                                    color = if (showTags) Color(0xFF34D399) else Color(0xFF10B981).copy(alpha = 0.35f),
+                                                    shape = RoundedCornerShape(9999.dp)
+                                                )
+                                                .clickable {
+                                                    AppHaptic.vibrateClick(context, hapticView)
+                                                    showTags = !showTags
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .testTag("toggle_tags_back_button"),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Text(
-                                                text = tag,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Color(0xFF6EE7B7),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Medium
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                            ) {
+                                                Text(
+                                                    text = "#",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = Color(0xFF34D399),
+                                                    fontSize = 12.sp
+                                                )
+                                                Text(
+                                                    text = "${currentCard.tags.size}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (showTags) Color.White else Color(0xFFA7F3D0),
+                                                    fontSize = 11.sp
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -594,6 +674,41 @@ fun StudyScreen(
                                     textToSpeak = currentCard.back,
                                     activeColor = Color(0xFF10B981)
                                 )
+                            }
+
+                            // Inline Animated Tag Row (Revealed inline upon tapping # button without popups)
+                            AnimatedVisibility(
+                                visible = showTags && currentCard.tags.isNotEmpty(),
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp)
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    currentCard.tags.forEach { tag ->
+                                        val formattedTag = if (tag.startsWith("#")) tag else "#$tag"
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(9999.dp))
+                                                .background(Color(0xFF10B981).copy(alpha = 0.18f))
+                                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = formattedTag,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color(0xFFA7F3D0),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
                             }
 
                             // SCROLLABLE ANSWER TEXT CONTAINER (Smooth scrolling for long answers)
@@ -627,18 +742,7 @@ fun StudyScreen(
                                         AppHaptic.vibrateClick(context, hapticView)
                                         isCardExpanded = !isCardExpanded
                                     }
-                                    .pointerInput(Unit) {
-                                        detectVerticalDragGestures { _, dragAmount ->
-                                            if (dragAmount > 15f && !isCardExpanded) {
-                                                AppHaptic.vibrateClick(context, hapticView)
-                                                isCardExpanded = true
-                                            } else if (dragAmount < -15f && isCardExpanded) {
-                                                AppHaptic.vibrateClick(context, hapticView)
-                                                isCardExpanded = false
-                                            }
-                                        }
-                                    }
-                                    .padding(vertical = 2.dp),
+                                    .padding(vertical = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -703,6 +807,7 @@ fun StudyScreen(
                                 isFlipped = !isFlipped
                             },
                             shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant
                             ),
@@ -711,19 +816,26 @@ fun StudyScreen(
                                 .height(52.dp)
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Autorenew,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Flip Card",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Autorenew,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Flip Card",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
 
                         // Mastered Button
@@ -742,27 +854,35 @@ fun StudyScreen(
                                 }
                             },
                             shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = FocusBlue
                             ),
                             modifier = Modifier
-                                .weight(1.2f)
+                                .weight(1.15f)
                                 .height(52.dp)
                                 .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = FocusBlue)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.TaskAlt,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Mastered",
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.TaskAlt,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Mastered",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
 
                         // Next Card

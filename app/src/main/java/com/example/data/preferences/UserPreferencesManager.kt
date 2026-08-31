@@ -16,6 +16,11 @@ class UserPreferencesManager(context: Context) {
         private const val KEY_ACCENT_THEME = "accent_theme"
         private const val KEY_SEPFOL_THEME = "sepfol_theme"
         private const val KEY_VISUAL_ENGINE = "visual_engine"
+        private const val KEY_GEMINI_VOICE_NAME = "gemini_voice_name"
+        private const val KEY_VOICE_ACCENT = "voice_accent"
+        private const val KEY_VOICE_SPEED = "voice_speed"
+        private const val KEY_VOICE_PITCH = "voice_pitch"
+        private const val KEY_PREFER_GEMINI_VOICE = "prefer_gemini_voice"
     }
 
     var customApiKey: String
@@ -50,4 +55,24 @@ class UserPreferencesManager(context: Context) {
     var visualEngineName: String
         get() = prefs.getString(KEY_VISUAL_ENGINE, "LIQUID_GLASS_3D") ?: "LIQUID_GLASS_3D"
         set(value) = prefs.edit().putString(KEY_VISUAL_ENGINE, value).apply()
+
+    var geminiVoiceName: String
+        get() = prefs.getString(KEY_GEMINI_VOICE_NAME, "Aoede") ?: "Aoede"
+        set(value) = prefs.edit().putString(KEY_GEMINI_VOICE_NAME, value).apply()
+
+    var voiceAccent: String
+        get() = prefs.getString(KEY_VOICE_ACCENT, "AUTO") ?: "AUTO"
+        set(value) = prefs.edit().putString(KEY_VOICE_ACCENT, value).apply()
+
+    var voiceSpeed: Float
+        get() = prefs.getFloat(KEY_VOICE_SPEED, 1.0f)
+        set(value) = prefs.edit().putFloat(KEY_VOICE_SPEED, value).apply()
+
+    var voicePitch: Float
+        get() = prefs.getFloat(KEY_VOICE_PITCH, 1.0f)
+        set(value) = prefs.edit().putFloat(KEY_VOICE_PITCH, value).apply()
+
+    var isPreferGeminiVoice: Boolean
+        get() = prefs.getBoolean(KEY_PREFER_GEMINI_VOICE, true)
+        set(value) = prefs.edit().putBoolean(KEY_PREFER_GEMINI_VOICE, value).apply()
 }

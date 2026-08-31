@@ -1,14 +1,9 @@
 package com.example.ui.components
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,13 +19,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.Local3DGlassEnabled
 import com.example.ui.theme.LocalAccentTheme
@@ -53,37 +44,9 @@ fun HoloMorphCard(
     val accentTheme = LocalAccentTheme.current
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
 
-    var isPressed by remember { mutableStateOf(false) }
-    var touchPosition by remember { mutableStateOf(Offset.Unspecified) }
-    var componentSize by remember { mutableStateOf(IntSize.Zero) }
-
     val interactionSource = remember { MutableInteractionSource() }
     val context = LocalContext.current
     val view = LocalView.current
-
-    val tiltX by animateFloatAsState(
-        targetValue = if (is3DEnabled && isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
-            val normalizedY = (touchPosition.y / componentSize.height) - 0.5f
-            -normalizedY * 14f
-        } else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "tiltX"
-    )
-
-    val tiltY by animateFloatAsState(
-        targetValue = if (is3DEnabled && isPressed && touchPosition != Offset.Unspecified && componentSize != IntSize.Zero) {
-            val normalizedX = (touchPosition.x / componentSize.width) - 0.5f
-            normalizedX * 14f
-        } else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "tiltY"
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) (if (is3DEnabled) 0.96f else 0.98f) else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "scale"
-    )
 
     val clickModifier = if (onClick != null || onLongClick != null) {
         Modifier.combinedClickable(
@@ -132,17 +95,13 @@ fun HoloMorphCard(
         }
     }
 
-    val finalBorderModifier = if (borderColor != null) {
-        Modifier.border(borderWidth, borderColor, shape)
-    } else {
-        Modifier.border(borderWidth, defaultBorder, shape)
+    val finalBorderModifier = remember(borderColor, borderWidth, defaultBorder, shape) {
+        if (borderColor != null) {
+            Modifier.border(borderWidth, borderColor, shape)
+        } else {
+            Modifier.border(borderWidth, defaultBorder, shape)
+        }
     }
-
-    val shimmerAlpha by animateFloatAsState(
-        targetValue = if (is3DEnabled && isPressed) 0.20f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "shimmerAlpha"
-    )
 
     val finalBackgroundModifier = remember(backgroundColor, is3DEnabled, isDark, surfaceContainerLow, surfaceContainer) {
         if (backgroundColor != null) {
@@ -172,71 +131,24 @@ fun HoloMorphCard(
         }
     }
 
-    val shadowModifier = if (is3DEnabled && elevation > 0.dp) {
-        Modifier.shadow(
-            elevation = elevation,
-            shape = shape,
-            ambientColor = if (isDark) accentTheme.primaryColor.copy(alpha = 0.30f) else Color(0x20000000),
-            spotColor = if (isDark) accentTheme.secondaryColor.copy(alpha = 0.25f) else Color(0x30000000)
-        )
-    } else if (elevation > 0.dp) {
-        Modifier.shadow(elevation = elevation, shape = shape)
-    } else Modifier
+    val shadowModifier = remember(is3DEnabled, elevation, shape, isDark, accentTheme) {
+        if (is3DEnabled && elevation > 0.dp) {
+            Modifier.shadow(
+                elevation = elevation,
+                shape = shape,
+                ambientColor = if (isDark) accentTheme.primaryColor.copy(alpha = 0.30f) else Color(0x20000000),
+                spotColor = if (isDark) accentTheme.secondaryColor.copy(alpha = 0.25f) else Color(0x30000000)
+            )
+        } else if (elevation > 0.dp) {
+            Modifier.shadow(elevation = elevation, shape = shape)
+        } else Modifier
+    }
 
     Box(
         modifier = modifier
             .then(shadowModifier)
-            .onSizeChanged { componentSize = it }
-            .pointerInput(is3DEnabled) {
-                if (is3DEnabled) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        touchPosition = down.position
-                        isPressed = true
-
-                        do {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull()
-                            if (change != null) {
-                                touchPosition = change.position
-                            }
-                        } while (event.changes.any { it.pressed })
-
-                        isPressed = false
-                        touchPosition = Offset.Unspecified
-                    }
-                }
-            }
-            .graphicsLayer {
-                if (is3DEnabled) {
-                    rotationX = tiltX
-                    rotationY = tiltY
-                    scaleX = scale
-                    scaleY = scale
-                    cameraDistance = 14f * density
-                } else {
-                    scaleX = scale
-                    scaleY = scale
-                }
-            }
             .clip(shape)
             .then(finalBackgroundModifier)
-            .drawWithContent {
-                drawContent()
-                if (is3DEnabled && shimmerAlpha > 0f) {
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                (if (isDark) Color.White else accentTheme.primaryColor).copy(alpha = shimmerAlpha),
-                                Color.Transparent
-                            ),
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, size.height)
-                        )
-                    )
-                }
-            }
             .then(finalBorderModifier)
             .then(clickModifier),
         content = content
