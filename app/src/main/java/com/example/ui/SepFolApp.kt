@@ -84,7 +84,7 @@ fun SepFolApp() {
             try {
                 VisualEngine.valueOf(prefsManager.visualEngineName)
             } catch (e: Exception) {
-                VisualEngine.CLASSIC_OBSIDIAN
+                VisualEngine.LIQUID_GLASS_3D
             }
         )
     }
@@ -295,7 +295,11 @@ fun SepFolApp() {
         }
     }
 
-    SepFolTheme(darkTheme = isEffectiveDarkTheme, accentTheme = selectedAccent) {
+    SepFolTheme(
+        darkTheme = isEffectiveDarkTheme,
+        accentTheme = selectedAccent,
+        is3DGlassEnabled = (visualEngine == VisualEngine.LIQUID_GLASS_3D)
+    ) {
         // Show FocusFlow top app bar ONLY on Home Vault (root) and Flashcard Studio tab
         val isTopAppBarVisible = currentScreen == ScreenState.MAIN_WORKSPACE &&
                 folderUiState.selectedViewerItem == null &&

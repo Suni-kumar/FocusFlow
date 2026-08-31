@@ -372,7 +372,8 @@ fun DeckListItemCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("deck_item_${deck.id}"),
-        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else null,
+        elevation = 3.dp,
         borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         borderWidth = if (isSelected) 1.5.dp else 1.dp,
         shape = RoundedCornerShape(16.dp),

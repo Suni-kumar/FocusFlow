@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -50,6 +51,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.Flashcard
+import com.example.ui.theme.Local3DGlassEnabled
+import com.example.ui.theme.LocalAccentTheme
 import com.example.ui.util.AppHaptic
 
 @Composable
@@ -63,6 +66,9 @@ fun FlippableFlashcard(
     val context = LocalContext.current
     val hapticView = LocalView.current
     val density = LocalDensity.current.density
+    val is3DEnabled = Local3DGlassEnabled.current
+    val accentTheme = LocalAccentTheme.current
+    val isDark = MaterialTheme.colorScheme.background.red < 0.5f
 
     val frontScroll = rememberScrollState()
     val backScroll = rememberScrollState()
@@ -75,28 +81,94 @@ fun FlippableFlashcard(
 
     val isFrontFacing = rotation <= 90f
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = accentTheme.secondaryColor
+    val answerColor = Color(0xFF10B981)
+
+    // Dynamic 3D glass background & borders
+    val cardBackground = remember(is3DEnabled, isDark, isFlipped) {
+        if (is3DEnabled) {
+            if (isDark) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1E1C38).copy(alpha = 0.88f),
+                        Color(0xFF0F0F1E).copy(alpha = 0.94f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.95f),
+                        Color(0xFFF1F5F9).copy(alpha = 0.85f)
+                    )
+                )
+            }
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    if (isDark) Color(0xFF16152B) else Color.White,
+                    if (isDark) Color(0xFF16152B) else Color.White
+                )
+            )
+        }
+    }
+
+    val cardBorder = remember(is3DEnabled, isDark, isFlipped, primaryColor, accentTheme) {
+        if (is3DEnabled) {
+            if (isFlipped) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.45f else 0.90f),
+                        answerColor.copy(alpha = 0.70f),
+                        answerColor.copy(alpha = 0.20f)
+                    )
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.40f else 0.95f),
+                        accentTheme.primaryColor.copy(alpha = 0.70f),
+                        accentTheme.secondaryColor.copy(alpha = 0.30f)
+                    )
+                )
+            }
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    (if (isFlipped) answerColor else primaryColor).copy(alpha = 0.4f),
+                    (if (isFlipped) answerColor else primaryColor).copy(alpha = 0.2f)
+                )
+            )
+        }
+    }
+
+    val shadowModifier = if (is3DEnabled) {
+        Modifier.shadow(
+            elevation = 14.dp,
+            shape = RoundedCornerShape(24.dp),
+            ambientColor = if (isDark) (if (isFlipped) answerColor else accentTheme.primaryColor).copy(alpha = 0.45f) else Color(0x25000000),
+            spotColor = if (isDark) (if (isFlipped) answerColor else accentTheme.secondaryColor).copy(alpha = 0.35f) else Color(0x35000000)
+        )
+    } else {
+        Modifier.shadow(
+            elevation = 6.dp,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
     Box(
         modifier = modifier
+            .then(shadowModifier)
             .graphicsLayer {
                 rotationY = rotation
-                cameraDistance = 14f * density
+                cameraDistance = (if (is3DEnabled) 18f else 10f) * density
             }
-            .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(22.dp),
-                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f)
-            )
-            .clip(RoundedCornerShape(22.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                1.5.dp,
-                if (isFlipped) Color(0xFF10B981).copy(alpha = 0.5f)
-                else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                RoundedCornerShape(22.dp)
-            )
+            .clip(RoundedCornerShape(24.dp))
+            .background(cardBackground)
+            .border(if (is3DEnabled) 1.5.dp else 1.dp, cardBorder, RoundedCornerShape(24.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary),
+                indication = ripple(bounded = true, color = accentTheme.primaryColor),
                 onClick = {
                     AppHaptic.vibrateClick(context, hapticView)
                     isFlipped = !isFlipped
@@ -106,19 +178,23 @@ fun FlippableFlashcard(
             .testTag("flippable_flashcard_${flashcard.id}"),
         contentAlignment = Alignment.Center
     ) {
-        // Reflection highlight
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.05f),
-                            Color.Transparent
+        // Specular glint line at top
+        if (is3DEnabled) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDark) 0.12f else 0.35f),
+                                Color.Transparent
+                            ),
+                            start = Offset(0f, 0f),
+                            end = Offset(0f, 180f)
                         )
                     )
-                )
-        )
+            )
+        }
 
         if (isFrontFacing) {
             // FRONT FACE
@@ -138,34 +214,45 @@ fun FlippableFlashcard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(9999.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(9999.dp))
+                            .background(accentTheme.primaryColor.copy(alpha = 0.15f))
+                            .border(1.dp, accentTheme.primaryColor.copy(alpha = 0.35f), RoundedCornerShape(9999.dp))
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "QUESTION",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = if (isDark) accentTheme.primaryColor else accentTheme.secondaryColor,
                             letterSpacing = 0.15.sp
                         )
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Psychology,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = flashcard.topic,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Psychology,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = flashcard.topic,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        FlashcardSpeakerButton(
+                            textToSpeak = flashcard.front,
+                            activeColor = accentTheme.primaryColor,
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
@@ -190,7 +277,7 @@ fun FlippableFlashcard(
                     )
                 }
 
-                // Clean Bottom Indicator (No background boxes/text)
+                // Clean Bottom Indicator
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -200,7 +287,7 @@ fun FlippableFlashcard(
                     Icon(
                         imageVector = Icons.Default.Autorenew,
                         contentDescription = "Tap to flip",
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        tint = (if (isDark) accentTheme.primaryColor else accentTheme.secondaryColor).copy(alpha = 0.65f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -211,7 +298,7 @@ fun FlippableFlashcard(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { rotationY = 180f }
-                    .padding(20.dp),
+                .padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -224,25 +311,36 @@ fun FlippableFlashcard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(9999.dp))
-                            .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
+                            .background(answerColor.copy(alpha = 0.15f))
+                            .border(1.dp, answerColor.copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "ANSWER",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF10B981),
+                            color = answerColor,
                             letterSpacing = 0.15.sp
                         )
                     }
 
-                    Text(
-                        text = flashcard.topic,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = flashcard.topic,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        FlashcardSpeakerButton(
+                            textToSpeak = flashcard.back,
+                            activeColor = answerColor,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
                 }
 
                 // Back Answer / Explanation (Scrollable)
@@ -265,7 +363,7 @@ fun FlippableFlashcard(
                     )
                 }
 
-                // Clean Bottom Indicator (No background boxes/text)
+                // Clean Bottom Indicator
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -275,7 +373,7 @@ fun FlippableFlashcard(
                     Icon(
                         imageVector = Icons.Default.Autorenew,
                         contentDescription = "Tap to flip",
-                        tint = Color(0xFF10B981).copy(alpha = 0.6f),
+                        tint = answerColor.copy(alpha = 0.65f),
                         modifier = Modifier.size(18.dp)
                     )
                 }

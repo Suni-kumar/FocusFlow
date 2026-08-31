@@ -542,7 +542,8 @@ fun BreadcrumbBar(
 ) {
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        backgroundColor = null,
+        elevation = 2.dp,
         borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -644,7 +645,8 @@ fun RecentNoteCard(
         modifier = modifier
             .width(150.dp)
             .height(135.dp),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        backgroundColor = null,
+        elevation = 2.dp,
         borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
         onClick = onClick
     ) {
@@ -730,7 +732,7 @@ fun FolderCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceContainerLow
+    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else null
     val borderCol = when {
         isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
         folder.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
@@ -742,6 +744,7 @@ fun FolderCard(
             .fillMaxWidth()
             .height(60.dp),
         backgroundColor = bg,
+        elevation = 2.dp,
         borderColor = borderCol,
         borderWidth = if (isSelected) 1.5.dp else 1.dp,
         shape = RoundedCornerShape(14.dp),
@@ -849,7 +852,7 @@ fun NoteListItemCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceContainerLow
+    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else null
     val borderCol = when {
         isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
         item.isPinned -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
@@ -861,6 +864,7 @@ fun NoteListItemCard(
             .fillMaxWidth()
             .height(68.dp),
         backgroundColor = bg,
+        elevation = 2.dp,
         borderColor = borderCol,
         borderWidth = if (isSelected) 1.5.dp else 1.dp,
         shape = RoundedCornerShape(14.dp),
@@ -1002,7 +1006,8 @@ fun EmptyFolderState(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 24.dp),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        backgroundColor = null,
+        elevation = 2.dp,
         borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         shape = RoundedCornerShape(18.dp)
     ) {

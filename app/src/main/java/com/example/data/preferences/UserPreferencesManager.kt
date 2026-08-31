@@ -48,6 +48,6 @@ class UserPreferencesManager(context: Context) {
         }
 
     var visualEngineName: String
-        get() = prefs.getString(KEY_VISUAL_ENGINE, "CLASSIC_OBSIDIAN") ?: "CLASSIC_OBSIDIAN"
+        get() = prefs.getString(KEY_VISUAL_ENGINE, "LIQUID_GLASS_3D") ?: "LIQUID_GLASS_3D"
         set(value) = prefs.edit().putString(KEY_VISUAL_ENGINE, value).apply()
 }

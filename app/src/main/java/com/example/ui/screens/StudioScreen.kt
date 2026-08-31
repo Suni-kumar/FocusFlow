@@ -131,7 +131,8 @@ fun StudioScreen(
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+                    backgroundColor = null,
+                    elevation = 6.dp,
                     borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     borderWidth = 1.dp
                 ) {
@@ -255,7 +256,8 @@ fun StudioScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 24.dp),
-                        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        backgroundColor = null,
+                        elevation = 2.dp,
                         borderColor = MaterialTheme.colorScheme.outlineVariant,
                         shape = RoundedCornerShape(16.dp)
                     ) {
@@ -621,7 +623,8 @@ fun ManagedDeckItem(
             .fillMaxWidth()
             .height(135.dp)
             .testTag("managed_deck_${deck.id}"),
-        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else null,
+        elevation = if (isSelected) 6.dp else 3.dp,
         borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         borderWidth = if (isSelected) 1.5.dp else 1.dp,
         shape = RoundedCornerShape(14.dp),

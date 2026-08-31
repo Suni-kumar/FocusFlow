@@ -15,6 +15,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -57,7 +59,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
+import com.example.ui.theme.Local3DGlassEnabled
+import com.example.ui.theme.LocalAccentTheme
 
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
@@ -93,17 +98,87 @@ fun SepFolTopAppBar(
         }
     }
 
+    val is3DEnabled = Local3DGlassEnabled.current
+    val accentTheme = LocalAccentTheme.current
+    val isDark = MaterialTheme.colorScheme.background.red < 0.5f
+    val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHigh
+
+    val topBarBackground = remember(is3DEnabled, isDark, surfaceContainerHigh) {
+        if (is3DEnabled) {
+            if (isDark) {
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF16152B).copy(alpha = 0.85f),
+                        Color(0xFF100F20).copy(alpha = 0.90f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFFFF7FC).copy(alpha = 0.88f),
+                        Color(0xFFF3E3EF).copy(alpha = 0.78f)
+                    )
+                )
+            }
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    surfaceContainerHigh,
+                    surfaceContainerHigh
+                )
+            )
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .pointerInput(isSearchActive, selectionCount) {
+                if (selectionCount == 0) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        val startPos = down.position
+                        var triggered = false
+
+                        do {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull()
+                            if (change != null) {
+                                val currentPos = change.position
+                                val totalDx = currentPos.x - startPos.x
+                                val totalDy = currentPos.y - startPos.y
+
+                                if (Math.abs(totalDx) > Math.abs(totalDy) * 1.1f) {
+                                    if (!isSearchActive && totalDx < -30f && !triggered) {
+                                        // Swipe LEFT on top bar -> Open search!
+                                        triggered = true
+                                        haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                        onSearchActiveChange(true)
+                                        change.consume()
+                                        break
+                                    } else if (isSearchActive && totalDx > 30f && !triggered) {
+                                        // Swipe RIGHT in search bar -> Close search!
+                                        triggered = true
+                                        haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                        onSearchActiveChange(false)
+                                        onSearchQueryChange("")
+                                        change.consume()
+                                        break
+                                    }
+                                }
+                            }
+                        } while (event.changes.any { it.pressed })
+                    }
+                }
+            }
+            .background(topBarBackground)
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     listOf(
                         Color.Transparent,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        if (is3DEnabled) accentTheme.primaryColor.copy(alpha = 0.25f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                     )
                 ),
                 shape = RectangleShape
@@ -208,13 +283,29 @@ fun SepFolTopAppBar(
                 }
                 "SEARCH" -> {
                     // Active Search Bar Mode
+                    val searchCapsuleBg = if (is3DEnabled) {
+                        if (isDark) Color(0xFF1E1D36).copy(alpha = 0.85f) else Color(0xFFFFF2F8).copy(alpha = 0.90f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
+                    val searchBorderBrush = if (is3DEnabled) {
+                        Brush.horizontalGradient(
+                            listOf(
+                                accentTheme.primaryColor.copy(alpha = 0.6f),
+                                accentTheme.secondaryColor.copy(alpha = 0.4f)
+                            )
+                        )
+                    } else {
+                        SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(42.dp)
-                            .clip(RoundedCornerShape(21.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(21.dp))
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(searchCapsuleBg)
+                            .border(1.2.dp, searchBorderBrush, RoundedCornerShape(22.dp))
                             .padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -223,20 +314,20 @@ fun SepFolTopAppBar(
                                 onSearchActiveChange(false)
                                 onSearchQueryChange("")
                             },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Close search",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(horizontal = 6.dp),
+                                .padding(horizontal = 8.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (searchQuery.isEmpty()) {
@@ -244,7 +335,7 @@ fun SepFolTopAppBar(
                                     text = "Search files, notes, decks...",
                                     style = TextStyle(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        fontSize = 13.5.sp
+                                        fontSize = 14.sp
                                     )
                                 )
                             }
@@ -254,8 +345,8 @@ fun SepFolTopAppBar(
                                 singleLine = true,
                                 textStyle = TextStyle(
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.Normal
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
                                 ),
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                 modifier = Modifier
@@ -308,8 +399,23 @@ fun SepFolTopAppBar(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                                    .background(
+                                        if (is3DEnabled) {
+                                            Brush.radialGradient(
+                                                listOf(
+                                                    accentTheme.primaryColor.copy(alpha = 0.25f),
+                                                    Color.Transparent
+                                                )
+                                            )
+                                        } else {
+                                            SolidColor(MaterialTheme.colorScheme.surfaceVariant)
+                                        }
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (is3DEnabled) accentTheme.primaryColor.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant,
+                                        CircleShape
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -329,7 +435,7 @@ fun SepFolTopAppBar(
                             )
                         }
 
-                        // Action Icon: Settings Gear
+                        // Action Icon: Settings Gear (Tapping opens Settings, Swiping Left opens Search)
                         IconButton(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -338,6 +444,25 @@ fun SepFolTopAppBar(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
+                                .pointerInput(Unit) {
+                                    awaitEachGesture {
+                                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                        val startX = down.position.x
+                                        do {
+                                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                                            val change = event.changes.firstOrNull()
+                                            if (change != null) {
+                                                val dx = change.position.x - startX
+                                                if (dx < -25f) {
+                                                    haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                                    onSearchActiveChange(true)
+                                                    change.consume()
+                                                    break
+                                                }
+                                            }
+                                        } while (event.changes.any { it.pressed })
+                                    }
+                                }
                                 .testTag("top_bar_settings_gear")
                         ) {
                             Icon(

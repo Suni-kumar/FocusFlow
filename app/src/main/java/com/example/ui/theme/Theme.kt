@@ -14,11 +14,13 @@ import androidx.core.view.WindowCompat
 import com.example.model.AccentTheme
 
 val LocalAccentTheme = staticCompositionLocalOf { AccentTheme.BIO_MATRIX }
+val Local3DGlassEnabled = staticCompositionLocalOf { true }
 
 @Composable
 fun SepFolTheme(
     darkTheme: Boolean = true,
     accentTheme: AccentTheme = AccentTheme.BIO_MATRIX,
+    is3DGlassEnabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val darkColors = darkColorScheme(
@@ -104,7 +106,8 @@ fun SepFolTheme(
     }
 
     CompositionLocalProvider(
-        LocalAccentTheme provides accentTheme
+        LocalAccentTheme provides accentTheme,
+        Local3DGlassEnabled provides is3DGlassEnabled
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

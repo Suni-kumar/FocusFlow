@@ -43,20 +43,20 @@ val BackgroundDark = Color(0xFF05050A) // Ultra Deep Space
 val OnBackgroundDark = Color(0xFFF8FAFC)
 
 // -------------------------------------------------------------
-// Elegant Fairy Pink / Rose Slate Palette (Light Mode)
-// User Intent: "white ko primary colours mat rakh na frey pink type ka rakhna"
+// Elegant Fairy Pink / Rose Quartz / Platinum Slate Palette (Light Mode)
+// User Intent: "white ko primary colours mat rakh na light pink or grey in sab ko bnao"
 // -------------------------------------------------------------
-val PrimaryLight = Color(0xFFDB2777) // Fairy Rose Pink (Vibrant, high-contrast, premium)
+val PrimaryLight = Color(0xFFE11D48) // Rose Fuchsia Glow (Vibrant, high-contrast, premium)
 val OnPrimaryLight = Color(0xFFFFFFFF)
-val PrimaryContainerLight = Color(0xFFFCE7F3) // Soft Rose Blush container
-val OnPrimaryContainerLight = Color(0xFF831843) // Deep Burgundy text for contrast
+val PrimaryContainerLight = Color(0xFFFFE4EE) // Soft Rose Blush container
+val OnPrimaryContainerLight = Color(0xFF881337) // Deep Burgundy text for contrast
 
-val SecondaryLight = Color(0xFF9333EA) // Royal Violet accent
+val SecondaryLight = Color(0xFF7C3AED) // Royal Amethyst accent
 val OnSecondaryLight = Color(0xFFFFFFFF)
 val SecondaryContainerLight = Color(0xFFF3E8FF)
 val OnSecondaryContainerLight = Color(0xFF581C87)
 
-val TertiaryLight = Color(0xFF0284C7) // Sky Cyan accent
+val TertiaryLight = Color(0xFF0284C7) // Sky Sapphire accent
 val OnTertiaryLight = Color(0xFFFFFFFF)
 val TertiaryContainerLight = Color(0xFFE0F2FE)
 val OnTertiaryContainerLight = Color(0xFF0369A1)
@@ -66,22 +66,22 @@ val OnErrorLight = Color(0xFFFFFFFF)
 val ErrorContainerLight = Color(0xFFFEE2E2)
 val OnErrorContainerLight = Color(0xFF991B1B)
 
-val BackgroundLight = Color(0xFFFAF7F9) // Gentle fairy-pink neutral tinted canvas (not harsh #FFF)
-val OnBackgroundLight = Color(0xFF1E1A20) // Deep crisp obsidian
+val BackgroundLight = Color(0xFFF7EFF5) // Luxurious Rose-Champagne tinted base
+val OnBackgroundLight = Color(0xFF1E1722) // Deep rich obsidian charcoal
 
-val SurfaceLight = Color(0xFFFFFFFF) // Crisp surface
-val OnSurfaceLight = Color(0xFF1E1A20) // High-contrast text
-val SurfaceVariantLight = Color(0xFFF2EBF1)
-val OnSurfaceVariantLight = Color(0xFF67616C) // Readable secondary text
+val SurfaceLight = Color(0xFFFFF8FC) // Crisp crystal surface
+val OnSurfaceLight = Color(0xFF1E1722) // High-contrast text
+val SurfaceVariantLight = Color(0xFFEFE4EC) // Frosted platinum-pink container
+val OnSurfaceVariantLight = Color(0xFF5E5463) // Readable secondary text
 
 val SurfaceContainerLowestLight = Color(0xFFFFFFFF)
-val SurfaceContainerLowLight = Color(0xFFFAF5F8)
-val SurfaceContainerLight = Color(0xFFF4EDF2)
-val SurfaceContainerHighLight = Color(0xFFEFE7EC)
-val SurfaceContainerHighestLight = Color(0xFFE8DFE5)
+val SurfaceContainerLowLight = Color(0xFFFBF2F7) // Soft rose-quartz frost
+val SurfaceContainerLight = Color(0xFFF4E7F0) // Multi-tonal champagne slate
+val SurfaceContainerHighLight = Color(0xFFECDBE7)
+val SurfaceContainerHighestLight = Color(0xFFE3CEDD)
 
-val OutlineLight = Color(0xFFCBBEC9)
-val OutlineVariantLight = Color(0xFFE4DAE2)
+val OutlineLight = Color(0xFFCBB6C7)
+val OutlineVariantLight = Color(0xFFE6D6E3)
 
 // Legacy Colors
 val AccentCyber = Color(0xFF06B6D4)

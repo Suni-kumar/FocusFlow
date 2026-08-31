@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.example.model.AccentTheme
+import com.example.ui.theme.Local3DGlassEnabled
 
 /**
  * Ultra-Vibrant Liquid Glass Ambient Background (Hardware-Accelerated 120 FPS Optimized)
@@ -22,7 +23,7 @@ import com.example.model.AccentTheme
  * Provides deep rich atmospheric depth with:
  * - Multi-stop cosmic base gradient
  * - Lightweight drawBehind atmospheric glowing auras
- * - Zero continuous composition CPU/GPU drain for stutter-free scrolling & swiping
+ * - Smooth adaptation between 3D Glass mode and Classic flat mode across Light & Dark themes
  */
 @Composable
 fun AmbientLiquidOrbsBackground(
@@ -31,6 +32,7 @@ fun AmbientLiquidOrbsBackground(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    val is3DEnabled = Local3DGlassEnabled.current
     val orb1Color by animateColorAsState(
         targetValue = accentTheme.orbColors.getOrElse(0) { accentTheme.primaryColor },
         animationSpec = spring(stiffness = Spring.StiffnessLow),
@@ -62,23 +64,28 @@ fun AmbientLiquidOrbsBackground(
                 )
             )
         } else {
-            Brush.verticalGradient(
-                listOf(
-                    Color(0xFFFAF6F9), // Soft luminous fairy pink neutral
-                    Color(0xFFF4EDF3),
-                    Color(0xFFFAF6F9)
-                )
+            Brush.linearGradient(
+                colors = listOf(
+                    Color(0xFFFDF7FA), // Soft champagne-rose mist
+                    Color(0xFFF3E7F1), // Gentle lilac-quartz tint
+                    Color(0xFFECE0EA), // Warm platinum slate
+                    Color(0xFFF8EEF5)  // Luminous blush finish
+                ),
+                start = Offset(0f, 0f),
+                end = Offset(1000f, 1800f)
             )
         }
     }
 
-    val orbAlphaMultiplier = if (isDarkTheme) 0.12f else 0.07f
+    val orbAlphaMultiplier = if (isDarkTheme) 0.18f else 0.26f
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(baseGradient)
             .drawBehind {
+                if (!is3DEnabled) return@drawBehind
+
                 val canvasW = size.width
                 val canvasH = size.height
 

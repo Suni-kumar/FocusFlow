@@ -221,6 +221,13 @@ object MockDataSource {
         Flashcard("s4", "What is Database Sharding?", "Horizontal partitioning of a database to separate very large databases into smaller, faster parts called shards.", "System Architecture")
     )
 
+    val hindiVyakaranCards = listOf(
+        Flashcard("h1", "संज्ञा (Noun) किसे कहते हैं?", "किसी व्यक्ति, वस्तु, स्थान या भाव के नाम को संज्ञा कहते हैं। जैसे: राम, दिल्ली, पुस्तक।", "हिंदी व्याकरण"),
+        Flashcard("h2", "सर्वनाम (Pronoun) के कितने भेद होते हैं?", "सर्वनाम के मुख्य 6 भेद होते हैं: पुरुषवाचक, निजवाचक, निश्चयवाचक, अनिश्चयवाचक, संबंधवाचक और प्रश्नवाचक।", "हिंदी व्याकरण"),
+        Flashcard("h3", "संधि विच्छेद का क्या महत्व है?", "दो वर्णों के मेल से होने वाले विकार को संधि कहते हैं और उन्हें अलग करना संधि विच्छेद कहलाता है।", "हिंदी व्याकरण"),
+        Flashcard("h4", "कर्मधारय और बहुव्रीहि समास में क्या अंतर है?", "कर्मधारय में विशेषण-विशेष्य का संबंध होता है, जबकि बहुव्रीहि में दोनों पद मिलकर किसी तीसरे अन्य पद की ओर संकेत करते हैं।", "हिंदी व्याकरण")
+    )
+
     val decks = listOf(
         FlashcardDeck(
             id = "d1",
@@ -232,6 +239,17 @@ object MockDataSource {
             iconName = "psychology",
             categoryColor = Color(0xFFC0C1FF),
             cards = neuralPlasticityCards
+        ),
+        FlashcardDeck(
+            id = "d5",
+            title = "हिंदी व्याकरण एवं साहित्य",
+            description = "संज्ञा, सर्वनाम, संधि, समास एवं उच्च स्तरीय हिंदी व्याकरण अवधारणाएं।",
+            cardCount = hindiVyakaranCards.size,
+            lastReviewed = "Just now",
+            progress = 0.60f,
+            iconName = "auto_stories",
+            categoryColor = Color(0xFFFFB2B7),
+            cards = hindiVyakaranCards
         ),
         FlashcardDeck(
             id = "d2",

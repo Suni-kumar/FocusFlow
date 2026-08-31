@@ -58,6 +58,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
+import com.example.ui.components.GlassCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -365,7 +366,7 @@ fun SettingsScreen(
                             thickness = 1.dp
                         )
 
-                        // 3. Visual Surface Engine Switch
+                        // 3. Visual Surface Engine Switch (3D Liquid Glass)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -374,14 +375,33 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "3D Liquid Glass Effect",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(selectedAccent.primaryColor.copy(alpha = 0.15f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = if (selectedEngine == VisualEngine.LIQUID_GLASS_3D) "3D ON" else "FLAT",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.sp,
+                                            color = selectedAccent.primaryColor
+                                        )
+                                    }
+                                }
                                 Text(
-                                    text = "3D Liquid Glass Effect",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Translucent refraction highlights & depth",
+                                    text = "Dynamic tilt perspective, specular glint & refraction depth (Light & Dark)",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -393,6 +413,7 @@ fun SettingsScreen(
                                 onCheckedChange = { checked ->
                                     onEngineChanged(if (checked) VisualEngine.LIQUID_GLASS_3D else VisualEngine.CLASSIC_OBSIDIAN)
                                 },
+                                modifier = Modifier.testTag("switch_3d_glass_effect"),
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
                                     checkedTrackColor = selectedAccent.primaryColor,
@@ -400,6 +421,82 @@ fun SettingsScreen(
                                     uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
+                        }
+
+                        // Live Interactive 3D Touch Preview Card
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
+                            thickness = 1.dp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            GlassCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(90.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                elevation = 6.dp,
+                                onClick = { /* Touch tilt demonstration */ }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(CircleShape)
+                                            .background(selectedAccent.primaryColor.copy(alpha = 0.20f))
+                                            .border(1.dp, selectedAccent.primaryColor.copy(alpha = 0.40f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = if (selectedEngine == VisualEngine.LIQUID_GLASS_3D) Icons.Default.AutoAwesome else Icons.Default.PhoneAndroid,
+                                            contentDescription = null,
+                                            tint = selectedAccent.primaryColor,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = if (selectedEngine == VisualEngine.LIQUID_GLASS_3D) "3D Glass Preview" else "Classic Flat Preview",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "• Tap & Tilt",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = selectedAccent.primaryColor,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                        Text(
+                                            text = if (selectedEngine == VisualEngine.LIQUID_GLASS_3D)
+                                                "Touch to experience dynamic 3D tilt, specular glint & depth shadow."
+                                            else
+                                                "Classic minimal flat surface with standard solid borders.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -833,16 +930,10 @@ private fun SettingsGroupSection(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(20.dp)
-                )
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            elevation = 4.dp
         ) {
             Column {
                 content()

@@ -58,6 +58,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.BorderGlass
 import com.example.ui.theme.GlassRefractionTop
+import com.example.ui.theme.Local3DGlassEnabled
+import com.example.ui.theme.LocalAccentTheme
 import com.example.ui.theme.SurfaceContainerDark
 
 enum class MainTab {
@@ -72,22 +74,54 @@ fun SepFolBottomNavBar(
     onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val is3DEnabled = Local3DGlassEnabled.current
+    val accentTheme = LocalAccentTheme.current
+    val isDark = MaterialTheme.colorScheme.background.red < 0.5f
+    val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHigh
+
+    val navBarBackground = remember(is3DEnabled, isDark, surfaceContainerHigh) {
+        if (is3DEnabled) {
+            if (isDark) {
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF18172F).copy(alpha = 0.88f),
+                        Color(0xFF0F0E1E).copy(alpha = 0.94f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFFFF8FD).copy(alpha = 0.90f),
+                        Color(0xFFF1E0EC).copy(alpha = 0.84f)
+                    )
+                )
+            }
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    surfaceContainerHigh,
+                    surfaceContainerHigh
+                )
+            )
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 16.dp,
+                elevation = if (is3DEnabled) 16.dp else 4.dp,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                ambientColor = Color.Black.copy(alpha = 0.5f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                ambientColor = if (is3DEnabled) (if (isDark) accentTheme.primaryColor.copy(alpha = 0.35f) else accentTheme.primaryColor.copy(alpha = 0.20f)) else Color.Black.copy(alpha = 0.15f),
+                spotColor = if (is3DEnabled) (if (isDark) accentTheme.secondaryColor.copy(alpha = 0.30f) else Color(0x353B2544)) else Color.Black.copy(alpha = 0.25f)
             )
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
+            .background(navBarBackground)
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        if (is3DEnabled) (if (isDark) Color.White.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.90f)) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                         Color.Transparent
                     )
                 ),

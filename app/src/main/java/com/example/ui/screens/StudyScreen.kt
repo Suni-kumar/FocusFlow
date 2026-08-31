@@ -56,6 +56,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -80,8 +81,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.data.speech.FlashcardAudioPlayer
 import com.example.model.FlashcardDeck
 import com.example.model.MockDataSource
+import com.example.ui.components.FlashcardSpeakerButton
 import com.example.ui.theme.FocusBlue
 import com.example.ui.theme.LiquidGlassReflection
 import com.example.ui.util.AppHaptic
@@ -143,8 +146,20 @@ fun StudyScreen(
         label = "cardHeight"
     )
 
+    // Stop audio when changing card or leaving
+    LaunchedEffect(currentCardIndex) {
+        FlashcardAudioPlayer.getInstance(context).stop()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            FlashcardAudioPlayer.getInstance(context).stop()
+        }
+    }
+
     // Intercept hardware/gesture back press
     BackHandler(enabled = true) {
+        FlashcardAudioPlayer.getInstance(context).stop()
         if (isCardExpanded) {
             AppHaptic.vibrateClick(context, hapticView)
             isCardExpanded = false
@@ -459,21 +474,11 @@ fun StudyScreen(
                                     }
                                 }
 
-                                // Quick Expand/Collapse Toggle Button
-                                IconButton(
-                                    onClick = {
-                                        AppHaptic.vibrateClick(context, hapticView)
-                                        isCardExpanded = !isCardExpanded
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isCardExpanded) Icons.Default.CloseFullscreen else Icons.Default.OpenInFull,
-                                        contentDescription = if (isCardExpanded) "Collapse Card" else "Expand Card for long reading",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                                // Flashcard Natural Voice Audio Speaker Button
+                                FlashcardSpeakerButton(
+                                    textToSpeak = currentCard.front,
+                                    activeColor = MaterialTheme.colorScheme.primary
+                                )
                             }
 
                             // SCROLLABLE QUESTION TEXT CONTAINER (Prevents any clipping of long text)
@@ -584,20 +589,11 @@ fun StudyScreen(
                                     }
                                 }
 
-                                IconButton(
-                                    onClick = {
-                                        AppHaptic.vibrateClick(context, hapticView)
-                                        isCardExpanded = !isCardExpanded
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isCardExpanded) Icons.Default.CloseFullscreen else Icons.Default.OpenInFull,
-                                        contentDescription = if (isCardExpanded) "Collapse Card" else "Expand Card",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                                // Flashcard Natural Voice Audio Speaker Button
+                                FlashcardSpeakerButton(
+                                    textToSpeak = currentCard.back,
+                                    activeColor = Color(0xFF10B981)
+                                )
                             }
 
                             // SCROLLABLE ANSWER TEXT CONTAINER (Smooth scrolling for long answers)

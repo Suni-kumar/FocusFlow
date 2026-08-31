@@ -729,11 +729,12 @@ class FolderViewModel : ViewModel() {
         filterTab: String,
         sortOption: SortOption
     ): List<FolderItem> {
-        val baseItems = when (filterTab) {
-            "PINNED" -> allItems.filter { it.isPinned }
-            "STARRED" -> allItems.filter { it.isFavorite }
-            "DOCS" -> allItems.filter { !it.isDirectory && (it.extension in listOf("md", "txt", "pdf", "doc", "json", "csv")) }
-            "IMAGES" -> allItems.filter { !it.isDirectory && (it.extension in listOf("png", "jpg", "jpeg", "webp", "gif", "svg")) }
+        val baseItems = when {
+            searchQuery.isNotBlank() && currentFolderId == null && (filterTab == "ALL" || filterTab.isEmpty()) -> allItems
+            filterTab == "PINNED" -> allItems.filter { it.isPinned }
+            filterTab == "STARRED" -> allItems.filter { it.isFavorite }
+            filterTab == "DOCS" -> allItems.filter { !it.isDirectory && (it.extension in listOf("md", "txt", "pdf", "doc", "json", "csv")) }
+            filterTab == "IMAGES" -> allItems.filter { !it.isDirectory && (it.extension in listOf("png", "jpg", "jpeg", "webp", "gif", "svg")) }
             else -> allItems.filter { it.parentId == currentFolderId }
         }
 

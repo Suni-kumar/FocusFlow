@@ -145,7 +145,8 @@ fun WorkspaceScreen(
         com.example.ui.components.GlassCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+            backgroundColor = null,
+            elevation = 6.dp,
             borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
             borderWidth = 1.dp
         ) {
@@ -246,7 +247,8 @@ fun RecentFileCard(
         modifier = modifier
             .width(145.dp)
             .height(135.dp),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        backgroundColor = null,
+        elevation = 3.dp,
         borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         onClick = onClick
     ) {
@@ -308,7 +310,8 @@ fun FolderGridCard(
         modifier = modifier
             .fillMaxWidth()
             .height(58.dp),
-        backgroundColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f),
+        backgroundColor = null,
+        elevation = 2.dp,
         borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         shape = RoundedCornerShape(14.dp),
         onClick = onClick
