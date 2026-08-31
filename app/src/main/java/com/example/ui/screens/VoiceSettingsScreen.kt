@@ -27,12 +27,17 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,9 +46,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -60,6 +70,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.preferences.UserPreferencesManager
@@ -180,6 +192,9 @@ fun VoiceSettingsScreen(
     var selectedAccentId by remember { mutableStateOf(prefs.voiceAccent) }
     var speed by remember { mutableFloatStateOf(prefs.voiceSpeed) }
     var pitch by remember { mutableFloatStateOf(prefs.voicePitch) }
+    var preferGeminiVoice by remember { mutableStateOf(prefs.isPreferGeminiVoice) }
+    var customApiKeyInput by remember { mutableStateOf(prefs.customApiKey) }
+    var showApiKeyField by remember { mutableStateOf(false) }
 
     val hasApiKey = prefs.customApiKey.isNotBlank()
 
@@ -290,7 +305,7 @@ fun VoiceSettingsScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                // Status Banner: Live Gemini vs Offline Mode
+                // Status Banner: Live Gemini HD Voice Switch & Mode Indicator
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
@@ -301,44 +316,59 @@ fun VoiceSettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
+                            // Main Live AI HD Voice Toggle Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
+                                    modifier = Modifier.weight(1f),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(34.dp)
+                                            .size(38.dp)
                                             .clip(CircleShape)
                                             .background(
-                                                if (hasApiKey) Color(0xFF10B981).copy(alpha = 0.18f)
+                                                if (preferGeminiVoice && hasApiKey) Color(0xFF10B981).copy(alpha = 0.20f)
+                                                else if (preferGeminiVoice) Color(0xFFF59E0B).copy(alpha = 0.20f)
                                                 else selectedAccent.primaryColor.copy(alpha = 0.18f)
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = if (hasApiKey) Icons.Default.AutoAwesome else Icons.Default.Headphones,
+                                            imageVector = if (preferGeminiVoice && hasApiKey) Icons.Default.AutoAwesome
+                                            else if (preferGeminiVoice) Icons.Default.Key
+                                            else Icons.Default.Bolt,
                                             contentDescription = null,
-                                            tint = if (hasApiKey) Color(0xFF10B981) else selectedAccent.primaryColor,
-                                            modifier = Modifier.size(18.dp)
+                                            tint = if (preferGeminiVoice && hasApiKey) Color(0xFF10B981)
+                                            else if (preferGeminiVoice) Color(0xFFF59E0B)
+                                            else selectedAccent.primaryColor,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
 
                                     Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = "Gemini Live AI HD Voice",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+
                                         Text(
-                                            text = if (hasApiKey) "Gemini Live Neural Voice" else "Offline Engine (Preserved)",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = if (hasApiKey) "Active • Ultra-Lifelike Conversational Audio" else "Always Ready • Works 100% Offline Without Internet",
+                                            text = if (preferGeminiVoice && hasApiKey) "Generative Neural HD Streaming • Active"
+                                            else if (preferGeminiVoice) "Key Required • Tap below to save key"
+                                            else "100% Offline Acoustic Mode • Zero Lag & Instant",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 11.sp
@@ -346,39 +376,149 @@ fun VoiceSettingsScreen(
                                     }
                                 }
 
+                                Switch(
+                                    checked = preferGeminiVoice,
+                                    onCheckedChange = { isChecked ->
+                                        preferGeminiVoice = isChecked
+                                        prefs.isPreferGeminiVoice = isChecked
+                                    },
+                                    modifier = Modifier.testTag("switch_gemini_live_voice"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = if (hasApiKey) Color(0xFF10B981) else selectedAccent.primaryColor,
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                )
+                            }
+
+                            // Status Tag & Explanation
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(9999.dp))
                                         .background(
-                                            if (hasApiKey) Color(0xFF10B981).copy(alpha = 0.18f)
-                                            else Color(0xFF38BDF8).copy(alpha = 0.18f)
+                                            if (preferGeminiVoice && hasApiKey) Color(0xFF10B981).copy(alpha = 0.15f)
+                                            else if (preferGeminiVoice) Color(0xFFF59E0B).copy(alpha = 0.15f)
+                                            else Color(0xFF38BDF8).copy(alpha = 0.15f)
                                         )
                                         .border(
                                             1.dp,
-                                            if (hasApiKey) Color(0xFF10B981).copy(alpha = 0.4f)
-                                            else Color(0xFF38BDF8).copy(alpha = 0.4f),
+                                            if (preferGeminiVoice && hasApiKey) Color(0xFF10B981).copy(alpha = 0.35f)
+                                            else if (preferGeminiVoice) Color(0xFFF59E0B).copy(alpha = 0.35f)
+                                            else Color(0xFF38BDF8).copy(alpha = 0.35f),
                                             RoundedCornerShape(9999.dp)
                                         )
                                         .padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
                                     Text(
-                                        text = if (hasApiKey) "ONLINE LIVE" else "OFFLINE READY",
+                                        text = if (preferGeminiVoice && hasApiKey) "⚡ LIVE HD VOICE ACTIVE"
+                                        else if (preferGeminiVoice) "🔑 ENTER API KEY"
+                                        else "🔋 100% OFFLINE ZERO-LAG",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (hasApiKey) Color(0xFF34D399) else Color(0xFF38BDF8),
+                                        color = if (preferGeminiVoice && hasApiKey) Color(0xFF34D399)
+                                        else if (preferGeminiVoice) Color(0xFFF59E0B)
+                                        else Color(0xFF38BDF8),
                                         fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    )
+                                }
+
+                                if (currentEngineType.isNotBlank()) {
+                                    Text(
+                                        text = "Active: $currentEngineType",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 10.sp
                                     )
                                 }
                             }
 
-                            if (!hasApiKey) {
-                                Text(
-                                    text = "Offline voice is completely active! When you enter your Gemini API key in Settings, the natural conversational Gemini Live voices will activate automatically.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                    fontSize = 11.sp,
-                                    lineHeight = 15.sp
+                            // Quick Inline API Key Setup when Gemini HD is ON but no key is present
+                            if (preferGeminiVoice && !hasApiKey) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
+                                    thickness = 1.dp
                                 )
+
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "To stream real human-like Gemini Live voices, enter your Gemini API Key below:",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 11.sp
+                                    )
+
+                                    OutlinedTextField(
+                                        value = customApiKeyInput,
+                                        onValueChange = { customApiKeyInput = it },
+                                        placeholder = {
+                                            Text(
+                                                text = "AIzaSy...",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                        },
+                                        trailingIcon = {
+                                            IconButton(onClick = { showApiKeyField = !showApiKeyField }) {
+                                                Icon(
+                                                    imageVector = if (showApiKeyField) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        },
+                                        visualTransformation = if (showApiKeyField) VisualTransformation.None else PasswordVisualTransformation(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp)
+                                            .testTag("inline_voice_api_key_input"),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                            focusedIndicatorColor = selectedAccent.primaryColor,
+                                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        singleLine = true
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                prefs.customApiKey = customApiKeyInput.trim()
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = selectedAccent.primaryColor,
+                                                contentColor = selectedAccent.buttonTextColor
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            modifier = Modifier
+                                                .height(32.dp)
+                                                .testTag("save_voice_api_key_btn")
+                                        ) {
+                                            Text(
+                                                text = "Save & Activate HD Voice",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

@@ -108,6 +108,8 @@ fun SettingsScreen(
     onAccentChanged: (AccentTheme) -> Unit = {},
     customApiKey: String = "",
     onCustomApiKeyChanged: (String) -> Unit = {},
+    preferGeminiVoice: Boolean = true,
+    onPreferGeminiVoiceToggled: (Boolean) -> Unit = {},
     isHapticEnabled: Boolean = true,
     onHapticToggled: (Boolean) -> Unit = {},
     filesCount: Int = 0,
@@ -122,6 +124,7 @@ fun SettingsScreen(
 ) {
     var hapticFeedbackEnabled by remember(isHapticEnabled) { mutableStateOf(isHapticEnabled) }
     var apiKeyInput by remember(customApiKey) { mutableStateOf(customApiKey) }
+    var liveVoiceEnabled by remember(preferGeminiVoice) { mutableStateOf(preferGeminiVoice) }
     var showApiKey by remember { mutableStateOf(false) }
     var saveFeedback by remember { mutableStateOf(false) }
 
@@ -744,10 +747,82 @@ fun SettingsScreen(
                                 }
                             }
 
+                            // Gemini Live AI HD Voice Toggle Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(
+                                        1.dp,
+                                        if (liveVoiceEnabled) Color(0xFF10B981).copy(alpha = 0.35f)
+                                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (liveVoiceEnabled) Color(0xFF10B981).copy(alpha = 0.18f)
+                                                else MaterialTheme.colorScheme.surfaceVariant
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = if (liveVoiceEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    Column {
+                                        Text(
+                                            text = "Gemini Live AI HD Voice",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (liveVoiceEnabled) "Generative neural streaming voice (Live AI)"
+                                            else "Offline fast voice synthesizer (Zero lag)",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+
+                                Switch(
+                                    checked = liveVoiceEnabled,
+                                    onCheckedChange = { checked ->
+                                        liveVoiceEnabled = checked
+                                        onPreferGeminiVoiceToggled(checked)
+                                    },
+                                    modifier = Modifier.testTag("settings_gemini_voice_switch"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF10B981),
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                )
+                            }
+
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
                                 thickness = 1.dp,
-                                modifier = Modifier.padding(vertical = 4.dp)
+                                modifier = Modifier.padding(vertical = 2.dp)
                             )
 
                             // Dedicated Voices & Accent studio row

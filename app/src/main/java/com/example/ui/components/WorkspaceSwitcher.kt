@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -204,6 +205,20 @@ fun WorkspaceSwitcherModal(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 onTabSelected(MainTab.STUDIO)
+                                onDismiss()
+                            }
+                        )
+
+                        // Workspace Option 3: Dictation Practice Studio
+                        EliteWorkspaceOptionCard(
+                            title = "Dictation Studio",
+                            icon = Icons.Default.RecordVoiceOver,
+                            accentColor = tertiaryColor,
+                            isSelected = currentTab == MainTab.DICTATION,
+                            testTag = "workspace_option_dictation",
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                onTabSelected(MainTab.DICTATION)
                                 onDismiss()
                             }
                         )

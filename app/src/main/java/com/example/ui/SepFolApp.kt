@@ -38,6 +38,7 @@ import com.example.data.backup.BackupManager
 import com.example.data.preferences.UserPreferencesManager
 import com.example.model.AccentTheme
 import com.example.model.BrightnessMode
+import com.example.model.DictationDeck
 import com.example.model.FlashcardDeck
 import com.example.model.MockDataSource
 import com.example.model.VisualEngine
@@ -47,18 +48,25 @@ import com.example.ui.components.SepFolBottomNavBar
 import com.example.ui.components.SepFolTopAppBar
 import com.example.ui.components.WorkspaceSwitcherModal
 import com.example.ui.dialogs.AiGenerateDeckDialog
+import com.example.ui.dialogs.AiGenerateDictationDialog
 import com.example.ui.dialogs.CreateDeckDialog
+import com.example.ui.dialogs.CreateDictationDeckDialog
+import com.example.ui.dialogs.EditDictationDeckDialog
 import com.example.ui.dialogs.ExportSuccessDialog
 import com.example.ui.dialogs.ManualJsonImportDialog
 import com.example.ui.dialogs.RenameDeckDialog
 import com.example.ui.dialogs.RestoreConfirmationDialog
 import com.example.ui.screens.DecksDashboardScreen
+import com.example.ui.screens.DictationCheckingScreen
+import com.example.ui.screens.DictationPracticeScreen
+import com.example.ui.screens.DictationWorkspaceScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.StudioScreen
 import com.example.ui.screens.StudyScreen
 import com.example.ui.screens.VoiceSettingsScreen
 import com.example.ui.theme.SepFolTheme
 import com.example.viewmodel.DeckViewModel
+import com.example.viewmodel.DictationViewModel
 import com.sepfol.app.ui.folder.FolderScreen
 import com.sepfol.app.ui.folder.FolderViewModel
 import kotlinx.coroutines.launch
@@ -68,7 +76,9 @@ enum class ScreenState {
     ALL_DECKS,
     STUDY_STAGE,
     SETTINGS,
-    VOICE_SETTINGS
+    VOICE_SETTINGS,
+    DICTATION_PRACTICE,
+    DICTATION_CHECKING
 }
 
 @Composable
@@ -114,6 +124,7 @@ fun SepFolApp() {
     val scope = rememberCoroutineScope()
     val folderViewModel: FolderViewModel = viewModel()
     val deckViewModel: DeckViewModel = viewModel()
+    val dictationViewModel: DictationViewModel = viewModel()
 
     var isSearchActive by remember { mutableStateOf(false) }
     var isWorkspaceSwitcherOpen by remember { mutableStateOf(false) }
@@ -128,6 +139,7 @@ fun SepFolApp() {
 
     val folderUiState by folderViewModel.uiState.collectAsState()
     val deckUiState by deckViewModel.uiState.collectAsState()
+    val dictationUiState by dictationViewModel.uiState.collectAsState()
 
     // Backup & Restore Dialog States
     var pendingExportJson by remember { mutableStateOf<String?>(null) }
@@ -242,6 +254,7 @@ fun SepFolApp() {
         val savedKey = prefsManager.customApiKey
         if (savedKey.isNotBlank()) {
             deckViewModel.setInitialCustomApiKey(savedKey)
+            dictationViewModel.setInitialCustomApiKey(savedKey)
         }
     }
 
@@ -297,6 +310,14 @@ fun SepFolApp() {
         }
     }
 
+    // Observe status messages from DictationViewModel
+    LaunchedEffect(dictationUiState.statusMessage) {
+        dictationUiState.statusMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            dictationViewModel.clearStatusMessage()
+        }
+    }
+
     SepFolTheme(
         darkTheme = isEffectiveDarkTheme,
         accentTheme = selectedAccent,
@@ -305,6 +326,7 @@ fun SepFolApp() {
         // Show FocusFlow top app bar ONLY on Home Vault (root) and Flashcard Studio tab
         val isTopAppBarVisible = currentScreen == ScreenState.MAIN_WORKSPACE &&
                 folderUiState.selectedViewerItem == null &&
+                selectedTab != MainTab.DICTATION &&
                 (selectedTab == MainTab.STUDIO || folderUiState.folderStack.size <= 1)
 
         AmbientLiquidOrbsBackground(
@@ -426,7 +448,12 @@ fun SepFolApp() {
                                     customApiKey = deckUiState.customApiKey,
                                     onCustomApiKeyChanged = { key ->
                                         deckViewModel.updateCustomApiKey(key)
+                                        dictationViewModel.updateCustomApiKey(key)
                                         prefsManager.customApiKey = key
+                                    },
+                                    preferGeminiVoice = prefsManager.isPreferGeminiVoice,
+                                    onPreferGeminiVoiceToggled = { enabled ->
+                                        prefsManager.isPreferGeminiVoice = enabled
                                     },
                                     isHapticEnabled = isHapticEnabled,
                                     onHapticToggled = { haptic ->
@@ -473,61 +500,100 @@ fun SepFolApp() {
                                     }
                                 )
                             }
-                        screen == ScreenState.ALL_DECKS -> {
-                            DecksDashboardScreen(
-                                onBackClick = navigateBack,
-                                decks = deckUiState.decks,
-                                selectedDeckIds = deckUiState.selectedDeckIds,
-                                onToggleSelection = { deckViewModel.toggleDeckSelection(it) },
-                                onClearSelection = { deckViewModel.clearSelection() },
-                                onToggleStar = { deckViewModel.toggleStarDeck(it) },
-                                onDeckClick = { deck ->
-                                    activeDeck = deck
-                                    screenStack = screenStack + ScreenState.STUDY_STAGE
-                                },
-                                onCreateDeckClick = {
-                                    deckViewModel.openCreateDeckDialog()
-                                },
-                                onAiGenerateClick = {
-                                    deckViewModel.openAiGenerateDialog()
-                                }
-                            )
-                        }
-                        tab == MainTab.FILES -> {
-                            FolderScreen(
-                                viewModel = folderViewModel,
-                                onImportClick = {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Import document / flashcards")
+                            screen == ScreenState.DICTATION_PRACTICE && dictationUiState.activeDeck != null -> {
+                                DictationPracticeScreen(
+                                    deck = dictationUiState.activeDeck!!,
+                                    viewModel = dictationViewModel,
+                                    onBackClick = navigateBack,
+                                    onOpenCheckingTime = {
+                                        screenStack = screenStack + ScreenState.DICTATION_CHECKING
                                     }
-                                },
-                                onSwipeUpFab = {
-                                    isWorkspaceSwitcherOpen = true
-                                }
-                            )
-                        }
-                        else -> { // MainTab.STUDIO
-                            StudioScreen(
-                                decks = deckUiState.decks,
-                                selectedDeckIds = deckUiState.selectedDeckIds,
-                                onToggleSelection = { deckViewModel.toggleDeckSelection(it) },
-                                onClearSelection = { deckViewModel.clearSelection() },
-                                onViewAllDecksClick = { screenStack = screenStack + ScreenState.ALL_DECKS },
-                                onDeckClick = { deck ->
-                                    activeDeck = deck
-                                    screenStack = screenStack + ScreenState.STUDY_STAGE
-                                },
-                                onCreateDeckClick = {
-                                    deckViewModel.openCreateDeckDialog()
-                                },
-                                onAiGenerateClick = {
-                                    deckViewModel.openAiGenerateDialog()
-                                },
-                                onSwipeUpFab = {
-                                    isWorkspaceSwitcherOpen = true
-                                }
-                            )
-                        }
+                                )
+                            }
+                            screen == ScreenState.DICTATION_CHECKING && dictationUiState.activeDeck != null -> {
+                                DictationCheckingScreen(
+                                    deck = dictationUiState.activeDeck!!,
+                                    viewModel = dictationViewModel,
+                                    onBackClick = navigateBack,
+                                    onRestartDictation = {
+                                        dictationViewModel.startPracticeSession(dictationUiState.activeDeck!!)
+                                        screenStack = screenStack.filter { it != ScreenState.DICTATION_CHECKING }
+                                    },
+                                    onFinishAndSave = {
+                                        navigateBack()
+                                    }
+                                )
+                            }
+                            screen == ScreenState.ALL_DECKS -> {
+                                DecksDashboardScreen(
+                                    onBackClick = navigateBack,
+                                    decks = deckUiState.decks,
+                                    selectedDeckIds = deckUiState.selectedDeckIds,
+                                    onToggleSelection = { deckViewModel.toggleDeckSelection(it) },
+                                    onClearSelection = { deckViewModel.clearSelection() },
+                                    onToggleStar = { deckViewModel.toggleStarDeck(it) },
+                                    onDeckClick = { deck ->
+                                        activeDeck = deck
+                                        screenStack = screenStack + ScreenState.STUDY_STAGE
+                                    },
+                                    onCreateDeckClick = {
+                                        deckViewModel.openCreateDeckDialog()
+                                    },
+                                    onAiGenerateClick = {
+                                        deckViewModel.openAiGenerateDialog()
+                                    }
+                                )
+                            }
+                            tab == MainTab.FILES -> {
+                                FolderScreen(
+                                    viewModel = folderViewModel,
+                                    onImportClick = {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Import document / flashcards")
+                                        }
+                                    },
+                                    onSwipeUpFab = {
+                                        isWorkspaceSwitcherOpen = true
+                                    }
+                                )
+                            }
+                            tab == MainTab.DICTATION -> {
+                                DictationWorkspaceScreen(
+                                    viewModel = dictationViewModel,
+                                    onDeckClick = { deck ->
+                                        dictationViewModel.startPracticeSession(deck)
+                                        screenStack = screenStack + ScreenState.DICTATION_PRACTICE
+                                    },
+                                    onVoiceSettingsClick = {
+                                        screenStack = screenStack + ScreenState.VOICE_SETTINGS
+                                    },
+                                    onSwipeUpFab = {
+                                        isWorkspaceSwitcherOpen = true
+                                    }
+                                )
+                            }
+                            else -> { // MainTab.STUDIO
+                                StudioScreen(
+                                    decks = deckUiState.decks,
+                                    selectedDeckIds = deckUiState.selectedDeckIds,
+                                    onToggleSelection = { deckViewModel.toggleDeckSelection(it) },
+                                    onClearSelection = { deckViewModel.clearSelection() },
+                                    onViewAllDecksClick = { screenStack = screenStack + ScreenState.ALL_DECKS },
+                                    onDeckClick = { deck ->
+                                        activeDeck = deck
+                                        screenStack = screenStack + ScreenState.STUDY_STAGE
+                                    },
+                                    onCreateDeckClick = {
+                                        deckViewModel.openCreateDeckDialog()
+                                    },
+                                    onAiGenerateClick = {
+                                        deckViewModel.openAiGenerateDialog()
+                                    },
+                                    onSwipeUpFab = {
+                                        isWorkspaceSwitcherOpen = true
+                                    }
+                                )
+                            }
                     }
                 }
 
@@ -573,6 +639,54 @@ fun SepFolApp() {
                         onDismiss = { deckViewModel.dismissRenameDeckDialog() },
                         onConfirm = { newTitle ->
                             deckViewModel.renameDeck(target.id, newTitle)
+                        }
+                    )
+                }
+
+                // --- Dictation Workspace Dialogs ---
+
+                // Create Dictation Deck Dialog
+                if (dictationUiState.isCreateDeckDialogOpen) {
+                    CreateDictationDeckDialog(
+                        onDismiss = { dictationViewModel.dismissCreateDeckDialog() },
+                        onCreateDeck = { title, desc, color, words, tags ->
+                            dictationViewModel.createDeck(title, desc, color, words, tags)
+                        }
+                    )
+                }
+
+                // Edit Dictation Deck Dialog
+                dictationUiState.editTargetDeck?.let { target ->
+                    EditDictationDeckDialog(
+                        deck = target,
+                        onDismiss = { dictationViewModel.dismissEditDeckDialog() },
+                        onSave = { updatedDeck ->
+                            dictationViewModel.updateDeck(updatedDeck)
+                        }
+                    )
+                }
+
+                // AI Generate Dictation Deck Dialog
+                if (dictationUiState.isAiGenerateDialogOpen) {
+                    AiGenerateDictationDialog(
+                        initialPrompt = dictationUiState.aiInitialPrompt,
+                        isGenerating = dictationUiState.isAiGenerating,
+                        progressMessage = dictationUiState.aiGenerationProgressMessage,
+                        hasCustomApiKey = dictationUiState.customApiKey.isNotBlank(),
+                        onDismiss = { dictationViewModel.dismissAiGenerateDialog() },
+                        onConfigureApiKeyClick = {
+                            dictationViewModel.dismissAiGenerateDialog()
+                            screenStack = screenStack + ScreenState.SETTINGS
+                        },
+                        onGenerate = { deckTitle, inputContent, count ->
+                            dictationViewModel.generateAiDeck(
+                                topicOrNotes = inputContent,
+                                targetWordCount = count,
+                                deckTitle = deckTitle,
+                                onComplete = {
+                                    // Created successfully
+                                }
+                            )
                         }
                     )
                 }

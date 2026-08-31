@@ -64,7 +64,8 @@ import com.example.ui.theme.SurfaceContainerDark
 
 enum class MainTab {
     FILES,
-    STUDIO
+    STUDIO,
+    DICTATION
 }
 
 @Composable
@@ -135,17 +136,7 @@ fun SepFolBottomNavBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. STUDIO Tab (Flashcards Dashboard)
-            BottomNavItem(
-                label = "Studio",
-                activeIcon = Icons.Filled.BubbleChart,
-                inactiveIcon = Icons.Outlined.BubbleChart,
-                isSelected = selectedTab == MainTab.STUDIO,
-                testTag = "bottom_nav_studio",
-                onClick = { onTabSelected(MainTab.STUDIO) }
-            )
-
-            // 2. VAULT Tab (Files)
+            // 1. VAULT Tab (Files)
             BottomNavItem(
                 label = "Vault",
                 activeIcon = Icons.Filled.Folder,
@@ -155,14 +146,24 @@ fun SepFolBottomNavBar(
                 onClick = { onTabSelected(MainTab.FILES) }
             )
 
-            // 3. STUDY Tab (Placeholder for Review)
+            // 2. STUDIO Tab (Flashcards)
             BottomNavItem(
-                label = "Study",
-                activeIcon = Icons.Filled.MenuBook,
-                inactiveIcon = Icons.Outlined.MenuBook,
-                isSelected = false,
-                testTag = "bottom_nav_study",
+                label = "Flashcards",
+                activeIcon = Icons.Filled.BubbleChart,
+                inactiveIcon = Icons.Outlined.BubbleChart,
+                isSelected = selectedTab == MainTab.STUDIO,
+                testTag = "bottom_nav_studio",
                 onClick = { onTabSelected(MainTab.STUDIO) }
+            )
+
+            // 3. DICTATION Tab (Dictation Practice Workspace)
+            BottomNavItem(
+                label = "Dictation",
+                activeIcon = Icons.Filled.BubbleChart,
+                inactiveIcon = Icons.Outlined.BubbleChart,
+                isSelected = selectedTab == MainTab.DICTATION,
+                testTag = "bottom_nav_dictation",
+                onClick = { onTabSelected(MainTab.DICTATION) }
             )
         }
     }
