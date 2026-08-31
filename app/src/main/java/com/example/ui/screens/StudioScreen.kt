@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -290,7 +291,11 @@ fun StudioScreen(
                     }
                 }
             } else {
-                itemsIndexed(deckChunks, key = { index, _ -> "deck_chunk_$index" }) { _, chunk ->
+                items(
+                    items = deckChunks,
+                    key = { chunk -> chunk.joinToString("_") { it.id } },
+                    contentType = { "deck_chunk" }
+                ) { chunk ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)

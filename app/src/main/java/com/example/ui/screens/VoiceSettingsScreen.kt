@@ -174,6 +174,8 @@ fun VoiceSettingsScreen(
     val isLoading by audioPlayer.isLoading.collectAsState()
     val currentText by audioPlayer.currentText.collectAsState()
 
+    val currentEngineType by audioPlayer.currentEngineType.collectAsState()
+
     var selectedVoiceId by remember { mutableStateOf(prefs.geminiVoiceName) }
     var selectedAccentId by remember { mutableStateOf(prefs.voiceAccent) }
     var speed by remember { mutableFloatStateOf(prefs.voiceSpeed) }
@@ -545,6 +547,7 @@ fun VoiceSettingsScreen(
                             .clickable {
                                 selectedAccentId = accentMode.id
                                 prefs.voiceAccent = accentMode.id
+                                audioPlayer.previewAccent(accentMode.id)
                             }
                             .testTag("accent_mode_${accentMode.id.lowercase()}"),
                         shape = RoundedCornerShape(12.dp),
@@ -559,7 +562,7 @@ fun VoiceSettingsScreen(
                         ) {
                             Text(
                                 text = accentMode.flagOrIcon,
-                                fontSize = 20.sp
+                                fontSize = 22.sp
                             )
 
                             Column(modifier = Modifier.weight(1f)) {
@@ -574,6 +577,27 @@ fun VoiceSettingsScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 11.sp
+                                )
+                            }
+
+                            // Accent Preview Listen Button
+                            IconButton(
+                                onClick = {
+                                    selectedAccentId = accentMode.id
+                                    prefs.voiceAccent = accentMode.id
+                                    audioPlayer.previewAccent(accentMode.id)
+                                },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(selectedAccent.primaryColor.copy(alpha = if (isSelected) 0.20f else 0.08f))
+                                    .testTag("preview_accent_${accentMode.id.lowercase()}")
+                            ) {
+                                Icon(
+                                    imageVector = if (isSelected) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
+                                    contentDescription = "Test ${accentMode.label}",
+                                    tint = if (isSelected) selectedAccent.primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
 

@@ -133,18 +133,11 @@ fun GlassCard(
         }
     }
 
-    // Depth Shadow without complex per-pixel recalculations
-    val actualElevation = if (elevation > 0.dp) elevation else if (is3DEnabled) 4.dp else 1.5.dp
-    val shadowModifier = remember(actualElevation, shape, is3DEnabled, isDark, accentTheme) {
-        if (is3DEnabled && actualElevation > 0.dp) {
-            Modifier.shadow(
-                elevation = actualElevation,
-                shape = shape,
-                ambientColor = if (isDark) accentTheme.primaryColor.copy(alpha = 0.30f) else accentTheme.primaryColor.copy(alpha = 0.18f),
-                spotColor = if (isDark) accentTheme.secondaryColor.copy(alpha = 0.25f) else Color(0x253B2544)
-            )
-        } else if (actualElevation > 0.dp) {
-            Modifier.shadow(elevation = actualElevation.coerceAtMost(3.dp), shape = shape)
+    // Lightweight hardware-accelerated shadow
+    val actualElevation = if (elevation > 0.dp) elevation.coerceAtMost(3.dp) else 1.5.dp
+    val shadowModifier = remember(actualElevation, shape) {
+        if (actualElevation > 0.dp) {
+            Modifier.shadow(elevation = actualElevation, shape = shape)
         } else Modifier
     }
 
@@ -168,22 +161,6 @@ fun GlassCard(
             .then(shadowModifier)
             .clip(shape)
             .then(finalBackgroundModifier)
-            .drawWithContent {
-                drawContent()
-                if (is3DEnabled) {
-                    // Top-edge specular crystal sheen
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = if (isDark) 0.10f else 0.30f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = size.height.coerceAtMost(48f)
-                        )
-                    )
-                }
-            }
             .then(finalBorderModifier)
             .then(clickModifier),
         content = content

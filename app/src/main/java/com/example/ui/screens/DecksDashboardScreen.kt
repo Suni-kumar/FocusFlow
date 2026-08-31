@@ -304,7 +304,11 @@ fun DecksDashboardScreen(
                     }
                 }
             } else {
-                items(filteredDecks, key = { it.id }) { deck ->
+                items(
+                    items = filteredDecks,
+                    key = { it.id },
+                    contentType = { "deck_card" }
+                ) { deck ->
                     val isSelected = deck.id in selectedDeckIds
                     DeckListItemCard(
                         deck = deck,

@@ -351,7 +351,11 @@ fun FolderScreen(
                         )
                     }
 
-                    itemsIndexed(folderRows, key = { rowIndex, _ -> "folder_row_$rowIndex" }) { _, row ->
+                    items(
+                        items = folderRows,
+                        key = { row -> row.joinToString(separator = "_") { it.id } },
+                        contentType = { "folder_row" }
+                    ) { row ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -403,7 +407,11 @@ fun FolderScreen(
                         )
                     }
 
-                    items(files, key = { "file_${it.id}" }) { file ->
+                    items(
+                        items = files,
+                        key = { "file_${it.id}" },
+                        contentType = { "file_item" }
+                    ) { file ->
                         val isSelected = file.id in uiState.selectedItemIds
                         NoteListItemCard(
                             item = file,

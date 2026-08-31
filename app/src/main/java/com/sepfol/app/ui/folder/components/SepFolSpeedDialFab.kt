@@ -209,10 +209,8 @@ fun SepFolSpeedDialFab(
                 modifier = Modifier
                     .size(56.dp)
                     .shadow(
-                        elevation = if (isExpanded) 12.dp else 16.dp,
-                        shape = RoundedCornerShape(cornerRadius),
-                        ambientColor = primaryColor.copy(alpha = 0.35f),
-                        spotColor = primaryColor.copy(alpha = 0.55f)
+                        elevation = if (isExpanded) 6.dp else 8.dp,
+                        shape = RoundedCornerShape(cornerRadius)
                     )
                     .clip(RoundedCornerShape(cornerRadius))
                     .then(
