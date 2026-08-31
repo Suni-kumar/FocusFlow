@@ -260,13 +260,12 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             val baseSpeed = prefsManager.voiceSpeed
             val basePitch = prefsManager.voicePitch
 
-            // Apply distinct Persona pitch & rate modifiers so each voice sounds unique even offline
             val (personaPitchMod, personaSpeedMod) = when (voicePersona.lowercase()) {
-                "aoede" -> Pair(1.20f, 1.02f)      // High expressive melodic female
-                "kore" -> Pair(1.04f, 0.90f)       // Soft gentle calm female
-                "puck" -> Pair(1.10f, 1.14f)       // Fast upbeat youthful male
-                "charon" -> Pair(0.72f, 0.88f)     // Deep authoritative baritone male
-                "fenrir" -> Pair(0.88f, 0.98f)     // Balanced articulate STEM male
+                "aoede" -> Pair(1.22f, 1.02f)      // Expressive melodic soprano female
+                "kore" -> Pair(1.05f, 0.92f)       // Soft gentle calm alto female
+                "puck" -> Pair(0.95f, 1.10f)       // Energetic youthful male
+                "charon" -> Pair(0.68f, 0.88f)     // Deep baritone masculine male
+                "fenrir" -> Pair(0.82f, 0.98f)     // Articulate balanced tenor male
                 else -> Pair(1.0f, 1.0f)
             }
 
@@ -276,25 +275,37 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             engine.setPitch(finalPitch)
             engine.setSpeechRate(finalRate)
 
-            // Select best matching voice for locale and gender persona if available
+            // Select best matching voice for locale and true gender persona
             try {
-                val matchingVoices = engine.voices?.filter { voice ->
-                    voice.locale.language == locale.language && !voice.isNetworkConnectionRequired
+                val availableVoices = engine.voices?.filter { voice ->
+                    (voice.locale.language == locale.language || (locale.language == "hi" && voice.locale.country == "IN")) &&
+                            !voice.isNetworkConnectionRequired
                 }
-                if (!matchingVoices.isNullOrEmpty()) {
+
+                if (!availableVoices.isNullOrEmpty()) {
                     val isPersonaFemale = voicePersona.equals("Aoede", ignoreCase = true) || voicePersona.equals("Kore", ignoreCase = true)
-                    val genderFiltered = matchingVoices.filter { v ->
-                        val name = v.name.lowercase()
-                        if (isPersonaFemale) name.contains("female") || name.contains("f0") || name.contains("-f-")
-                        else name.contains("male") || name.contains("m0") || name.contains("-m-")
+                    
+                    val filteredByGender = availableVoices.filter { v ->
+                        val n = v.name.lowercase()
+                        val isFemaleVoice = n.contains("female") || n.contains("f0") || n.contains("-f-") || n.contains("woman") || n.contains("girl")
+                        val isMaleVoice = n.contains("male") || n.contains("m0") || n.contains("-m-") || n.contains("man") || n.contains("boy")
+                        
+                        if (isPersonaFemale) {
+                            isFemaleVoice || (!isMaleVoice && !n.contains("m0"))
+                        } else {
+                            isMaleVoice || (!isFemaleVoice && !n.contains("f0"))
+                        }
                     }
-                    val selectedVoice = (genderFiltered.maxByOrNull { it.quality } ?: matchingVoices.maxByOrNull { it.quality })
-                    if (selectedVoice != null) {
-                        engine.voice = selectedVoice
+
+                    val chosenVoice = (filteredByGender.maxByOrNull { it.quality }
+                        ?: availableVoices.maxByOrNull { it.quality })
+
+                    if (chosenVoice != null) {
+                        engine.voice = chosenVoice
                     }
                 }
             } catch (e: Exception) {
-                Log.d(TAG, "Using default voice selector: ${e.message}")
+                Log.d(TAG, "Voice selection notice: ${e.message}")
             }
 
             val params = Bundle().apply {
@@ -316,9 +327,8 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         val models = listOf(
             "gemini-2.0-flash",
             "gemini-2.0-flash-exp",
-            "gemini-2.5-flash-preview-tts",
             "gemini-2.5-flash",
-            "gemini-2.5-flash-native-audio-preview-12-2025"
+            "gemini-2.5-flash-preview-tts"
         )
 
         val activeAccent = forcedAccent ?: prefsManager.voiceAccent
@@ -327,15 +337,21 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             try {
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
 
+                val isMaleVoice = voiceName.equals("Puck", ignoreCase = true) ||
+                        voiceName.equals("Charon", ignoreCase = true) ||
+                        voiceName.equals("Fenrir", ignoreCase = true)
+
+                val genderDesc = if (isMaleVoice) "natural male voice" else "natural female voice"
+
                 val promptInstruction = when {
                     activeAccent == "HINDI_IN" || locale.language == "hi" ->
-                        "You are a friendly tutor. Speak the following text clearly in natural, warm Indian Hindi pronunciation without spelling symbols or punctuation markers:\n$text"
+                        "Speak the following educational flashcard text in a warm, clear, realistic $genderDesc with natural Indian Hindi pronunciation. Speak naturally like a real human tutor without saying any bullet points or punctuation names:\n$text"
                     activeAccent == "ENGLISH_IN" ->
-                        "You are a tutor. Speak the following text in natural, clear Indian English accent:\n$text"
+                        "Speak the following educational study text in a warm, conversational, lifelike $genderDesc with natural Indian English accent:\n$text"
                     activeAccent == "ENGLISH_UK" ->
-                        "You are a tutor. Read the following text in clear British English accent:\n$text"
+                        "Speak the following text in a refined, clear $genderDesc with natural British English accent:\n$text"
                     else ->
-                        "You are a friendly tutor. Read the following text in a clear, natural, expressive voice with human cadence:\n$text"
+                        "Speak the following text in a natural, expressive, realistic $genderDesc with human cadence:\n$text"
                 }
 
                 val requestJson = JSONObject().apply {
