@@ -319,11 +319,10 @@ class FolderViewModel : ViewModel() {
 
         _uiState.update { state ->
             val newStack = state.folderStack + Breadcrumb(id = folder.id, name = folder.name)
-            val filtered = state.allItems.filter { it.parentId == folder.id }
             state.copy(
                 currentFolderId = folder.id,
                 folderStack = newStack,
-                currentItems = filterBySearch(filtered, state.searchQuery)
+                currentItems = computeCurrentItems(state.allItems, folder.id, state.searchQuery, state.activeFilterTab, state.sortOption)
             )
         }
     }
@@ -333,11 +332,10 @@ class FolderViewModel : ViewModel() {
             if (index < 0 || index >= state.folderStack.size) return@update state
             val targetCrumb = state.folderStack[index]
             val newStack = state.folderStack.take(index + 1)
-            val filtered = state.allItems.filter { it.parentId == targetCrumb.id }
             state.copy(
                 currentFolderId = targetCrumb.id,
                 folderStack = newStack,
-                currentItems = filterBySearch(filtered, state.searchQuery)
+                currentItems = computeCurrentItems(state.allItems, targetCrumb.id, state.searchQuery, state.activeFilterTab, state.sortOption)
             )
         }
     }
@@ -349,11 +347,10 @@ class FolderViewModel : ViewModel() {
                 handled = true
                 val newStack = state.folderStack.dropLast(1)
                 val targetCrumb = newStack.last()
-                val filtered = state.allItems.filter { it.parentId == targetCrumb.id }
                 state.copy(
                     currentFolderId = targetCrumb.id,
                     folderStack = newStack,
-                    currentItems = filterBySearch(filtered, state.searchQuery)
+                    currentItems = computeCurrentItems(state.allItems, targetCrumb.id, state.searchQuery, state.activeFilterTab, state.sortOption)
                 )
             } else {
                 state
@@ -405,10 +402,9 @@ class FolderViewModel : ViewModel() {
 
         _uiState.update { state ->
             val updatedAll = listOf(newFolder) + state.allItems
-            val updatedCurrent = updatedAll.filter { it.parentId == state.currentFolderId }
             state.copy(
                 allItems = updatedAll,
-                currentItems = filterBySearch(updatedCurrent, state.searchQuery),
+                currentItems = computeCurrentItems(updatedAll, state.currentFolderId, state.searchQuery, state.activeFilterTab, state.sortOption),
                 isCreateFolderDialogOpen = false,
                 statusMessage = "Created folder \"$trimmed\""
             )
@@ -442,11 +438,10 @@ class FolderViewModel : ViewModel() {
 
         _uiState.update { state ->
             val updatedAll = listOf(newNote) + state.allItems
-            val updatedCurrent = updatedAll.filter { it.parentId == state.currentFolderId }
             val updatedRecent = (listOf(newNote) + state.recentItems.filter { it.id != newNote.id }).take(8)
             state.copy(
                 allItems = updatedAll,
-                currentItems = filterBySearch(updatedCurrent, state.searchQuery),
+                currentItems = computeCurrentItems(updatedAll, state.currentFolderId, state.searchQuery, state.activeFilterTab, state.sortOption),
                 recentItems = updatedRecent,
                 isCreateNoteDialogOpen = false,
                 statusMessage = "Saved note \"$finalTitle\""
@@ -484,11 +479,10 @@ class FolderViewModel : ViewModel() {
 
         _uiState.update { state ->
             val updatedAll = listOf(newItem) + state.allItems
-            val updatedCurrent = updatedAll.filter { it.parentId == state.currentFolderId }
             val updatedRecent = (listOf(newItem) + state.recentItems.filter { it.id != newItem.id }).take(8)
             state.copy(
                 allItems = updatedAll,
-                currentItems = filterBySearch(updatedCurrent, state.searchQuery),
+                currentItems = computeCurrentItems(updatedAll, state.currentFolderId, state.searchQuery, state.activeFilterTab, state.sortOption),
                 recentItems = updatedRecent,
                 statusMessage = "Imported \"$fileName\" successfully"
             )
@@ -513,12 +507,11 @@ class FolderViewModel : ViewModel() {
             }
 
             val updatedAll = state.allItems.filter { it.id !in idsToDelete }
-            val updatedCurrent = updatedAll.filter { it.parentId == state.currentFolderId }
             val updatedRecent = state.recentItems.filter { it.id !in idsToDelete }
 
             state.copy(
                 allItems = updatedAll,
-                currentItems = filterBySearch(updatedCurrent, state.searchQuery),
+                currentItems = computeCurrentItems(updatedAll, state.currentFolderId, state.searchQuery, state.activeFilterTab, state.sortOption),
                 recentItems = updatedRecent,
                 selectedNote = if (state.selectedNote?.id in idsToDelete) null else state.selectedNote,
                 statusMessage = "Deleted \"${item.name}\""

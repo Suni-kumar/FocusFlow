@@ -105,6 +105,7 @@ import com.sepfol.app.ui.folder.dialogs.MoveItemDialog
 import com.sepfol.app.ui.folder.dialogs.NotePreviewDialog
 import com.sepfol.app.ui.folder.dialogs.RenameItemDialog
 import com.sepfol.app.ui.viewer.PdfImageViewerScreen
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -127,53 +128,57 @@ fun FolderScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // Storage Document Picker for importing local files
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    // Storage Document Picker for importing local files (offloaded to Dispatchers.IO to prevent main-thread freeze)
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let { fileUri ->
-            try {
-                var fileName = "imported_document"
-                var fileSize = 0L
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    var fileName = "imported_document"
+                    var fileSize = 0L
 
-                context.contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
-                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                    if (cursor.moveToFirst()) {
-                        if (nameIndex != -1) {
-                            cursor.getString(nameIndex)?.let { fileName = it }
-                        }
-                        if (sizeIndex != -1) {
-                            fileSize = cursor.getLong(sizeIndex)
-                        }
-                    }
-                }
-
-                val mimeType = context.contentResolver.getType(fileUri)
-
-                // Read file contents (for text/markdown/code/notes)
-                val contentString: String? = try {
-                    context.contentResolver.openInputStream(fileUri)?.use { stream ->
-                        val bytes = stream.readBytes()
-                        if (fileSize == 0L) fileSize = bytes.size.toLong()
-                        if (bytes.size <= 1024 * 1024) {
-                            String(bytes, Charsets.UTF_8)
-                        } else {
-                            "Preview unavailable for binary/large file (${formatFileSize(fileSize)})."
+                    context.contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                        if (cursor.moveToFirst()) {
+                            if (nameIndex != -1) {
+                                cursor.getString(nameIndex)?.let { fileName = it }
+                            }
+                            if (sizeIndex != -1) {
+                                fileSize = cursor.getLong(sizeIndex)
+                            }
                         }
                     }
+
+                    val mimeType = context.contentResolver.getType(fileUri)
+
+                    // Read file contents (for text/markdown/code/notes)
+                    val contentString: String? = try {
+                        context.contentResolver.openInputStream(fileUri)?.use { stream ->
+                            val bytes = stream.readBytes()
+                            if (fileSize == 0L) fileSize = bytes.size.toLong()
+                            if (bytes.size <= 1024 * 1024) {
+                                String(bytes, Charsets.UTF_8)
+                            } else {
+                                "Preview unavailable for binary/large file (${formatFileSize(fileSize)})."
+                            }
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    viewModel.importFile(
+                        fileName = fileName,
+                        mimeType = mimeType,
+                        sizeBytes = fileSize,
+                        contentData = contentString
+                    )
                 } catch (e: Exception) {
-                    null
+                    e.printStackTrace()
                 }
-
-                viewModel.importFile(
-                    fileName = fileName,
-                    mimeType = mimeType,
-                    sizeBytes = fileSize,
-                    contentData = contentString
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
         }
     }
@@ -669,13 +674,19 @@ fun RecentNoteCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val isPdf = item.extension.equals("pdf", ignoreCase = true) || item.mimeType.contains("pdf")
-                val isImg = item.extension.lowercase() in listOf("png", "jpg", "jpeg", "webp") || item.mimeType.startsWith("image/")
+                val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+                val primary = MaterialTheme.colorScheme.primary
 
-                val badgeInfo = when {
-                    isPdf -> FileBadgeInfo("PDF", Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFEF4444), Icons.Default.PictureAsPdf)
-                    isImg -> FileBadgeInfo("IMG", Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF0891B2), Icons.Default.Image)
-                    else -> FileBadgeInfo("MD", MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f), MaterialTheme.colorScheme.primary, Icons.Default.Description)
+                val badgeInfo = remember(item.extension, item.mimeType, primaryContainer, primary) {
+                    val ext = item.extension.lowercase()
+                    val isPdf = ext == "pdf" || item.mimeType.contains("pdf")
+                    val isImg = ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "webp" || item.mimeType.startsWith("image/")
+
+                    when {
+                        isPdf -> FileBadgeInfo("PDF", Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFEF4444), Icons.Default.PictureAsPdf)
+                        isImg -> FileBadgeInfo("IMG", Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF0891B2), Icons.Default.Image)
+                        else -> FileBadgeInfo("MD", primaryContainer.copy(alpha = 0.4f), primary, Icons.Default.Description)
+                    }
                 }
 
                 Box(
@@ -709,6 +720,8 @@ fun RecentNoteCard(
                 }
             }
 
+            val formattedTime = remember(item.lastModified) { formatRelativeTime(item.lastModified) }
+
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = item.name,
@@ -720,7 +733,7 @@ fun RecentNoteCard(
                     fontSize = 13.sp
                 )
                 Text(
-                    text = formatRelativeTime(item.lastModified),
+                    text = formattedTime,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp
@@ -899,26 +912,32 @@ fun NoteListItemCard(
                         modifier = Modifier.size(22.dp)
                     )
                 } else {
-                    val isPdf = item.extension.equals("pdf", ignoreCase = true) || item.mimeType.contains("pdf")
-                    val isImg = item.extension.lowercase() in listOf("png", "jpg", "jpeg", "webp") || item.mimeType.startsWith("image/")
+                    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+                    val primary = MaterialTheme.colorScheme.primary
 
-                    val (badgeBg, iconColor, iconVector) = when {
-                        isPdf -> Triple(Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFEF4444), Icons.Default.PictureAsPdf)
-                        isImg -> Triple(Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF0891B2), Icons.Default.Image)
-                        else -> Triple(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f), MaterialTheme.colorScheme.primary, Icons.Default.Description)
+                    val badgeInfo = remember(item.extension, item.mimeType, primaryContainer, primary) {
+                        val ext = item.extension.lowercase()
+                        val isPdf = ext == "pdf" || item.mimeType.contains("pdf")
+                        val isImg = ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "webp" || item.mimeType.startsWith("image/")
+
+                        when {
+                            isPdf -> FileBadgeInfo("PDF", Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFEF4444), Icons.Default.PictureAsPdf)
+                            isImg -> FileBadgeInfo("IMG", Color(0xFF06B6D4).copy(alpha = 0.2f), Color(0xFF0891B2), Icons.Default.Image)
+                            else -> FileBadgeInfo("DOC", primaryContainer.copy(alpha = 0.35f), primary, Icons.Default.Description)
+                        }
                     }
 
                     Box(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(badgeBg),
+                            .background(badgeInfo.badgeBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = iconVector,
+                            imageVector = badgeInfo.iconVector,
                             contentDescription = null,
-                            tint = iconColor,
+                            tint = badgeInfo.iconColor,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -960,12 +979,15 @@ fun NoteListItemCard(
                         }
                     }
 
+                    val formattedSize = remember(item.sizeBytes) { formatFileSize(item.sizeBytes) }
+                    val formattedTime = remember(item.lastModified) { formatRelativeTime(item.lastModified) }
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = formatFileSize(item.sizeBytes),
+                            text = formattedSize,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp
@@ -976,7 +998,7 @@ fun NoteListItemCard(
                             fontSize = 10.sp
                         )
                         Text(
-                            text = formatRelativeTime(item.lastModified),
+                            text = formattedTime,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp

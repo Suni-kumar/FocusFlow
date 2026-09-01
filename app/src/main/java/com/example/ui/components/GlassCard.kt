@@ -286,6 +286,17 @@ fun LiquidGlassCard(
         )
     } else Modifier
 
+    val specularBrush = remember(is3DEnabled, isDark) {
+        if (is3DEnabled) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = if (isDark) 0.12f else 0.32f),
+                    Color.Transparent
+                )
+            )
+        } else null
+    }
+
     Box(
         modifier = modifier
             .then(shadowModifier)
@@ -293,16 +304,10 @@ fun LiquidGlassCard(
             .background(defaultBackground)
             .drawWithContent {
                 drawContent()
-                if (is3DEnabled) {
+                if (specularBrush != null) {
                     drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = if (isDark) 0.12f else 0.32f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = size.height.coerceAtMost(56f)
-                        )
+                        brush = specularBrush,
+                        size = size.copy(height = size.height.coerceAtMost(56f))
                     )
                 }
             }
