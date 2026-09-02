@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -185,6 +187,7 @@ fun VoiceSettingsScreen(
     val isSpeaking by audioPlayer.isSpeaking.collectAsState()
     val isLoading by audioPlayer.isLoading.collectAsState()
     val currentText by audioPlayer.currentText.collectAsState()
+    val visualizerAmplitudes by audioPlayer.visualizerAmplitudes.collectAsState()
 
     val currentEngineType by audioPlayer.currentEngineType.collectAsState()
 
@@ -435,6 +438,73 @@ fun VoiceSettingsScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 10.sp
                                     )
+                                }
+                            }
+
+                            // Dynamic Live Audio Waveform Visualizer
+                            AnimatedVisibility(visible = isSpeaking) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(selectedAccent.primaryColor.copy(alpha = 0.08f))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "LIVE AUDIO SPECTRUM",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = selectedAccent.primaryColor,
+                                            fontSize = 9.sp,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                        Text(
+                                            text = if (isLoading) "Streaming..." else "Speaking",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = selectedAccent.primaryColor,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(24.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        visualizerAmplitudes.forEachIndexed { idx, amp ->
+                                            val animatedHeight by androidx.compose.animation.core.animateDpAsState(
+                                                targetValue = (amp * 22).coerceIn(4f, 22f).dp,
+                                                animationSpec = androidx.compose.animation.core.spring(
+                                                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                                                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                                                ),
+                                                label = "visualizer_bar_$idx"
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(4.dp)
+                                                    .height(animatedHeight)
+                                                    .clip(RoundedCornerShape(2.dp))
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            listOf(
+                                                                selectedAccent.primaryColor,
+                                                                selectedAccent.secondaryColor
+                                                            )
+                                                        )
+                                                    )
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
@@ -813,6 +883,7 @@ fun VoiceSettingsScreen(
                                     onValueChange = {
                                         speed = it
                                         prefs.voiceSpeed = it
+                                        audioPlayer.updatePitchAndSpeed(pitch, it)
                                     },
                                     valueRange = 0.75f..1.5f,
                                     steps = 6,
@@ -867,6 +938,7 @@ fun VoiceSettingsScreen(
                                     onValueChange = {
                                         pitch = it
                                         prefs.voicePitch = it
+                                        audioPlayer.updatePitchAndSpeed(it, speed)
                                     },
                                     valueRange = 0.8f..1.2f,
                                     steps = 8,
@@ -890,6 +962,7 @@ fun VoiceSettingsScreen(
                                         pitch = 1.0f
                                         prefs.voiceSpeed = 1.0f
                                         prefs.voicePitch = 1.0f
+                                        audioPlayer.updatePitchAndSpeed(1.0f, 1.0f)
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),

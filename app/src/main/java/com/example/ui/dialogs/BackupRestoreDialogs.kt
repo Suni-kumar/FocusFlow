@@ -71,6 +71,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.backup.BackupDataPayload
+import com.example.model.DictationDeck
+import com.example.model.FlashcardDeck
 import com.example.ui.theme.AccentCyber
 import com.example.ui.theme.PrimaryDark
 import com.example.ui.theme.SurfaceSlateDark
@@ -805,6 +807,500 @@ fun ExportSuccessDialog(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isCopied) Color(0xFF10B981) else MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ShareDeckExportDialog(
+    deck: FlashcardDeck,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val haptic = LocalView.current
+    var selectedFormat by remember { mutableStateOf("markdown") } // "markdown", "text", "json"
+    var isCopied by remember { mutableStateOf(false) }
+
+    val formattedContent = remember(deck, selectedFormat) {
+        when (selectedFormat) {
+            "markdown" -> buildString {
+                appendLine("# Deck: ${deck.title}")
+                if (deck.description.isNotBlank()) appendLine("> ${deck.description}\n")
+                appendLine("Total Cards: ${deck.cards.size}\n")
+                deck.cards.forEachIndexed { i, card ->
+                    appendLine("### Card ${i + 1}")
+                    appendLine("**Front (Q):** ${card.front}")
+                    appendLine("**Back (A):** ${card.back}")
+                    if (card.tags.isNotEmpty()) appendLine("**Tags:** ${card.tags.joinToString(", ")}")
+                    appendLine("---")
+                }
+            }
+            "text" -> buildString {
+                appendLine("DECK: ${deck.title.uppercase()}")
+                appendLine("===============================")
+                deck.cards.forEachIndexed { i, card ->
+                    appendLine("[${i + 1}] Q: ${card.front}")
+                    appendLine("    A: ${card.back}")
+                    appendLine()
+                }
+            }
+            else -> buildString {
+                appendLine("{")
+                appendLine("  \"title\": \"${deck.title.replace("\"", "\\\"")}\",")
+                appendLine("  \"cardsCount\": ${deck.cards.size},")
+                appendLine("  \"cards\": [")
+                deck.cards.forEachIndexed { i, card ->
+                    val comma = if (i == deck.cards.size - 1) "" else ","
+                    appendLine("    { \"front\": \"${card.front.replace("\"", "\\\"").replace("\n", " ")}\", \"back\": \"${card.back.replace("\"", "\\\"").replace("\n", " ")}\" }$comma")
+                }
+                appendLine("  ]")
+                appendLine("}")
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .clip(RoundedCornerShape(24.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF2563EB)))),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Column {
+                            Text(
+                                text = "Export & Share Deck",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = deck.title,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Format Selector Chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("markdown" to "Markdown", "text" to "Plain Text", "json" to "JSON").forEach { (fmt, label) ->
+                        val isSelected = selectedFormat == fmt
+                        Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                selectedFormat = fmt
+                                isCopied = false
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Preview Content Area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                        .padding(12.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = formattedContent,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+                }
+
+                // Actions
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Copy to Clipboard Button
+                    Button(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            val clip = ClipData.newPlainText(deck.title, formattedContent)
+                            clipboard?.setPrimaryClip(clip)
+                            isCopied = true
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = if (isCopied) "Copied to Clipboard!" else "Copy to Clipboard",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
+                    // Share Intent
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "FocusFlow Deck: ${deck.title}")
+                                putExtra(Intent.EXTRA_TEXT, formattedContent)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Deck"))
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Share via Apps",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ShareDictationDeckExportDialog(
+    deck: DictationDeck,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val haptic = LocalView.current
+    var selectedFormat by remember { mutableStateOf("quiz") } // "quiz", "list", "json"
+    var isCopied by remember { mutableStateOf(false) }
+
+    val formattedContent = remember(deck, selectedFormat) {
+        when (selectedFormat) {
+            "quiz" -> buildString {
+                appendLine("# Dictation Quiz Sheet: ${deck.title}")
+                if (deck.description.isNotBlank()) appendLine("> ${deck.description}\n")
+                appendLine("Total Words: ${deck.words.size}\n")
+                appendLine("Instructions: Listen to the audio and write down each word along with its meaning.\n")
+                deck.words.forEachIndexed { i, w ->
+                    appendLine("${i + 1}. _______________________ (Hint: ${w.meaning})")
+                    if (w.exampleSentence.isNotBlank()) {
+                        appendLine("   *Example:* \"${w.exampleSentence}\"")
+                    }
+                    appendLine()
+                }
+                appendLine("\n--- Answer Key ---")
+                deck.words.forEachIndexed { i, w ->
+                    appendLine("${i + 1}. ${w.word}")
+                }
+            }
+            "list" -> buildString {
+                appendLine("DICTATION VOCABULARY LIST: ${deck.title.uppercase()}")
+                appendLine("=========================================")
+                deck.words.forEachIndexed { i, w ->
+                    appendLine("[${i + 1}] ${w.word}")
+                    appendLine("    Meaning: ${w.meaning}")
+                    if (w.exampleSentence.isNotBlank()) {
+                        appendLine("    Example: ${w.exampleSentence}")
+                    }
+                    appendLine()
+                }
+            }
+            else -> buildString {
+                appendLine("{")
+                appendLine("  \"title\": \"${deck.title.replace("\"", "\\\"")}\",")
+                appendLine("  \"wordsCount\": ${deck.words.size},")
+                appendLine("  \"words\": [")
+                deck.words.forEachIndexed { i, w ->
+                    val comma = if (i == deck.words.size - 1) "" else ","
+                    appendLine("    { \"word\": \"${w.word.replace("\"", "\\\"")}\", \"meaning\": \"${w.meaning.replace("\"", "\\\"")}\", \"example\": \"${w.exampleSentence.replace("\"", "\\\"")}\" }$comma")
+                }
+                appendLine("  ]")
+                appendLine("}")
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .clip(RoundedCornerShape(24.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9)))),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Column {
+                            Text(
+                                text = "Export Dictation Deck",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = deck.title,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Format Selector Chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("quiz" to "Quiz Sheet", "list" to "Word List", "json" to "JSON").forEach { (fmt, label) ->
+                        val isSelected = selectedFormat == fmt
+                        Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                selectedFormat = fmt
+                                isCopied = false
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Preview Content Area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                        .padding(12.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = formattedContent,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+                }
+
+                // Actions
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            val clip = ClipData.newPlainText(deck.title, formattedContent)
+                            clipboard?.setPrimaryClip(clip)
+                            isCopied = true
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = if (isCopied) "Copied to Clipboard!" else "Copy Dictation Sheet",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "FocusFlow Dictation: ${deck.title}")
+                                putExtra(Intent.EXTRA_TEXT, formattedContent)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Dictation Sheet"))
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Share via Apps",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

@@ -28,9 +28,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Spellcheck
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,13 +42,18 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -381,6 +388,108 @@ fun DictationCheckingScreen(
                                 )
                             }
 
+                            // Interactive Fuzzy Match / Self-Check Field
+                            var typedInput by remember(word.id) { mutableStateOf("") }
+                            var isSpellCheckOpen by remember(word.id) { mutableStateOf(false) }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                    .padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { isSpellCheckOpen = !isSpellCheckOpen },
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Spellcheck,
+                                            contentDescription = null,
+                                            tint = accentColor,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = if (isSpellCheckOpen) "Close Spelling Assist" else "Type & Test Fuzzy Score (Fuzzy Matching)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = accentColor
+                                        )
+                                    }
+                                    Text(
+                                        text = if (isSpellCheckOpen) "▲" else "▼",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                AnimatedVisibility(visible = isSpellCheckOpen) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = typedInput,
+                                            onValueChange = { newText ->
+                                                typedInput = newText
+                                                if (newText.isNotBlank()) {
+                                                    val match = evaluateFuzzyMatch(newText, word.word)
+                                                    when (match.category) {
+                                                        FuzzyMatchCategory.EXACT -> viewModel.markWordStatus(word.id, DictationWordStatus.CORRECT)
+                                                        FuzzyMatchCategory.NEAR_MISS -> viewModel.markWordStatus(word.id, DictationWordStatus.NEEDS_PRACTICE)
+                                                        FuzzyMatchCategory.INCORRECT -> viewModel.markWordStatus(word.id, DictationWordStatus.INCORRECT)
+                                                    }
+                                                }
+                                            },
+                                            placeholder = { Text("Type your written spelling here...", fontSize = 12.sp) },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = accentColor,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                            )
+                                        )
+
+                                        if (typedInput.isNotBlank()) {
+                                            val matchResult = evaluateFuzzyMatch(typedInput, word.word)
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = matchResult.statusColor.copy(alpha = 0.15f),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = matchResult.feedbackMessage,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = matchResult.statusColor
+                                                    )
+                                                    Text(
+                                                        text = "${matchResult.similarityPercent}% Match",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        color = matchResult.statusColor
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             // Grading Chips (Correct, Incorrect, Review)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -527,4 +636,83 @@ private fun CheckingGradeChip(
             )
         }
     }
+}
+
+enum class FuzzyMatchCategory {
+    EXACT,
+    NEAR_MISS,
+    INCORRECT
+}
+
+data class FuzzyMatchResult(
+    val category: FuzzyMatchCategory,
+    val similarityPercent: Int,
+    val feedbackMessage: String,
+    val statusColor: Color
+)
+
+/**
+ * Robust Fuzzy Matching based on Levenshtein Edit Distance.
+ * Prevents giving 0% score on single-character typos / near misses.
+ */
+fun evaluateFuzzyMatch(userInput: String, targetWord: String): FuzzyMatchResult {
+    val cleanInput = userInput.trim().lowercase().replace("[^a-z0-9]".toRegex(), "")
+    val cleanTarget = targetWord.trim().lowercase().replace("[^a-z0-9]".toRegex(), "")
+
+    if (cleanInput.isEmpty() || cleanTarget.isEmpty()) {
+        return FuzzyMatchResult(FuzzyMatchCategory.INCORRECT, 0, "No text entered", Color(0xFFFF7886))
+    }
+
+    if (cleanInput == cleanTarget) {
+        return FuzzyMatchResult(FuzzyMatchCategory.EXACT, 100, "Perfect! Exact spelling match 🎯", Color(0xFF4EDEA3))
+    }
+
+    val distance = calculateLevenshteinDistance(cleanInput, cleanTarget)
+    val maxLen = kotlin.math.max(cleanInput.length, cleanTarget.length)
+    val similarityRatio = (1.0 - (distance.toDouble() / maxLen.toDouble())).coerceIn(0.0, 1.0)
+    val similarityPercent = (similarityRatio * 100).toInt()
+
+    return when {
+        distance == 1 && cleanTarget.length >= 4 -> {
+            FuzzyMatchResult(
+                FuzzyMatchCategory.NEAR_MISS,
+                similarityPercent,
+                "Near Miss! Only 1 letter difference ($distance edit) 💡",
+                Color(0xFFF59E0B)
+            )
+        }
+        similarityPercent >= 75 -> {
+            FuzzyMatchResult(
+                FuzzyMatchCategory.NEAR_MISS,
+                similarityPercent,
+                "Almost there! $similarityPercent% similar (Minor typo) 💡",
+                Color(0xFFF59E0B)
+            )
+        }
+        else -> {
+            FuzzyMatchResult(
+                FuzzyMatchCategory.INCORRECT,
+                similarityPercent,
+                "Needs Practice ($similarityPercent% match) ❌",
+                Color(0xFFFF7886)
+            )
+        }
+    }
+}
+
+private fun calculateLevenshteinDistance(s1: String, s2: String): Int {
+    val dp = Array(s1.length + 1) { IntArray(s2.length + 1) }
+    for (i in 0..s1.length) dp[i][0] = i
+    for (j in 0..s2.length) dp[0][j] = j
+
+    for (i in 1..s1.length) {
+        for (j in 1..s2.length) {
+            val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
+            dp[i][j] = kotlin.math.min(
+                kotlin.math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1),
+                dp[i - 1][j - 1] + cost
+            )
+        }
+    }
+    return dp[s1.length][s2.length]
 }

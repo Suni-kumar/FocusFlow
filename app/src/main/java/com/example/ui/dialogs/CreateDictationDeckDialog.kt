@@ -1,5 +1,6 @@
 package com.example.ui.dialogs
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material3.Button
@@ -54,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.model.DictationWord
+import java.util.UUID
 
 @Composable
 fun CreateDictationDeckDialog(
@@ -69,12 +72,15 @@ fun CreateDictationDeckDialog(
     val wordsList = remember {
         mutableStateListOf(
             Pair("Ephemeral", "Lasting for a very short time; fleeting"),
-            Pair("Eloquent", "Fluent or persuasive in speaking or writing")
+            Pair("Eloquent", "Fluent or persuasive in speaking or writing"),
+            Pair("Serendipity", "Finding good things without looking for them")
         )
     }
 
     var newWordText by remember { mutableStateOf("") }
     var newMeaningText by remember { mutableStateOf("") }
+    var isBulkPasteOpen by remember { mutableStateOf(false) }
+    var bulkPasteContent by remember { mutableStateOf("") }
 
     val palette = listOf(
         Color(0xFF4EDEA3),
@@ -82,8 +88,37 @@ fun CreateDictationDeckDialog(
         Color(0xFFFF7886),
         Color(0xFF06B6D4),
         Color(0xFFF59E0B),
-        Color(0xFFEC4899)
+        Color(0xFFEC4899),
+        Color(0xFF10B981),
+        Color(0xFF6366F1)
     )
+
+    fun handleSave() {
+        val finalWords = wordsList.toMutableList()
+        // If user typed something in input fields, add it automatically
+        if (newWordText.isNotBlank()) {
+            finalWords.add(Pair(newWordText.trim(), newMeaningText.trim()))
+        }
+        if (finalWords.isEmpty()) return
+
+        val tagList = tagsInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        val dictWords = finalWords.map { (w, m) ->
+            DictationWord(
+                id = "dw_${UUID.randomUUID()}",
+                word = w,
+                meaning = if (m.isNotBlank()) m else "Definition for $w",
+                exampleSentence = "Spell and memorize the word $w."
+            )
+        }
+
+        onCreateDeck(
+            title.trim().ifBlank { "Custom Chapter ${System.currentTimeMillis() % 1000}" },
+            description.trim(),
+            selectedColor,
+            dictWords,
+            if (tagList.isEmpty()) listOf("Dictation", "Custom") else tagList
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -92,7 +127,7 @@ fun CreateDictationDeckDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
-                .heightIn(max = 680.dp)
+                .heightIn(max = 690.dp)
                 .padding(vertical = 16.dp)
                 .shadow(24.dp, RoundedCornerShape(24.dp))
                 .testTag("create_dictation_deck_dialog"),
@@ -137,7 +172,7 @@ fun CreateDictationDeckDialog(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Add chapter-wise words for audio dictation",
+                                text = "Chapter words with meanings for audio testing",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -170,7 +205,7 @@ fun CreateDictationDeckDialog(
                         OutlinedTextField(
                             value = title,
                             onValueChange = { title = it },
-                            label = { Text("Deck / Chapter Title (e.g. Chapter 4: Physics Terms)") },
+                            label = { Text("Deck / Chapter Title (e.g. Chapter 4: GRE Terms)") },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -228,7 +263,7 @@ fun CreateDictationDeckDialog(
                         }
                     }
 
-                    // Words Header & Counter
+                    // Words Header & Bulk Paste Toggle
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -236,20 +271,99 @@ fun CreateDictationDeckDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Words in Deck (${wordsList.size})",
+                                text = "Words in Deck (${wordsList.size + if (newWordText.isNotBlank()) 1 else 0})",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Text(
-                                text = "One word per audio step",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            TextButton(
+                                onClick = { isBulkPasteOpen = !isBulkPasteOpen }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ContentPaste,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(15.dp),
+                                    tint = selectedColor
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isBulkPasteOpen) "Manual Input" else "Bulk Paste",
+                                    color = selectedColor,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
 
-                    // Words List
+                    // Bulk Paste Section
+                    if (isBulkPasteOpen) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "Paste multiple words (one per line, format: Word : Meaning)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    OutlinedTextField(
+                                        value = bulkPasteContent,
+                                        onValueChange = { bulkPasteContent = it },
+                                        placeholder = {
+                                            Text("Resilience : Ability to bounce back\nPragmatic : Realistic\nEphemeral : Short-lived")
+                                        },
+                                        minLines = 4,
+                                        maxLines = 8,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    Button(
+                                        onClick = {
+                                            val lines = bulkPasteContent.split("\n", ";", "\r").map { it.trim() }.filter { it.isNotBlank() }
+                                            for (line in lines) {
+                                                val delimiter = if (line.contains(":")) ":" else if (line.contains("-")) "-" else "="
+                                                if (line.contains(delimiter)) {
+                                                    val parts = line.split(delimiter, limit = 2)
+                                                    val w = parts[0].trim()
+                                                    val m = parts.getOrNull(1)?.trim() ?: ""
+                                                    if (w.isNotBlank()) {
+                                                        wordsList.add(Pair(w, m))
+                                                    }
+                                                } else {
+                                                    wordsList.add(Pair(line, "Definition for $line"))
+                                                }
+                                            }
+                                            bulkPasteContent = ""
+                                            isBulkPasteOpen = false
+                                        },
+                                        enabled = bulkPasteContent.isNotBlank(),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(containerColor = selectedColor),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Text(
+                                            text = "Add Bulk Words to Deck",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.Black
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Existing Words List
                     itemsIndexed(wordsList) { index, pair ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -309,64 +423,68 @@ fun CreateDictationDeckDialog(
                         }
                     }
 
-                    // Add Word Row Input Box
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f)
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // Add Word Row Input Box (When not in bulk paste mode)
+                    if (!isBulkPasteOpen) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f)
+                                )
                             ) {
-                                OutlinedTextField(
-                                    value = newWordText,
-                                    onValueChange = { newWordText = it },
-                                    label = { Text("Word to spell / pronounce") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-
-                                OutlinedTextField(
-                                    value = newMeaningText,
-                                    onValueChange = { newMeaningText = it },
-                                    label = { Text("Meaning / Hindi or English definition") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-
-                                Button(
-                                    onClick = {
-                                        if (newWordText.isNotBlank()) {
-                                            wordsList.add(Pair(newWordText.trim(), newMeaningText.trim()))
-                                            newWordText = ""
-                                            newMeaningText = ""
-                                        }
-                                    },
-                                    enabled = newWordText.isNotBlank(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = selectedColor),
-                                    shape = RoundedCornerShape(10.dp)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = Color.Black
+                                    OutlinedTextField(
+                                        value = newWordText,
+                                        onValueChange = { newWordText = it },
+                                        label = { Text("Word to spell / pronounce") },
+                                        placeholder = { Text("E.g. Magnanimous") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Add Word to Deck",
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black
+
+                                    OutlinedTextField(
+                                        value = newMeaningText,
+                                        onValueChange = { newMeaningText = it },
+                                        label = { Text("Meaning / Hindi or English definition") },
+                                        placeholder = { Text("E.g. Generous or forgiving") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp)
                                     )
+
+                                    Button(
+                                        onClick = {
+                                            if (newWordText.isNotBlank()) {
+                                                wordsList.add(Pair(newWordText.trim(), newMeaningText.trim()))
+                                                newWordText = ""
+                                                newMeaningText = ""
+                                            }
+                                        },
+                                        enabled = newWordText.isNotBlank(),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(containerColor = selectedColor),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = Color.Black
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Add Word to Deck",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.Black
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -398,30 +516,17 @@ fun CreateDictationDeckDialog(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    val canSave = (wordsList.isNotEmpty() || newWordText.isNotBlank())
                     Button(
-                        onClick = {
-                            val tagList = tagsInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                            val words = wordsList.map { (w, m) ->
-                                DictationWord(
-                                    word = w,
-                                    meaning = m
-                                )
-                            }
-                            onCreateDeck(
-                                title.ifBlank { "Chapter ${System.currentTimeMillis() % 100}" },
-                                description,
-                                selectedColor,
-                                words,
-                                if (tagList.isEmpty()) listOf("Dictation") else tagList
-                            )
-                        },
-                        enabled = title.isNotBlank() && wordsList.isNotEmpty(),
+                        onClick = { handleSave() },
+                        enabled = canSave,
                         colors = ButtonDefaults.buttonColors(containerColor = selectedColor),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("submit_create_dictation_deck")
                     ) {
+                        val count = wordsList.size + (if (newWordText.isNotBlank()) 1 else 0)
                         Text(
-                            text = "Save Deck (${wordsList.size} Words)",
+                            text = "Save Deck ($count Words)",
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )

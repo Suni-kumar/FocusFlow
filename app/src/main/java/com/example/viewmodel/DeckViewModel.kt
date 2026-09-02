@@ -157,13 +157,19 @@ class DeckViewModel(
                     GenerationSource.OFFLINE_HEURISTIC -> "Generated with Smart Taxonomy Engine"
                 }
 
+                val finalStatus = if (!result.warningMessage.isNullOrBlank()) {
+                    "Deck \"${newDeck.title}\" created. (Note: ${result.warningMessage})"
+                } else {
+                    "Deck \"${newDeck.title}\" ready ($sourceNotice)"
+                }
+
                 _uiState.update { state ->
                     state.copy(
                         decks = listOf(newDeck) + state.decks,
                         isAiGenerating = false,
                         isAiGenerateDialogOpen = false,
                         aiInitialPrompt = "",
-                        statusMessage = "Deck \"${newDeck.title}\" ready ($sourceNotice)",
+                        statusMessage = finalStatus,
                         newlyGeneratedDeckId = newDeck.id
                     )
                 }
@@ -173,6 +179,7 @@ class DeckViewModel(
                 _uiState.update {
                     it.copy(
                         isAiGenerating = false,
+                        aiGenerationProgressMessage = "Error: ${e.message ?: "fallback applied"}",
                         statusMessage = "Generation notice: ${e.message ?: "fallback applied"}"
                     )
                 }
@@ -187,6 +194,25 @@ class DeckViewModel(
                     deck.copy(
                         progress = progress.coerceIn(0f, 1f),
                         lastReviewed = lastReviewed
+                    )
+                } else deck
+            }
+            state.copy(decks = updatedDecks)
+        }
+    }
+
+    fun toggleCardMastery(deckId: String, cardId: String, isMastered: Boolean) {
+        _uiState.update { state ->
+            val updatedDecks = state.decks.map { deck ->
+                if (deck.id == deckId) {
+                    val updatedCards = deck.cards.map { card ->
+                        if (card.id == cardId) card.copy(isMastered = isMastered) else card
+                    }
+                    val masteredCount = updatedCards.count { it.isMastered }
+                    val newProgress = if (updatedCards.isNotEmpty()) masteredCount.toFloat() / updatedCards.size else 0f
+                    deck.copy(
+                        cards = updatedCards,
+                        progress = newProgress.coerceIn(0f, 1f)
                     )
                 } else deck
             }

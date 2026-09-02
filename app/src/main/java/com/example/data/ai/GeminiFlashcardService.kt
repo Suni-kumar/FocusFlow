@@ -19,8 +19,15 @@ data class FlashcardGenerationResult(
     val description: String,
     val cards: List<Flashcard>,
     val source: GenerationSource,
-    val tags: List<String>
+    val tags: List<String>,
+    val warningMessage: String? = null
 )
+
+class GeminiApiException(
+    val httpCode: Int,
+    val userFacingMessage: String,
+    cause: Throwable? = null
+) : Exception(userFacingMessage, cause)
 
 enum class GenerationSource {
     BYOK_CLIENT,
@@ -55,6 +62,7 @@ class GeminiFlashcardService {
         // 1. Dual-Tier Key Resolution
         val (apiKeyToUse, source) = resolveApiKey(userCustomApiKey)
 
+        var warningNote: String? = null
         if (apiKeyToUse.isNotBlank() && apiKeyToUse != "MY_GEMINI_API_KEY") {
             try {
                 val aiCards = callGeminiApi(trimmedTopic, targetCardCount, apiKeyToUse)
@@ -69,7 +77,11 @@ class GeminiFlashcardService {
                         tags = if (allTags.isNotEmpty()) allTags else listOf("#AI_Generated", "#HighYield")
                     )
                 }
+            } catch (e: GeminiApiException) {
+                warningNote = e.userFacingMessage
+                Log.w("GeminiFlashcardService", "Gemini API explicit error: ${e.userFacingMessage}", e)
             } catch (e: Exception) {
+                warningNote = "Cloud AI synthesis timed out. Smart taxonomy engine applied."
                 Log.w("GeminiFlashcardService", "AI generation failed, falling back to smart heuristic engine", e)
             }
         }
@@ -84,7 +96,8 @@ class GeminiFlashcardService {
             description = "High-yield smart taxonomy deck for $title (${fallbackCards.size} cards).",
             cards = fallbackCards,
             source = GenerationSource.OFFLINE_HEURISTIC,
-            tags = if (fallbackTags.isNotEmpty()) fallbackTags else listOf("#HighYield", "#KeyConcepts")
+            tags = if (fallbackTags.isNotEmpty()) fallbackTags else listOf("#HighYield", "#KeyConcepts"),
+            warningMessage = warningNote
         )
     }
 
@@ -112,7 +125,7 @@ class GeminiFlashcardService {
         targetCardCount: Int,
         apiKey: String
     ): List<Flashcard> {
-        val models = listOf("gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite-preview")
+        val models = listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
         var lastException: Exception? = null
 
         for (model in models) {
@@ -121,14 +134,19 @@ class GeminiFlashcardService {
 
                 val systemPrompt = """
                     You are an expert tutor creating high-yield active recall study flashcards.
-                    Analyze the given topic or notes and generate exactly $targetCardCount flashcards.
+                    Analyze the given topic or notes and generate exactly $targetCardCount unique, non-duplicate flashcards.
+                    
+                    CRITICAL BEHAVIORAL RULE (STRICT PRESERVATION):
+                    - IF the user provides explicit questions and answers (e.g. "Q: ... A: ...", "Front: ... Back: ...", or a direct list of items to memorize), you MUST extract and use them EXACTLY as provided. Do NOT re-write, modify, or invent new questions for the provided pairs. Just format them into the JSON structure.
+                    - ONLY generate new conceptual questions if the user provides general, unstructured notes.
                     
                     CRITICAL FORMAT RULES:
-                    Output MUST be a single valid JSON array of objects. Do NOT include markdown text outside the JSON array.
-                    Each object must have:
-                    - "front": Clear, high-yield question or conceptual test prompt.
-                    - "back": Concise, explanatory answer with key context.
-                    - "tags": Array of 1 to 3 relevant categorical tags (e.g., ["#Definitions", "#HighYield", "#Formulas", "#Science", "#KeyConcept"]).
+                    - Output MUST be a single valid JSON array of objects. Do NOT include markdown text outside the JSON array.
+                    - Ensure every question and answer is complete and not truncated.
+                    - Each object must have:
+                      * "front": Clear question or the exact provided front text.
+                      * "back": Concise answer or the exact provided back text.
+                      * "tags": Array of 1 to 3 relevant categorical tags (e.g., ["#Definitions", "#HighYield", "#KeyConcept"]).
                     
                     Example:
                     [
@@ -144,7 +162,7 @@ class GeminiFlashcardService {
                     val contentsArray = JSONArray().apply {
                         put(JSONObject().apply {
                             val partsArray = JSONArray().apply {
-                                put(JSONObject().put("text", "Topic / Notes:\n$topic\n\nGenerate $targetCardCount flashcards:"))
+                                put(JSONObject().put("text", "Topic / Notes / Q&A:\n$topic\n\nGenerate exactly $targetCardCount flashcards based on the above content. Remember: if exact questions and answers are provided above, preserve them exactly!"))
                             }
                             put("parts", partsArray)
                         })
@@ -160,8 +178,8 @@ class GeminiFlashcardService {
                     put("systemInstruction", sysContent)
 
                     val genConfig = JSONObject().apply {
-                        put("temperature", 0.3)
-                        put("topP", 0.9)
+                        put("temperature", 0.2)
+                        put("topP", 0.95)
                         put("responseMimeType", "application/json")
                     }
                     put("generationConfig", genConfig)
@@ -178,6 +196,11 @@ class GeminiFlashcardService {
 
                 if (!response.isSuccessful) {
                     Log.w("GeminiFlashcardService", "Model $model returned code ${response.code}: $responseBodyStr")
+                    if (response.code == 400 || response.code == 403) {
+                        throw GeminiApiException(response.code, "Invalid Gemini API Key. Please verify your key in Settings.")
+                    } else if (response.code == 429) {
+                        throw GeminiApiException(429, "Gemini API rate limit or quota exceeded. Free tier quota limit reached.")
+                    }
                     continue
                 }
 
@@ -232,10 +255,19 @@ class GeminiFlashcardService {
         }
 
         val flashcards = mutableListOf<Flashcard>()
+        val seenFronts = mutableSetOf<String>()
+
         for (i in 0 until jsonArray.length()) {
             val item = jsonArray.optJSONObject(i) ?: continue
             val front = item.optString("front", "").trim()
             val back = item.optString("back", "").trim()
+
+            // Skip truncated, empty, or duplicate questions
+            if (front.length < 3 || back.length < 2) continue
+            val normalizedKey = front.lowercase().replace("[^a-z0-9]".toRegex(), "")
+            if (normalizedKey in seenFronts) continue
+            seenFronts.add(normalizedKey)
+
             val tagsArray = item.optJSONArray("tags")
             val tagsList = mutableListOf<String>()
             if (tagsArray != null) {
@@ -247,18 +279,16 @@ class GeminiFlashcardService {
                 }
             }
 
-            if (front.isNotEmpty() && back.isNotEmpty()) {
-                val safeTags = if (tagsList.isNotEmpty()) tagsList else classifyTaxonomy(front, back)
-                flashcards.add(
-                    Flashcard(
-                        id = "ai_c_${System.currentTimeMillis()}_$i",
-                        front = front,
-                        back = back,
-                        topic = topic.take(40),
-                        tags = safeTags
-                    )
+            val safeTags = if (tagsList.isNotEmpty()) tagsList else classifyTaxonomy(front, back)
+            flashcards.add(
+                Flashcard(
+                    id = "ai_c_${System.currentTimeMillis()}_$i",
+                    front = front,
+                    back = back,
+                    topic = topic.take(40),
+                    tags = safeTags
                 )
-            }
+            )
         }
         return flashcards
     }

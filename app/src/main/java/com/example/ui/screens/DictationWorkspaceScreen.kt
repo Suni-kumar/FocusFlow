@@ -15,8 +15,11 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -33,6 +36,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -41,23 +45,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -88,7 +92,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.DictationDeck
+import com.example.ui.components.BadgeChip
 import com.example.ui.components.GlassCard
+import com.example.ui.dialogs.ShareDictationDeckExportDialog
 import com.example.viewmodel.DictationViewModel
 
 @Composable
@@ -99,37 +105,56 @@ fun DictationWorkspaceScreen(
     onSwipeUpFab: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalView.current
     val uiState by viewModel.uiState.collectAsState()
+    val isSelectionMode = uiState.selectedDeckIds.isNotEmpty()
     var isSpeedDialOpen by remember { mutableStateOf(false) }
-    var isSearchExpanded by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = isSpeedDialOpen) {
-        isSpeedDialOpen = false
+    var deckToDelete by remember { mutableStateOf<DictationDeck?>(null) }
+    var deckToExport by remember { mutableStateOf<DictationDeck?>(null) }
+    var isBatchDeleteConfirmOpen by remember { mutableStateOf(false) }
+
+    if (deckToExport != null) {
+        ShareDictationDeckExportDialog(
+            deck = deckToExport!!,
+            onDismiss = { deckToExport = null }
+        )
     }
 
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-
-    // Filter decks based on search and tag
+    // Filter decks based on search & tag
     val filteredDecks = remember(uiState.decks, uiState.searchQuery, uiState.selectedTag) {
         uiState.decks.filter { deck ->
-            val matchesQuery = uiState.searchQuery.isBlank() ||
+            val matchesSearch = uiState.searchQuery.isBlank() ||
                     deck.title.contains(uiState.searchQuery, ignoreCase = true) ||
                     deck.description.contains(uiState.searchQuery, ignoreCase = true) ||
                     deck.words.any { it.word.contains(uiState.searchQuery, ignoreCase = true) }
-            val matchesTag = uiState.selectedTag == null ||
-                    (uiState.selectedTag == "Starred" && deck.isStarred) ||
-                    (uiState.selectedTag == "AI Generated" && deck.isAiGenerated) ||
-                    deck.tags.contains(uiState.selectedTag)
-            matchesQuery && matchesTag
+
+            val matchesTag = when (uiState.selectedTag) {
+                null, "All" -> true
+                "Starred" -> deck.isStarred
+                "AI Generated" -> deck.isAiGenerated
+                "Custom" -> !deck.isAiGenerated
+                else -> deck.tags.contains(uiState.selectedTag)
+            }
+
+            matchesSearch && matchesTag
         }
     }
 
-    val totalWordsCount = uiState.decks.sumOf { it.words.size }
-    val averageAccuracy = if (uiState.decks.isNotEmpty()) {
-        uiState.decks.map { it.accuracy }.average().toFloat()
-    } else 0f
+    val deckChunks = remember(filteredDecks) { filteredDecks.chunked(2) }
+
+    // Intercept back button if speed dial is open or in selection mode
+    BackHandler(enabled = isSpeedDialOpen || isSelectionMode) {
+        if (isSpeedDialOpen) {
+            isSpeedDialOpen = false
+        } else {
+            viewModel.clearSelection()
+        }
+    }
+
+    val totalWords = uiState.decks.sumOf { it.words.size }
+    val avgAccuracy = if (uiState.decks.isNotEmpty()) {
+        (uiState.decks.map { it.accuracy }.average() * 100).toInt()
+    } else 0
 
     Box(
         modifier = modifier
@@ -138,11 +163,87 @@ fun DictationWorkspaceScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Hero Dictation Studio Stats Banner
-            item(key = "dictation_hero_banner") {
+            // 1. Selection Mode Header (When active)
+            if (isSelectionMode) {
+                item(key = "dictation_selection_top_bar") {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp)),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        tonalElevation = 6.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                IconButton(
+                                    onClick = { viewModel.clearSelection() },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear selection",
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                Text(
+                                    text = "${uiState.selectedDeckIds.size} Selected",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(
+                                    onClick = {
+                                        if (uiState.selectedDeckIds.size == uiState.decks.size) {
+                                            viewModel.clearSelection()
+                                        } else {
+                                            uiState.decks.forEach {
+                                                if (it.id !in uiState.selectedDeckIds) {
+                                                    viewModel.toggleDeckSelection(it.id)
+                                                }
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text(
+                                        text = if (uiState.selectedDeckIds.size == uiState.decks.size) "Deselect All" else "Select All",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { isBatchDeleteConfirmOpen = true },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete selected",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Dictation Recall & Stats Banner
+            item(key = "dictation_stats_banner") {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -152,21 +253,20 @@ fun DictationWorkspaceScreen(
                     borderWidth = 1.dp
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Ambient Radial Glow
+                        // Ambient decorative background
                         Box(
                             modifier = Modifier
-                                .size(240.dp)
                                 .align(Alignment.TopEnd)
+                                .size(120.dp)
                                 .background(
                                     Brush.radialGradient(
                                         colors = listOf(
-                                            primaryColor.copy(alpha = 0.18f),
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                             Color.Transparent
                                         )
                                     )
                                 )
                         )
-
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -178,103 +278,85 @@ fun DictationWorkspaceScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        primaryColor,
-                                                        primaryColor.copy(alpha = 0.7f)
-                                                    )
-                                                )
-                                            ),
-                                        contentAlignment = Alignment.Center
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.RecordVoiceOver,
                                             contentDescription = null,
-                                            tint = Color.Black,
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(24.dp)
                                         )
-                                    }
-
-                                    Column {
                                         Text(
                                             text = "Dictation Studio",
                                             style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
+                                    }
+                                    Text(
+                                        text = "Audio practice & active recall",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                        .clickable { onVoiceSettingsClick() }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Tune,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                         Text(
-                                            text = "Blind Audio Spoken Practice & Voice Commands",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 11.sp
+                                            text = "Voice",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }
-
-                                IconButton(
-                                    onClick = onVoiceSettingsClick,
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Tune,
-                                        contentDescription = "Voice Settings",
-                                        tint = primaryColor,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
                             }
 
-                            // 3-Stat Counters Row
+                            // Dynamic Stats Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                DictationStatItem(
-                                    value = "${uiState.decks.size}",
-                                    label = "Chapters"
-                                )
-                                DictationStatItem(
-                                    value = "$totalWordsCount",
-                                    label = "Words"
-                                )
-                                DictationStatItem(
-                                    value = "${(averageAccuracy * 100).toInt()}%",
-                                    label = "Accuracy"
-                                )
-                                DictationStatItem(
-                                    value = "Voice Mic",
-                                    label = "Ready"
-                                )
+                                DictationStatItem(title = "Decks", value = "${uiState.decks.size}")
+                                DictationStatItem(title = "Words", value = "$totalWords")
+                                DictationStatItem(title = "Accuracy", value = "$avgAccuracy", suffix = "%")
                             }
                         }
                     }
                 }
             }
 
-            // 2. Search & Filter Bar
-            item(key = "search_and_filters") {
+            // 3. Search Bar & Tag Filter Row
+            item(key = "dictation_search_filter") {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = uiState.searchQuery,
                         onValueChange = { viewModel.setSearchQuery(it) },
-                        placeholder = { Text("Search chapters, vocabulary words or tags...") },
+                        placeholder = { Text("Search dictation decks or words...") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                tint = primaryColor
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         trailingIcon = {
@@ -282,103 +364,88 @@ fun DictationWorkspaceScreen(
                                 IconButton(onClick = { viewModel.setSearchQuery("") }) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear search",
+                                        contentDescription = "Clear",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("dictation_search_input"),
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     )
 
                     // Tag Filter Chips
+                    val filterTags = listOf("All", "Starred", "AI Generated", "Custom")
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        item {
-                            FilterTagChip(
-                                label = "All Decks",
-                                isSelected = uiState.selectedTag == null,
-                                onClick = { viewModel.setSelectedTag(null) }
-                            )
-                        }
-                        item {
-                            FilterTagChip(
-                                label = "⭐ Starred",
-                                isSelected = uiState.selectedTag == "Starred",
-                                onClick = { viewModel.setSelectedTag("Starred") }
-                            )
-                        }
-                        item {
-                            FilterTagChip(
-                                label = "✨ AI Generated",
-                                isSelected = uiState.selectedTag == "AI Generated",
-                                onClick = { viewModel.setSelectedTag("AI Generated") }
-                            )
-                        }
-                        item {
-                            FilterTagChip(
-                                label = "Academic",
-                                isSelected = uiState.selectedTag == "Academic",
-                                onClick = { viewModel.setSelectedTag("Academic") }
-                            )
-                        }
-                        item {
-                            FilterTagChip(
-                                label = "STEM",
-                                isSelected = uiState.selectedTag == "STEM",
-                                onClick = { viewModel.setSelectedTag("STEM") }
-                            )
+                        items(filterTags) { tag ->
+                            val isSelected = (uiState.selectedTag == tag) || (tag == "All" && uiState.selectedTag == null)
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        viewModel.setSelectedTag(if (tag == "All") null else tag)
+                                    },
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // 3. Chapter-wise Dictation Decks Header
-            item(key = "decks_list_header") {
+            // 4. Managed Decks Header
+            item(key = "managed_dictation_decks_header") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Chapter Decks (${filteredDecks.size})",
+                        text = "Managed Decks (${filteredDecks.size})",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Tap Play for Blind Audio",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        text = "Total: ${uiState.decks.size}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
 
-            // 4. Chapter Deck Cards List
+            // 5. Decks 2-Column Grid
             if (filteredDecks.isEmpty()) {
-                item {
-                    Card(
+                item(key = "empty_dictation_decks_view") {
+                    GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 24.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        )
+                        backgroundColor = null,
+                        elevation = 2.dp,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant,
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(
                             modifier = Modifier
@@ -390,17 +457,18 @@ fun DictationWorkspaceScreen(
                             Icon(
                                 imageVector = Icons.Default.RecordVoiceOver,
                                 contentDescription = null,
-                                tint = primaryColor,
-                                modifier = Modifier.size(40.dp)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(48.dp)
                             )
                             Text(
-                                text = "No Dictation Decks Found",
+                                text = if (uiState.searchQuery.isNotBlank()) "No Matching Decks" else "No Dictation Decks Yet",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Tap the + button to create a chapter deck or generate words with AI.",
+                                text = if (uiState.searchQuery.isNotBlank()) "Try changing your search terms or filter tag."
+                                else "Tap the '+' button below to generate AI chapters or create manual decks.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -409,253 +477,610 @@ fun DictationWorkspaceScreen(
                     }
                 }
             } else {
-                items(filteredDecks, key = { it.id }) { deck ->
-                    DictationDeckCard(
-                        deck = deck,
-                        onPlayClick = {
-                            onDeckClick(deck)
-                        },
-                        onEditClick = {
-                            viewModel.openEditDeckDialog(deck)
-                        },
-                        onToggleStar = {
-                            viewModel.toggleStarDeck(deck.id)
-                        },
-                        onDeleteClick = {
-                            viewModel.deleteDeck(deck.id)
+                items(
+                    items = deckChunks,
+                    key = { chunk -> chunk.joinToString("_") { it.id } },
+                    contentType = { "dictation_deck_chunk" }
+                ) { chunk ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        for (deck in chunk) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                val isSelected = deck.id in uiState.selectedDeckIds
+                                ManagedDictationDeckItem(
+                                    deck = deck,
+                                    isSelected = isSelected,
+                                    isSelectionMode = isSelectionMode,
+                                    onClick = {
+                                        if (isSelectionMode) {
+                                            viewModel.toggleDeckSelection(deck.id)
+                                        } else {
+                                            onDeckClick(deck)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        viewModel.toggleDeckSelection(deck.id)
+                                    },
+                                    onEditClick = {
+                                        viewModel.openEditDeckDialog(deck)
+                                    },
+                                    onShareClick = {
+                                        deckToExport = deck
+                                    },
+                                    onToggleStar = {
+                                        viewModel.toggleStarDeck(deck.id)
+                                    },
+                                    onDeleteClick = {
+                                        deckToDelete = deck
+                                    }
+                                )
+                            }
                         }
-                    )
+                        if (chunk.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
+            }
+
+            item(key = "dictation_bottom_spacer") {
+                Spacer(modifier = Modifier.height(110.dp))
             }
         }
 
-        // 5. Floating Action Button & Speed Dial
+        // Single Deck Delete Confirmation Dialog
+        deckToDelete?.let { targetDeck ->
+            AlertDialog(
+                onDismissRequest = { deckToDelete = null },
+                title = { Text("Delete Deck?") },
+                text = { Text("Are you sure you want to delete \"${targetDeck.title}\"? All ${targetDeck.words.size} words will be removed.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteDeck(targetDeck.id)
+                            deckToDelete = null
+                        }
+                    ) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { deckToDelete = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Batch Delete Confirmation Dialog
+        if (isBatchDeleteConfirmOpen) {
+            AlertDialog(
+                onDismissRequest = { isBatchDeleteConfirmOpen = false },
+                title = { Text("Delete Selected Decks?") },
+                text = { Text("Are you sure you want to delete ${uiState.selectedDeckIds.size} selected dictation decks?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteSelectedDecks()
+                            isBatchDeleteConfirmOpen = false
+                        }
+                    ) {
+                        Text("Delete All", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { isBatchDeleteConfirmOpen = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // 6. Speed Dial Floating Action Menu
         DictationSpeedDialFab(
-            isOpen = isSpeedDialOpen,
-            onToggle = {
-                isSpeedDialOpen = !isSpeedDialOpen
-                haptic.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            },
-            onCreateDeck = {
-                isSpeedDialOpen = false
-                viewModel.openCreateDeckDialog()
-            },
-            onAiGenerate = {
+            isExpanded = isSpeedDialOpen,
+            onToggle = { isSpeedDialOpen = !isSpeedDialOpen },
+            onDismiss = { isSpeedDialOpen = false },
+            onAiGenerateClick = {
                 isSpeedDialOpen = false
                 viewModel.openAiGenerateDialog()
             },
-            onSwipeUp = onSwipeUpFab,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 20.dp)
+            onCreateDeckClick = {
+                isSpeedDialOpen = false
+                viewModel.openCreateDeckDialog()
+            },
+            onSwipeUp = onSwipeUpFab
         )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DictationDeckCard(
+fun ManagedDictationDeckItem(
     deck: DictationDeck,
-    onPlayClick: () -> Unit,
-    onEditClick: () -> Unit,
-    onToggleStar: () -> Unit,
-    onDeleteClick: () -> Unit
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
+    onEditClick: () -> Unit = {},
+    onShareClick: () -> Unit = {},
+    onToggleStar: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
-    val accentColor = deck.categoryColor
+    val haptic = LocalView.current
+    var isMenuOpen by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
+    GlassCard(
+        modifier = modifier
             .fillMaxWidth()
-            .testTag("dictation_deck_card_${deck.id}"),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-        )
+            .height(145.dp)
+            .testTag("managed_dictation_deck_${deck.id}"),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else null,
+        elevation = if (isSelected) 6.dp else 3.dp,
+        borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+        borderWidth = if (isSelected) 1.5.dp else 1.dp,
+        shape = RoundedCornerShape(16.dp),
+        onClick = onClick,
+        onLongClick = {
+            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            onLongClick()
+        }
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top Row: Title, Tag & Star
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Top Row: Icon + Star + Selection Check / 3-dot Menu
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(accentColor.copy(alpha = 0.20f)),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.RecordVoiceOver,
                             contentDescription = null,
-                            tint = accentColor,
+                            tint = deck.categoryColor,
                             modifier = Modifier.size(20.dp)
                         )
+                        if (deck.isStarred) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Starred",
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
 
-                    Column {
-                        Text(
-                            text = deck.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "${deck.words.size} Words • ${deck.lastPracticed}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
-                        )
+                    if (isSelectionMode) {
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                .border(
+                                    1.5.dp,
+                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // 3-dot Menu
+                        Box {
+                            IconButton(
+                                onClick = { isMenuOpen = true },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Deck options",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = isMenuOpen,
+                                onDismissRequest = { isMenuOpen = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Practice Words") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = deck.categoryColor)
+                                    },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        onClick()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Edit Deck & Words") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Edit, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        onEditClick()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Export & Share") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        onShareClick()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (deck.isStarred) "Unstar Deck" else "Star Deck") },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (deck.isStarred) Icons.Default.StarBorder else Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFFF59E0B)
+                                        )
+                                    },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        onToggleStar()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete Deck", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                    },
+                                    onClick = {
+                                        isMenuOpen = false
+                                        onDeleteClick()
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
 
-                IconButton(
-                    onClick = onToggleStar,
-                    modifier = Modifier.size(32.dp)
+                // Deck Title
+                Text(
+                    text = deck.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // Chips row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (deck.isStarred) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = "Star deck",
-                        tint = if (deck.isStarred) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                    if (deck.isAiGenerated) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(9999.dp))
+                                .background(Color(0xFF8B5CF6).copy(alpha = 0.2f))
+                                .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "AI",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFC084FC),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                    BadgeChip(
+                        text = "${deck.words.size} words",
+                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        textColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            if (deck.description.isNotBlank()) {
-                Text(
-                    text = deck.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Accuracy & Progress bar
+            // Progress & Accuracy section
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Accuracy Score",
+                        text = if (deck.accuracy > 0.6f) "Mastered" else "Due: ${deck.words.size.coerceAtLeast(1)}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
                     )
                     Text(
                         text = "${(deck.accuracy * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = accentColor
+                        color = deck.categoryColor,
+                        fontSize = 11.sp
                     )
                 }
-                LinearProgressIndicator(
-                    progress = { deck.accuracy },
+
+                // Custom Linear Progress Bar
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = accentColor,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                )
+                        .clip(RoundedCornerShape(9999.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(deck.accuracy.coerceIn(0f, 1f))
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(9999.dp))
+                            .background(deck.categoryColor)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DictationSpeedDialFab(
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    onDismiss: () -> Unit,
+    onAiGenerateClick: () -> Unit,
+    onCreateDeckClick: () -> Unit,
+    onSwipeUp: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val haptic = LocalView.current
+    var verticalDragAccumulator by remember { mutableFloatStateOf(0f) }
+
+    // Rotation animation: 0 deg (Plus '+') -> 135 deg (Cross '✕')
+    val rotation by animateFloatAsState(
+        targetValue = if (isExpanded) 135f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "dictationFabRotation"
+    )
+
+    // Morphing shape animation: Circle (28dp radius) -> Rounded Square (18dp radius)
+    val cornerRadius by animateDpAsState(
+        targetValue = if (isExpanded) 18.dp else 28.dp,
+        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        label = "dictationFabCornerRadius"
+    )
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+
+    // Dynamic Theme-Aware FAB Gradients
+    val closedGradient = Brush.linearGradient(
+        colors = listOf(primaryColor, secondaryColor)
+    )
+    val expandedBgColor = MaterialTheme.colorScheme.surfaceContainerHigh
+
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // Scrim backdrop: Consumes outside clicks when speed dial is open
+        if (isExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        onDismiss()
+                    }
+                    .testTag("dictation_speed_dial_scrim")
+            )
+        }
+
+        // Speed Dial Container pinned to bottom right
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 24.dp)
+                .wrapContentSize(),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Speed Dial Options with clean animation
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn(animationSpec = tween(150, easing = FastOutSlowInEasing)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 3 },
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        ) +
+                        scaleIn(
+                            initialScale = 0.90f,
+                            animationSpec = tween(160, easing = FastOutSlowInEasing)
+                        ),
+                exit = fadeOut(animationSpec = tween(110, easing = FastOutSlowInEasing)) +
+                        slideOutVertically(
+                            targetOffsetY = { it / 3 },
+                            animationSpec = tween(110)
+                        ) +
+                        scaleOut(
+                            targetScale = 0.90f,
+                            animationSpec = tween(110)
+                        )
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Option 1: AI Generate Dictation Deck
+                    SpeedDialOption(
+                        label = "AI Generate Deck",
+                        icon = Icons.Default.AutoAwesome,
+                        iconTint = Color(0xFFC084FC),
+                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        labelContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        testTag = "speed_dial_ai_generate_dictation",
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            onAiGenerateClick()
+                        }
+                    )
+
+                    // Option 2: Create Manual Dictation Deck
+                    SpeedDialOption(
+                        label = "Create Deck",
+                        icon = Icons.Default.RecordVoiceOver,
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        labelContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        testTag = "speed_dial_create_dictation_deck",
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            onCreateDeckClick()
+                        }
+                    )
+                }
             }
 
-            // Bottom Actions Row: Edit, Delete & Big Play Practice Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Edit Words & Meanings Button
-                    Surface(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable(onClick = onEditClick)
-                            .testTag("edit_deck_btn_${deck.id}"),
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "Edit Words",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 11.sp
-                            )
+            // Main Primary FAB Button
+            Surface(
+                modifier = Modifier
+                    .size(56.dp)
+                    .shadow(
+                        elevation = if (isExpanded) 12.dp else 8.dp,
+                        shape = RoundedCornerShape(cornerRadius),
+                        ambientColor = primaryColor.copy(alpha = 0.4f),
+                        spotColor = primaryColor.copy(alpha = 0.6f)
+                    )
+                    .clip(RoundedCornerShape(cornerRadius))
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta ->
+                            verticalDragAccumulator += delta
+                            if (verticalDragAccumulator < -40f) {
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                verticalDragAccumulator = 0f
+                                onSwipeUp()
+                            }
+                        },
+                        onDragStopped = {
+                            verticalDragAccumulator = 0f
                         }
-                    }
-
-                    // Delete Deck Button
-                    IconButton(
-                        onClick = onDeleteClick,
-                        modifier = Modifier.size(32.dp)
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true, color = Color.White)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete deck",
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.75f),
-                            modifier = Modifier.size(16.dp)
-                        )
+                        haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onToggle()
                     }
-                }
-
-                // Start Blind Dictation Play Button
-                Surface(
+                    .testTag("dictation_fab"),
+                shape = RoundedCornerShape(cornerRadius),
+                color = Color.Transparent
+            ) {
+                Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onPlayClick)
-                        .testTag("start_dictation_play_${deck.id}"),
-                    shape = RoundedCornerShape(12.dp),
-                    color = accentColor
+                        .fillMaxSize()
+                        .background(
+                            if (isExpanded) Brush.linearGradient(listOf(expandedBgColor, expandedBgColor))
+                            else closedGradient
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.Black,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = "Start Dictation",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.Black
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = if (isExpanded) "Close actions" else "Add or generate deck",
+                        tint = if (isExpanded) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .rotate(rotation)
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpeedDialOption(
+    label: String,
+    icon: ImageVector,
+    iconTint: Color,
+    backgroundColor: Color,
+    labelContainerColor: Color,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.testTag(testTag)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = labelContainerColor,
+            shadowElevation = 4.dp,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            modifier = Modifier.clickable { onClick() }
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+
+        Surface(
+            modifier = Modifier
+                .size(44.dp)
+                .shadow(6.dp, CircleShape)
+                .clip(CircleShape)
+                .clickable { onClick() },
+            shape = CircleShape,
+            color = backgroundColor,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -663,210 +1088,34 @@ private fun DictationDeckCard(
 
 @Composable
 private fun DictationStatItem(
+    title: String,
     value: String,
-    label: String
+    suffix: String = ""
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 10.sp
-        )
-    }
-}
-
-@Composable
-private fun FilterTagChip(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) primaryColor else MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-        )
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        )
-    }
-}
-
-/**
- * Dictation Speed Dial FAB with Swipe-Up detection for Workspace switching
- */
-@Composable
-private fun DictationSpeedDialFab(
-    isOpen: Boolean,
-    onToggle: () -> Unit,
-    onCreateDeck: () -> Unit,
-    onAiGenerate: () -> Unit,
-    onSwipeUp: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    var dragOffsetY by remember { mutableFloatStateOf(0f) }
-
-    val rotation by animateFloatAsState(
-        targetValue = if (isOpen) 45f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "fab_rotation"
-    )
-
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        // Speed Dial Action 1: Create Manual Deck
-        AnimatedVisibility(
-            visible = isOpen,
-            enter = fadeIn(tween(140)) + slideInVertically(initialOffsetY = { it / 2 }) + scaleIn(initialScale = 0.8f),
-            exit = fadeOut(tween(100)) + slideOutVertically(targetOffsetY = { it / 2 }) + scaleOut(targetScale = 0.8f)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    shadowElevation = 4.dp
-                ) {
-                    Text(
-                        text = "Create Deck",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    )
-                }
-
-                Surface(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onCreateDeck)
-                        .testTag("speed_dial_create_dictation_deck"),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shadowElevation = 6.dp
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Create Deck",
-                            tint = primaryColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Speed Dial Action 2: AI Deck Generator
-        AnimatedVisibility(
-            visible = isOpen,
-            enter = fadeIn(tween(180)) + slideInVertically(initialOffsetY = { it / 2 }) + scaleIn(initialScale = 0.8f),
-            exit = fadeOut(tween(100)) + slideOutVertically(targetOffsetY = { it / 2 }) + scaleOut(targetScale = 0.8f)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    shadowElevation = 4.dp
-                ) {
-                    Text(
-                        text = "AI Word / Deck Import",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    )
-                }
-
-                Surface(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onAiGenerate)
-                        .testTag("speed_dial_ai_dictation_generate"),
-                    shape = CircleShape,
-                    color = primaryColor,
-                    shadowElevation = 6.dp
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "AI Generate",
-                            tint = Color.Black,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Main Plus Hero FAB
-        Surface(
-            modifier = Modifier
-                .size(58.dp)
-                .clip(CircleShape)
-                .shadow(12.dp, CircleShape, ambientColor = primaryColor.copy(alpha = 0.5f), spotColor = primaryColor.copy(alpha = 0.8f))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = true, color = Color.White),
-                    onClick = onToggle
-                )
-                .draggable(
-                    orientation = Orientation.Vertical,
-                    state = rememberDraggableState { delta ->
-                        dragOffsetY += delta
-                        if (dragOffsetY < -50f) {
-                            dragOffsetY = 0f
-                            onSwipeUp()
-                        }
-                    },
-                    onDragStopped = { dragOffsetY = 0f }
-                )
-                .testTag("dictation_main_fab"),
-            shape = CircleShape,
-            color = primaryColor
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Dictation Actions",
-                    tint = Color.Black,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .rotate(rotation)
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (suffix.isNotEmpty()) {
+                Text(
+                    text = suffix,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 2.dp)
                 )
             }
         }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

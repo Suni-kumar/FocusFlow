@@ -47,6 +47,11 @@ class DictationVoiceCommander(private val context: Context) {
     @Volatile
     private var isPausedTemporarily = false
 
+    @Volatile
+    private var lastAudioPlaybackFinishTime = 0L
+
+    private var consecutiveErrors = 0
+
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening.asStateFlow()
 
@@ -70,6 +75,7 @@ class DictationVoiceCommander(private val context: Context) {
     private val inactivityLimitMillis = 5 * 60 * 1000L
     private val inactivityScope = CoroutineScope(Dispatchers.Main)
     private var inactivityTimerJob: Job? = null
+    private var watchdogJob: Job? = null
 
     init {
         initRecognizerOnMain()
@@ -78,8 +84,9 @@ class DictationVoiceCommander(private val context: Context) {
     private fun initRecognizerOnMain() {
         mainHandler.post {
             try {
+                speechRecognizer?.destroy()
+                speechRecognizer = null
                 if (SpeechRecognizer.isRecognitionAvailable(context)) {
-                    speechRecognizer?.destroy()
                     speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
                         setRecognitionListener(createRecognitionListener())
                     }
@@ -93,6 +100,7 @@ class DictationVoiceCommander(private val context: Context) {
     private fun createRecognitionListener() = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
             _isListening.value = true
+            consecutiveErrors = 0
         }
 
         override fun onBeginningOfSpeech() {
@@ -120,22 +128,24 @@ class DictationVoiceCommander(private val context: Context) {
         override fun onError(error: Int) {
             _isListening.value = false
             _audioRmsLevel.value = 0f
-            Log.d(TAG, "Recognition error: $error")
+            consecutiveErrors++
+            Log.d(TAG, "Recognition error: $error (consecutive: $consecutiveErrors)")
 
             if (isListeningActive && !isPausedTemporarily && !_isAsleepDueToInactivity.value) {
-                // If error is recognizer busy or client error, re-instantiate cleanly
-                if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
+                // If 3+ consecutive errors or fatal busy/client state, do a full reset
+                if (consecutiveErrors >= 3 || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
+                    consecutiveErrors = 0
                     mainHandler.postDelayed({
                         initRecognizerOnMain()
-                        mainHandler.postDelayed({ startListeningInternal() }, 200)
-                    }, 300)
+                        mainHandler.postDelayed({ startListeningInternal() }, 250)
+                    }, 350)
                 } else {
-                    // Normal timeout / no match -> quick seamless restart for continuous hands-free listening
+                    // Quick seamless restart on no-match or timeout
                     mainHandler.postDelayed({
                         if (isListeningActive && !isPausedTemporarily) {
                             startListeningInternal()
                         }
-                    }, 150)
+                    }, 120)
                 }
             }
         }
@@ -143,16 +153,21 @@ class DictationVoiceCommander(private val context: Context) {
         override fun onResults(results: Bundle?) {
             _isListening.value = false
             _audioRmsLevel.value = 0f
+            consecutiveErrors = 0
             resetInactivityTimer()
 
-            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-            if (!matches.isNullOrEmpty()) {
-                val spoken = matches[0].trim()
-                _lastRecognizedText.value = spoken
-                val command = parseSpokenCommand(spoken)
-                if (command != DictationVoiceCommand.NONE) {
-                    _lastDetectedCommand.value = command
-                    onCommandRecognized?.invoke(command)
+            // Echo guard: ignore results that finish within 350ms of audio player output
+            val timeSinceAudio = System.currentTimeMillis() - lastAudioPlaybackFinishTime
+            if (timeSinceAudio > 350) {
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (!matches.isNullOrEmpty()) {
+                    val spoken = matches[0].trim()
+                    _lastRecognizedText.value = spoken
+                    val command = parseSpokenCommand(spoken)
+                    if (command != DictationVoiceCommand.NONE) {
+                        _lastDetectedCommand.value = command
+                        onCommandRecognized?.invoke(command)
+                    }
                 }
             }
 
@@ -166,14 +181,17 @@ class DictationVoiceCommander(private val context: Context) {
 
         override fun onPartialResults(partialResults: Bundle?) {
             resetInactivityTimer()
-            val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-            if (!matches.isNullOrEmpty()) {
-                val spoken = matches[0].trim()
-                _lastRecognizedText.value = spoken
-                val command = parseSpokenCommand(spoken)
-                if (command != DictationVoiceCommand.NONE) {
-                    _lastDetectedCommand.value = command
-                    onCommandRecognized?.invoke(command)
+            val timeSinceAudio = System.currentTimeMillis() - lastAudioPlaybackFinishTime
+            if (timeSinceAudio > 350) {
+                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (!matches.isNullOrEmpty()) {
+                    val spoken = matches[0].trim()
+                    _lastRecognizedText.value = spoken
+                    val command = parseSpokenCommand(spoken)
+                    if (command != DictationVoiceCommand.NONE) {
+                        _lastDetectedCommand.value = command
+                        onCommandRecognized?.invoke(command)
+                    }
                 }
             }
         }
@@ -182,14 +200,16 @@ class DictationVoiceCommander(private val context: Context) {
     }
 
     /**
-     * Starts continuous hands-free listening.
+     * Starts continuous hands-free listening with watchdog monitor.
      */
     fun startListening() {
         isListeningActive = true
         isPausedTemporarily = false
         _isAsleepDueToInactivity.value = false
+        consecutiveErrors = 0
         resetInactivityTimer()
         startInactivityMonitor()
+        startWatchdog()
 
         mainHandler.post {
             startListeningInternal()
@@ -242,11 +262,29 @@ class DictationVoiceCommander(private val context: Context) {
     }
 
     fun resumeAfterAudio() {
+        lastAudioPlaybackFinishTime = System.currentTimeMillis()
         isPausedTemporarily = false
         if (isListeningActive && !_isAsleepDueToInactivity.value) {
             mainHandler.postDelayed({
-                startListeningInternal()
-            }, 250)
+                if (isListeningActive && !isPausedTemporarily) {
+                    startListeningInternal()
+                }
+            }, 380) // 380ms acoustic room clearance delay to prevent self-trigger
+        }
+    }
+
+    private fun startWatchdog() {
+        watchdogJob?.cancel()
+        watchdogJob = inactivityScope.launch {
+            while (isActive && isListeningActive) {
+                delay(3500) // Check health every 3.5 seconds
+                if (isListeningActive && !isPausedTemporarily && !_isAsleepDueToInactivity.value && !_isListening.value) {
+                    Log.d(TAG, "Watchdog detected inactive recognizer while active. Auto-recovering...")
+                    mainHandler.post {
+                        startListeningInternal()
+                    }
+                }
+            }
         }
     }
 
@@ -254,6 +292,7 @@ class DictationVoiceCommander(private val context: Context) {
         isListeningActive = false
         isPausedTemporarily = false
         inactivityTimerJob?.cancel()
+        watchdogJob?.cancel()
         mainHandler.post {
             try {
                 speechRecognizer?.stopListening()

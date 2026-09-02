@@ -34,19 +34,26 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -59,6 +66,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.ui.dialogs.ShareDeckExportDialog
 
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
@@ -84,6 +92,8 @@ fun DecksDashboardScreen(
     onCreateDeckClick: () -> Unit = {},
     onAiGenerateClick: () -> Unit = {},
     onToggleStar: (String) -> Unit = {},
+    onRenameDeckClick: (FlashcardDeck) -> Unit = {},
+    onDeleteDeckClick: (FlashcardDeck) -> Unit = {},
     decks: List<FlashcardDeck> = emptyList(),
     selectedDeckIds: Set<String> = emptySet(),
     onToggleSelection: (String) -> Unit = {},
@@ -92,9 +102,17 @@ fun DecksDashboardScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All Decks") }
+    var deckToExport by remember { mutableStateOf<FlashcardDeck?>(null) }
 
     val filterOptions = listOf("All Decks", "Recently Reviewed", "Favorites")
     val isSelectionMode = selectedDeckIds.isNotEmpty()
+
+    if (deckToExport != null) {
+        ShareDeckExportDialog(
+            deck = deckToExport!!,
+            onDismiss = { deckToExport = null }
+        )
+    }
 
     // Intercept hardware/gesture back press to return or clear selection
     BackHandler(enabled = true) {
@@ -165,6 +183,87 @@ fun DecksDashboardScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                }
+            }
+
+            // Daily Focus & Streak Progress Card
+            item {
+                val totalCardsInDecks = decks.sumOf { it.cards.size }
+                val masteredCardsEstimate = (totalCardsInDecks * 0.65f).toInt()
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(18.dp)),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFF97316).copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocalFireDepartment,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF97316),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "4-Day Study Streak!",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Daily Goal: 20 / 25 Cards Reviewed",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(9999.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.EmojiEvents,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "$masteredCardsEstimate Mastered",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -315,6 +414,9 @@ fun DecksDashboardScreen(
                         isSelected = isSelected,
                         isSelectionMode = isSelectionMode,
                         onToggleStar = { onToggleStar(deck.id) },
+                        onShare = { deckToExport = deck },
+                        onRename = { onRenameDeckClick(deck) },
+                        onDelete = { onDeleteDeckClick(deck) },
                         onClick = {
                             if (isSelectionMode) {
                                 onToggleSelection(deck.id)
@@ -366,11 +468,15 @@ fun DeckListItemCard(
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
     onToggleStar: () -> Unit = {},
+    onShare: () -> Unit = {},
+    onRename: () -> Unit = {},
+    onDelete: () -> Unit = {},
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalView.current
+    var isMenuExpanded by remember { mutableStateOf(false) }
 
     GlassCard(
         modifier = modifier
@@ -495,6 +601,22 @@ fun DeckListItemCard(
                             )
                         }
 
+                        // Share/Export button
+                        IconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                onShare()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share deck",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+
                         // Star/Favorite button
                         IconButton(
                             onClick = {
@@ -509,6 +631,55 @@ fun DeckListItemCard(
                                 tint = if (deck.isStarred) Color(0xFFFBBF24) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 modifier = Modifier.size(18.dp)
                             )
+                        }
+
+                        Box {
+                            IconButton(
+                                onClick = { isMenuExpanded = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More options",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = isMenuExpanded,
+                                onDismissRequest = { isMenuExpanded = false },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Rename Deck") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    onClick = {
+                                        isMenuExpanded = false
+                                        onRename()
+                                    }
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Delete Deck", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        isMenuExpanded = false
+                                        onDelete()
+                                    }
+                                )
+                            }
                         }
                     }
                 }

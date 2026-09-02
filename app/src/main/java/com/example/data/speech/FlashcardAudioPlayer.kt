@@ -7,16 +7,21 @@ import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import android.util.Base64
 import android.util.Log
+import android.util.LruCache
 import com.example.BuildConfig
 import com.example.data.preferences.UserPreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -30,6 +35,7 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 /**
  * High-speed Zero-Lag Speech & Audio Engine for FocusFlow Flashcards & Dictation Studio.
@@ -53,21 +59,56 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     private val _currentEngineType = MutableStateFlow("Offline Engine")
     val currentEngineType: StateFlow<String> = _currentEngineType.asStateFlow()
 
+    private val _visualizerAmplitudes = MutableStateFlow(List(10) { 0.08f })
+    val visualizerAmplitudes: StateFlow<List<Float>> = _visualizerAmplitudes.asStateFlow()
+
+    private var amplitudeJob: Job? = null
+
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
     private var mediaPlayer: MediaPlayer? = null
     private var onSpeechDoneCallback: (() -> Unit)? = null
 
+    private val memCache = LruCache<String, ByteArray>(50)
     private val cacheDir = File(appContext.cacheDir, "audio_cache").apply { mkdirs() }
 
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(3, TimeUnit.SECONDS)
-        .readTimeout(4, TimeUnit.SECONDS)
-        .writeTimeout(3, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
         .build()
 
     init {
         initTts()
+    }
+
+    private fun startVisualizerTicker() {
+        amplitudeJob?.cancel()
+        amplitudeJob = scope.launch {
+            while (isActive && _isSpeaking.value) {
+                // Generate dynamic realistic audio energy spectrum based on human speech cadence
+                val baseEnergy = Random.nextFloat() * 0.7f + 0.3f
+                val newBars = List(10) { i ->
+                    val factor = when (i) {
+                        0, 9 -> 0.35f
+                        1, 8 -> 0.55f
+                        2, 7 -> 0.75f
+                        else -> 1.0f
+                    }
+                    (baseEnergy * factor * (0.6f + Random.nextFloat() * 0.4f)).coerceIn(0.12f, 1.0f)
+                }
+                _visualizerAmplitudes.value = newBars
+                delay(65)
+            }
+            // Smooth decay to rest
+            _visualizerAmplitudes.value = List(10) { 0.08f }
+        }
+    }
+
+    private fun stopVisualizerTicker() {
+        amplitudeJob?.cancel()
+        amplitudeJob = null
+        _visualizerAmplitudes.value = List(10) { 0.08f }
     }
 
     private fun initTts() {
@@ -77,11 +118,13 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {
                         _isSpeaking.value = true
+                        startVisualizerTicker()
                     }
 
                     override fun onDone(utteranceId: String?) {
                         _isSpeaking.value = false
                         _currentText.value = null
+                        stopVisualizerTicker()
                         onSpeechDoneCallback?.invoke()
                     }
 
@@ -89,12 +132,14 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                     override fun onError(utteranceId: String?) {
                         _isSpeaking.value = false
                         _currentText.value = null
+                        stopVisualizerTicker()
                         onSpeechDoneCallback?.invoke()
                     }
 
                     override fun onError(utteranceId: String?, errorCode: Int) {
                         _isSpeaking.value = false
                         _currentText.value = null
+                        stopVisualizerTicker()
                         onSpeechDoneCallback?.invoke()
                     }
                 })
@@ -105,9 +150,34 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     }
 
     /**
+     * Dynamically updates pitch and speed during active playback and persists for future utterances.
+     */
+    fun updatePitchAndSpeed(pitch: Float, speed: Float) {
+        tts?.let { engine ->
+            try {
+                engine.setPitch(pitch.coerceIn(0.5f, 2.0f))
+                engine.setSpeechRate(speed.coerceIn(0.5f, 2.0f))
+            } catch (e: Exception) {
+                Log.d(TAG, "Dynamic TTS pitch/speed update note: ${e.message}")
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mediaPlayer?.let { player ->
+                try {
+                    if (player.isPlaying) {
+                        player.playbackParams = PlaybackParams().apply { this.speed = speed }
+                    }
+                } catch (e: Exception) {
+                    Log.d(TAG, "Dynamic MediaPlayer speed update note: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
      * Reads out the text cleanly with Gemini Live AI HD Voice or instant local TTS based on preference.
      */
-    fun speak(text: String, forceReplay: Boolean = true, onDone: () -> Unit = {}) {
+    fun speak(text: String, forceReplay: Boolean = true, rate: Float = 1.0f, onDone: () -> Unit = {}) {
         val cleanText = text.trim()
         if (cleanText.isEmpty()) return
 
@@ -121,6 +191,13 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         val apiKey = getGeminiApiKey()
 
         scope.launch {
+            // If custom rate is specified, dynamically set it
+            if (rate != 1.0f) {
+                tts?.setSpeechRate(rate)
+            } else {
+                tts?.setSpeechRate(prefsManager.voiceSpeed)
+            }
+
             // Check instant disk cache first (zero-lag playback)
             val cacheKey = hashAudioKey(cleanText, selectedVoice, prefsManager.voiceAccent)
             val cachedFile = File(cacheDir, "$cacheKey.wav")
@@ -131,7 +208,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             }
 
             // If user prefers Gemini Live HD voice and API key is present, attempt live generative voice streaming
-            if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
+            if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY" && rate == 1.0f) {
                 _isLoading.value = true
                 _currentEngineType.value = "Gemini Live HD ($selectedVoice)"
                 
@@ -162,6 +239,13 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
      */
     fun speakDictationWord(word: String, onDone: () -> Unit = {}) {
         speak(word, forceReplay = true, onDone = onDone)
+    }
+
+    /**
+     * Dictation Practice: Speaks a specific word slowly (0.75x rate) for phonetic clarity.
+     */
+    fun speakDictationWordSlowly(word: String, onDone: () -> Unit = {}) {
+        speak(word, rate = 0.75f, forceReplay = true, onDone = onDone)
     }
 
     /**
@@ -289,6 +373,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             Log.e(TAG, "Error stopping TTS", e)
         }
 
+        stopVisualizerTicker()
         _isSpeaking.value = false
         _isLoading.value = false
         _currentText.value = null
@@ -343,13 +428,13 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             val normPersona = normalizeVoiceName(voicePersona)
             val isMalePersona = normPersona in listOf("Puck", "Charon", "Fenrir")
 
-            // Real acoustic tuning for distinct personas
+            // Real acoustic tuning for distinct male and female personas
             val (personaPitchMod, personaSpeedMod) = when (normPersona) {
-                "Aoede" -> Pair(1.10f, 1.00f)      // Melodic, expressive soprano female
-                "Kore" -> Pair(0.98f, 0.94f)       // Calm, soothing alto female
-                "Puck" -> Pair(0.85f, 1.05f)       // Youthful, energetic masculine male
-                "Charon" -> Pair(0.74f, 0.90f)     // Deep baritone masculine male
-                "Fenrir" -> Pair(0.82f, 0.98f)     // Balanced articulate clear male
+                "Aoede" -> Pair(1.12f, 1.00f)      // Melodic, expressive soprano female
+                "Kore" -> Pair(0.96f, 0.95f)       // Calm, soothing alto female
+                "Puck" -> Pair(0.82f, 1.06f)       // Youthful, energetic masculine male
+                "Charon" -> Pair(0.68f, 0.92f)     // Deep resonant baritone masculine male
+                "Fenrir" -> Pair(0.76f, 0.98f)     // Balanced articulate clear male
                 else -> Pair(1.0f, 1.0f)
             }
 
@@ -369,13 +454,15 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 if (!availableVoices.isNullOrEmpty()) {
                     val matchingVoices = availableVoices.filter { v ->
                         val n = v.name.lowercase()
-                        val isFemaleVoice = n.contains("female") || n.contains("f0") || n.contains("-f-") || n.contains("woman") || n.contains("girl")
-                        val isMaleVoice = n.contains("male") || n.contains("m0") || n.contains("-m-") || n.contains("man") || n.contains("boy")
+                        val isExplicitFemale = n.contains("female") || n.contains("f0") || n.contains("-f-") || 
+                                n.contains("woman") || n.contains("girl") || n.contains("samantha") || n.contains("zira")
+                        val isExplicitMale = n.contains("male") || n.contains("m0") || n.contains("-m-") || 
+                                n.contains("man") || n.contains("boy") || n.contains("david") || n.contains("guy")
 
                         if (isMalePersona) {
-                            isMaleVoice || (!isFemaleVoice && !n.contains("f0"))
+                            isExplicitMale || (!isExplicitFemale && !n.contains("f0"))
                         } else {
-                            isFemaleVoice || (!isMaleVoice && !n.contains("m0"))
+                            isExplicitFemale || (!isExplicitMale && !n.contains("m0"))
                         }
                     }
 
@@ -402,6 +489,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             }
 
             _isSpeaking.value = true
+            startVisualizerTicker()
             engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, "flashcard_speech_${System.currentTimeMillis()}")
         }
     }
@@ -595,16 +683,19 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 }
                 setOnPreparedListener {
                     _isSpeaking.value = true
+                    startVisualizerTicker()
                     start()
                 }
                 setOnCompletionListener {
                     _isSpeaking.value = false
                     _currentText.value = null
+                    stopVisualizerTicker()
                     onSpeechDoneCallback?.invoke()
                 }
                 setOnErrorListener { _, _, _ ->
                     _isSpeaking.value = false
                     _currentText.value = null
+                    stopVisualizerTicker()
                     onSpeechDoneCallback?.invoke()
                     false
                 }
@@ -613,6 +704,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error playing audio file", e)
+            stopVisualizerTicker()
             onSpeechDoneCallback?.invoke()
             false
         }
@@ -645,17 +737,20 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
 
                     setOnPreparedListener {
                         _isSpeaking.value = true
+                        startVisualizerTicker()
                         start()
                     }
                     setOnCompletionListener {
                         _isSpeaking.value = false
                         _currentText.value = null
+                        stopVisualizerTicker()
                         onSpeechDoneCallback?.invoke()
                         tempFile.delete()
                     }
                     setOnErrorListener { _, _, _ ->
                         _isSpeaking.value = false
                         _currentText.value = null
+                        stopVisualizerTicker()
                         onSpeechDoneCallback?.invoke()
                         tempFile.delete()
                         false
@@ -666,6 +761,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             return@withContext true
         } catch (e: Exception) {
             Log.e(TAG, "Error playing audio bytes", e)
+            stopVisualizerTicker()
             onSpeechDoneCallback?.invoke()
             return@withContext false
         }

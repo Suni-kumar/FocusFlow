@@ -46,18 +46,24 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.CloseFullscreen
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -86,6 +92,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.data.preferences.UserPreferencesManager
 import com.example.data.speech.FlashcardAudioPlayer
 import com.example.model.FlashcardDeck
 import com.example.model.MockDataSource
@@ -93,6 +100,7 @@ import com.example.ui.components.FlashcardSpeakerButton
 import com.example.ui.theme.FocusBlue
 import com.example.ui.theme.LiquidGlassReflection
 import com.example.ui.util.AppHaptic
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -102,27 +110,55 @@ fun StudyScreen(
     onToggleTheme: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onDeckProgressUpdate: ((progress: Float) -> Unit)? = null,
+    onToggleCardMastery: ((cardId: String, isMastered: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var cardsList by remember(deck) {
-        mutableStateOf(deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards })
+    val context = LocalContext.current
+    val hapticView = LocalView.current
+    val density = LocalDensity.current.density
+    val prefsManager = remember { UserPreferencesManager(context) }
+    val audioPlayer = remember { FlashcardAudioPlayer.getInstance(context) }
+
+    val allCards = remember(deck.cards) {
+        deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards }
     }
+    
+    // Instead of local state, calculate from the deck cards
+    val masteredCardIds = remember(deck.cards) {
+        deck.cards.filter { it.isMastered }.map { it.id }.toSet()
+    }
+    var filterOnlyUnmastered by remember { mutableStateOf(false) }
+
+    var cardsList by remember(deck) {
+        mutableStateOf(allCards)
+    }
+
+    LaunchedEffect(filterOnlyUnmastered, masteredCardIds) {
+        if (filterOnlyUnmastered) {
+            val unmastered = allCards.filter { it.id !in masteredCardIds }
+            cardsList = if (unmastered.isNotEmpty()) unmastered else allCards
+        } else {
+            cardsList = allCards
+        }
+    }
+
     var currentCardIndex by remember(cardsList) { mutableIntStateOf(0) }
     var isFlipped by remember { mutableStateOf(false) }
     var isCardExpanded by remember { mutableStateOf(false) }
-    var masteredCardIds by remember(deck) { mutableStateOf(setOf<String>()) }
     var isCompleted by remember { mutableStateOf(false) }
     var isZenMode by remember { mutableStateOf(false) }
     var showTags by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
-    val hapticView = LocalView.current
-    val density = LocalDensity.current.density
+    // Auto-Play / Hands-Free Loop state
+    var isAutoPlayActive by remember { mutableStateOf(false) }
+    var autoPlayCountdown by remember { mutableIntStateOf(0) }
+    var currentVoiceSpeed by remember { mutableStateOf(prefsManager.voiceSpeed) }
 
     val scope = rememberCoroutineScope()
     val dragOffsetX = remember { Animatable(0f) }
 
-    val currentCard = cardsList[currentCardIndex.coerceIn(0, cardsList.size - 1)]
+    val safeIndex = currentCardIndex.coerceIn(0, (cardsList.size - 1).coerceAtLeast(0))
+    val currentCard = if (cardsList.isNotEmpty()) cardsList[safeIndex] else allCards[0]
 
     val frontScrollState = rememberScrollState()
     val backScrollState = rememberScrollState()
@@ -134,6 +170,45 @@ fun StudyScreen(
 
     LaunchedEffect(currentCardIndex) {
         showTags = false
+    }
+
+    // Hands-Free Auto-Play Orchestration
+    LaunchedEffect(isAutoPlayActive, currentCardIndex, isFlipped) {
+        if (isAutoPlayActive && cardsList.isNotEmpty()) {
+            if (!isFlipped) {
+                // 1. Speak Question
+                audioPlayer.speak(currentCard.front, rate = currentVoiceSpeed)
+                // 2. Wait 3 seconds with countdown
+                for (sec in 3 downTo 1) {
+                    autoPlayCountdown = sec
+                    delay(1000)
+                    if (!isAutoPlayActive) break
+                }
+                if (isAutoPlayActive) {
+                    isFlipped = true
+                }
+            } else {
+                // 3. Speak Answer
+                audioPlayer.speak(currentCard.back, rate = currentVoiceSpeed)
+                // 4. Wait 3.5 seconds
+                for (sec in 3 downTo 1) {
+                    autoPlayCountdown = sec
+                    delay(1000)
+                    if (!isAutoPlayActive) break
+                }
+                if (isAutoPlayActive) {
+                    if (currentCardIndex < cardsList.size - 1) {
+                        isFlipped = false
+                        currentCardIndex++
+                    } else {
+                        isAutoPlayActive = false
+                        isCompleted = true
+                    }
+                }
+            }
+        } else {
+            autoPlayCountdown = 0
+        }
     }
 
     // Flip animation rotation with smooth perceptible 3D rotation
@@ -158,18 +233,21 @@ fun StudyScreen(
 
     // Stop audio when changing card or leaving
     LaunchedEffect(currentCardIndex) {
-        FlashcardAudioPlayer.getInstance(context).stop()
+        if (!isAutoPlayActive) {
+            audioPlayer.stop()
+        }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            FlashcardAudioPlayer.getInstance(context).stop()
+            audioPlayer.stop()
         }
     }
 
     // Intercept hardware/gesture back press
     BackHandler(enabled = true) {
-        FlashcardAudioPlayer.getInstance(context).stop()
+        audioPlayer.stop()
+        isAutoPlayActive = false
         if (isCardExpanded) {
             AppHaptic.vibrateClick(context, hapticView)
             isCardExpanded = false
@@ -321,7 +399,86 @@ fun StudyScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Sub-header: Auto-Play Indicator & Speed Chips
+            AnimatedVisibility(
+                visible = !isZenMode,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Auto-Play Toggle Button
+                    Surface(
+                        onClick = {
+                            AppHaptic.vibrateClick(context, hapticView)
+                            isAutoPlayActive = !isAutoPlayActive
+                        },
+                        shape = RoundedCornerShape(9999.dp),
+                        color = if (isAutoPlayActive) FocusBlue.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isAutoPlayActive) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isAutoPlayActive) "Pause Auto-Advance" else "Start Auto-Advance",
+                                tint = if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = if (isAutoPlayActive) "Auto-Play (${autoPlayCountdown}s)" else "Auto-Play",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Inline Speed Selector (0.75x, 1.0x, 1.25x, 1.5x)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(0.75f, 1.0f, 1.25f, 1.5f).forEach { speed ->
+                            val isSelected = (currentVoiceSpeed == speed)
+                            Surface(
+                                onClick = {
+                                    AppHaptic.vibrateClick(context, hapticView)
+                                    currentVoiceSpeed = speed
+                                    prefsManager.voiceSpeed = speed
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else Color.Transparent,
+                                border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                            ) {
+                                Text(
+                                    text = "${speed}x",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             // 3D Flashcard Stack Container
             Box(
@@ -842,8 +999,10 @@ fun StudyScreen(
                         Button(
                             onClick = {
                                 AppHaptic.vibrateHeavy(context, hapticView)
-                                masteredCardIds = masteredCardIds + currentCard.id
-                                val calculatedProgress = (masteredCardIds.size.toFloat() / cardsList.size.toFloat()).coerceIn(0f, 1f)
+                                onToggleCardMastery?.invoke(currentCard.id, true)
+                                // We don't recalculate here, as the deck's new state will trickle down
+                                // and trigger recomposition of masteredCardIds
+                                val calculatedProgress = ((masteredCardIds.size + 1).toFloat() / cardsList.size.toFloat()).coerceIn(0f, 1f)
                                 onDeckProgressUpdate?.invoke(calculatedProgress)
 
                                 if (currentCardIndex < cardsList.size - 1) {
@@ -913,28 +1072,60 @@ fun StudyScreen(
                         }
                     }
 
-                    // Shuffle Deck Action
-                    TextButton(
-                        onClick = {
-                            AppHaptic.vibrateClick(context, hapticView)
-                            cardsList = cardsList.shuffled()
-                            currentCardIndex = 0
-                            isFlipped = false
-                        }
+                    // Secondary Actions: Shuffle Deck & Review Unmastered Filter
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Shuffle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Shuffle Deck",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
-                        )
+                        // Shuffle Deck Action
+                        TextButton(
+                            onClick = {
+                                AppHaptic.vibrateClick(context, hapticView)
+                                cardsList = cardsList.shuffled()
+                                currentCardIndex = 0
+                                isFlipped = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shuffle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Shuffle",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Filter Mastered / Unmastered
+                        val unmasteredCount = allCards.size - masteredCardIds.size
+                        TextButton(
+                            onClick = {
+                                AppHaptic.vibrateClick(context, hapticView)
+                                filterOnlyUnmastered = !filterOnlyUnmastered
+                                currentCardIndex = 0
+                                isFlipped = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = null,
+                                tint = if (filterOnlyUnmastered) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (filterOnlyUnmastered) "All Cards (${allCards.size})" else "Unmastered ($unmasteredCount)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (filterOnlyUnmastered) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = if (filterOnlyUnmastered) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -1005,7 +1196,9 @@ fun StudyScreen(
                                     AppHaptic.vibrateClick(context, hapticView)
                                     cardsList = cardsList.shuffled()
                                     currentCardIndex = 0
-                                    masteredCardIds = emptySet()
+                                    cardsList.forEach { card ->
+                                        onToggleCardMastery?.invoke(card.id, false)
+                                    }
                                     isFlipped = false
                                     isCompleted = false
                                 },

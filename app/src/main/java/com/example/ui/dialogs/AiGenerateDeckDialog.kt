@@ -296,6 +296,25 @@ fun AiGenerateDeckDialog(
                     }
                 }
 
+                // Error Message Display
+                if (!isGenerating && progressMessage.startsWith("Error")) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f))
+                            .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = progressMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
                 // Field 1: Deck Name
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(

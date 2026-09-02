@@ -42,16 +42,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.SlowMotionVideo
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.WbSunny
@@ -73,6 +82,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -96,6 +107,7 @@ import com.example.data.preferences.UserPreferencesManager
 import com.example.data.speech.DictationVoiceCommand
 import com.example.data.speech.FlashcardAudioPlayer
 import com.example.model.DictationDeck
+import com.example.ui.components.LiquidGlowOrb
 import com.example.viewmodel.DictationViewModel
 
 @Composable
@@ -149,16 +161,69 @@ fun DictationPracticeScreen(
         }
     }
 
+    var isControlsExpanded by remember { mutableStateOf(false) }
+    var isAutoDictationActive by remember { mutableStateOf(false) }
+    var autoRepeatTimes by remember { mutableIntStateOf(2) } // 1x, 2x, 3x
+    var autoPauseSeconds by remember { mutableIntStateOf(5) } // 3s, 5s, 8s
+    var autoPauseRemaining by remember { mutableIntStateOf(0) }
+    var currentRepeatStep by remember { mutableIntStateOf(0) }
+    var speechRate by remember { mutableFloatStateOf(prefsManager.voiceSpeed) }
+
+    val currentIndex = uiState.currentWordIndex.coerceIn(0, (deck.words.size - 1).coerceAtLeast(0))
+    val currentWord = deck.words.getOrNull(currentIndex)
+    val totalWords = deck.words.size
+    val accentColor = deck.categoryColor
+
+    // Hands-Free Auto-Dictation Engine Loop
+    LaunchedEffect(isAutoDictationActive, currentIndex) {
+        if (isAutoDictationActive && currentWord != null) {
+            for (r in 1..autoRepeatTimes) {
+                if (!isAutoDictationActive) break
+                currentRepeatStep = r
+                autoPauseRemaining = 0
+                viewModel.playCurrentWord()
+                kotlinx.coroutines.delay(2400)
+            }
+            if (isAutoDictationActive) {
+                currentRepeatStep = 0
+                for (sec in autoPauseSeconds downTo 1) {
+                    autoPauseRemaining = sec
+                    kotlinx.coroutines.delay(1000)
+                    if (!isAutoDictationActive) break
+                }
+                autoPauseRemaining = 0
+                if (isAutoDictationActive) {
+                    if (currentIndex < totalWords - 1) {
+                        viewModel.nextWord()
+                    } else {
+                        isAutoDictationActive = false
+                        onOpenCheckingTime()
+                    }
+                }
+            }
+        } else {
+            autoPauseRemaining = 0
+            currentRepeatStep = 0
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
+            isAutoDictationActive = false
             viewModel.voiceCommander.stopListening()
             audioPlayer.stop()
         }
     }
 
     BackHandler {
-        viewModel.finishPracticeSession(recordAccuracy = false)
-        onBackClick()
+        if (isAutoDictationActive) {
+            isAutoDictationActive = false
+        } else if (isControlsExpanded) {
+            isControlsExpanded = false
+        } else {
+            viewModel.finishPracticeSession(recordAccuracy = false)
+            onBackClick()
+        }
     }
 
     LaunchedEffect(lastDetectedCommand) {
@@ -167,18 +232,20 @@ fun DictationPracticeScreen(
         }
     }
 
-    val currentIndex = uiState.currentWordIndex.coerceIn(0, (deck.words.size - 1).coerceAtLeast(0))
-    val currentWord = deck.words.getOrNull(currentIndex)
-    val totalWords = deck.words.size
-    val progress = if (totalWords > 0) (currentIndex + 1).toFloat() / totalWords.toFloat() else 0f
-    val accentColor = deck.categoryColor
-
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                if (isControlsExpanded) {
+                    isControlsExpanded = false
+                }
+            }
             .testTag("dictation_practice_screen")
     ) {
         Column(
@@ -188,331 +255,119 @@ fun DictationPracticeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // 1. Top Navigation & Progress Header
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // 1. Ultra-Clean Minimal Top Navigation (Back button, Auto Dictate Pill, Check button)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = {
-                            viewModel.finishPracticeSession(recordAccuracy = false)
-                            onBackClick()
-                        },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .testTag("dictation_back_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = deck.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "Word ${currentIndex + 1} of $totalWords",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = accentColor,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    // Checking Time Button
-                    Button(
-                        onClick = onOpenCheckingTime,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("open_checking_time_top_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Checklist,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Check",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                // Progress Bar & Voice Engine Switcher
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = accentColor,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Word ${currentIndex + 1} of $totalWords",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
-                        )
-
-                        // Voice Engine Quick Toggle Pill
-                        Surface(
-                            onClick = {
-                                val nextState = !isPreferGeminiVoice
-                                isPreferGeminiVoice = nextState
-                                prefsManager.isPreferGeminiVoice = nextState
-                            },
-                            shape = RoundedCornerShape(9999.dp),
-                            color = if (isPreferGeminiVoice && hasApiKey) Color(0xFF10B981).copy(alpha = 0.12f)
-                            else if (isPreferGeminiVoice) Color(0xFFF59E0B).copy(alpha = 0.12f)
-                            else MaterialTheme.colorScheme.surfaceContainerHighest,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isPreferGeminiVoice && hasApiKey) Color(0xFF10B981).copy(alpha = 0.35f)
-                                else if (isPreferGeminiVoice) Color(0xFFF59E0B).copy(alpha = 0.35f)
-                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                            ),
-                            modifier = Modifier.testTag("dictation_voice_toggle_pill")
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                if (isAudioLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(10.dp),
-                                        strokeWidth = 1.5.dp,
-                                        color = if (isPreferGeminiVoice && hasApiKey) Color(0xFF10B981) else accentColor
-                                    )
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (isPreferGeminiVoice && hasApiKey) Color(0xFF10B981)
-                                                else if (isPreferGeminiVoice) Color(0xFFF59E0B)
-                                                else Color(0xFF38BDF8)
-                                            )
-                                    )
-                                }
-
-                                Text(
-                                    text = if (isPreferGeminiVoice && hasApiKey) "Gemini Live HD (${prefsManager.geminiVoiceName})"
-                                    else if (isPreferGeminiVoice) "HD Key Required"
-                                    else "Offline Voice",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (isPreferGeminiVoice && hasApiKey) Color(0xFF34D399)
-                                    else if (isPreferGeminiVoice) Color(0xFFF59E0B)
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 2. Hands-Free Ambient Listening Bar
-                Surface(
+                IconButton(
+                    onClick = {
+                        viewModel.finishPracticeSession(recordAccuracy = false)
+                        onBackClick()
+                    },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp)),
-                    color = if (isSessionAsleep) {
-                        MaterialTheme.colorScheme.surfaceContainerHighest
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
+                        .testTag("dictation_back_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Center Auto-Dictate Quick Pill
+                Surface(
+                    onClick = { isAutoDictationActive = !isAutoDictationActive },
+                    shape = RoundedCornerShape(9999.dp),
+                    color = if (isAutoDictationActive) {
+                        accentColor.copy(alpha = 0.22f)
                     } else {
-                        accentColor.copy(alpha = 0.10f)
+                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
                     },
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (isSessionAsleep) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        else accentColor.copy(alpha = 0.35f)
-                    )
+                        if (isAutoDictationActive) accentColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    ),
+                    modifier = Modifier.testTag("auto_dictate_toggle_pill")
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isSessionAsleep) MaterialTheme.colorScheme.surfaceContainerHigh
-                                        else if (isMicListening) accentColor.copy(alpha = 0.25f)
-                                        else MaterialTheme.colorScheme.surfaceContainerHighest
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (isSessionAsleep) Icons.Default.Bedtime
-                                    else if (isMicListening) Icons.Default.Mic
-                                    else Icons.Default.MicOff,
-                                    contentDescription = null,
-                                    tint = if (isSessionAsleep) MaterialTheme.colorScheme.onSurfaceVariant
-                                    else if (isMicListening) accentColor
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = if (isSessionAsleep) "💤 Standby Mode (5m Inactivity)"
-                                    else "🎙️ Hands-Free Listening Active",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = if (isSessionAsleep) "Tap orb to wake up & continue"
-                                    else "Say \"Next\", \"Again\", \"Meaning\", \"Show\", \"Check\"",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-
+                        Icon(
+                            imageVector = if (isAutoDictationActive) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
+                            contentDescription = null,
+                            tint = if (isAutoDictationActive) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Text(
-                            text = if (isSessionAsleep) "Paused" else "Live Mic",
+                            text = if (isAutoDictationActive) {
+                                if (currentRepeatStep > 0) "Spk $currentRepeatStep/$autoRepeatTimes"
+                                else "Pause: ${autoPauseRemaining}s"
+                            } else {
+                                "Auto Play"
+                            },
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isSessionAsleep) MaterialTheme.colorScheme.onSurfaceVariant else accentColor,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isAutoDictationActive) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
                         )
                     }
                 }
+
+                IconButton(
+                    onClick = onOpenCheckingTime,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
+                        .testTag("open_checking_time_top_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Checklist,
+                        contentDescription = "Check",
+                        tint = accentColor
+                    )
+                }
             }
 
-            // 3. Center Soundwave & Interactive Acoustic Orb
+            // 2. Center Soundwave & Interactive Molten Liquid Glow Orb (Andrew Manzyk Uiverse)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                // Background Glowing Rings (Isolated RenderNode - No Screen Recomposition)
+                // Background Glowing Rings (Isolated RenderNode)
                 AcousticPulseRings(
                     isActive = !isSessionAsleep && (isAudioSpeaking || isMicListening),
-                    accentColor = accentColor,
+                    accentColor = Color(0xFFFFBF48),
                     audioLevel = audioLevel
                 )
 
-                // Interactive Center Orb
-                Surface(
-                    modifier = Modifier
-                        .size(160.dp)
-                        .clip(CircleShape)
-                        .shadow(
-                            elevation = if (isAudioSpeaking) 24.dp else 14.dp,
-                            shape = CircleShape,
-                            ambientColor = accentColor.copy(alpha = 0.4f),
-                            spotColor = accentColor.copy(alpha = 0.6f)
-                        )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true, color = accentColor),
-                            onClick = {
-                                if (isSessionAsleep) {
-                                    viewModel.wakeUpSession()
-                                } else {
-                                    viewModel.playCurrentWord()
-                                }
-                            }
-                        )
-                        .testTag("dictation_hero_play_button"),
-                    shape = CircleShape,
-                    color = Color.Transparent
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.radialGradient(
-                                    if (isSessionAsleep) {
-                                        listOf(
-                                            MaterialTheme.colorScheme.surfaceContainerHighest,
-                                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                                            Color(0xFF1E293B)
-                                        )
-                                    } else {
-                                        listOf(
-                                            accentColor,
-                                            accentColor.copy(alpha = 0.85f),
-                                            Color(0xFF0F172A)
-                                        )
-                                    }
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = when {
-                                    isSessionAsleep -> Icons.Default.WbSunny
-                                    isAudioSpeaking -> Icons.Default.GraphicEq
-                                    else -> Icons.Default.VolumeUp
-                                },
-                                contentDescription = "Play word audio",
-                                tint = Color.White,
-                                modifier = Modifier.size(54.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = when {
-                                    isSessionAsleep -> "Tap to Wake"
-                                    isAudioSpeaking -> "Speaking..."
-                                    else -> "Tap to Hear"
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.95f)
-                            )
+                // Pure Molten Animated Liquid Glow Orb (No Speaker Icon)
+                LiquidGlowOrb(
+                    size = 190.dp,
+                    isPlaying = isAudioSpeaking || isMicListening,
+                    audioLevel = audioLevel,
+                    onClick = {
+                        if (isControlsExpanded) {
+                            isControlsExpanded = false
+                        }
+                        if (isSessionAsleep) {
+                            viewModel.wakeUpSession()
+                        } else {
+                            viewModel.playCurrentWord()
                         }
                     }
-                }
+                )
 
                 // Live Spoken Feedback Toast Pill
                 if (lastSpokenText.isNotBlank()) {
@@ -549,7 +404,7 @@ fun DictationPracticeScreen(
                 }
             }
 
-            // 4. Word Reveal Card (Shown when requested via "Show" / "Dikhao")
+            // 3. Word Reveal Card (Shown when requested via "Show" / "Dikhao")
             AnimatedVisibility(
                 visible = uiState.isWordCardVisible && currentWord != null,
                 enter = fadeIn(tween(180)) + slideInVertically(
@@ -651,63 +506,230 @@ fun DictationPracticeScreen(
                 }
             }
 
-            // 5. Bottom Navigation & Action Dock
-            Row(
+            // 4. Clean Bottom Chevron Trigger & Slide-Up Controls Panel
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(bottom = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                DictationControlAction(
-                    icon = Icons.Default.SkipPrevious,
-                    label = "Previous",
-                    accentColor = accentColor,
-                    enabled = currentIndex > 0,
-                    testTag = "dictation_previous_btn",
-                    onClick = { viewModel.previousWord() }
-                )
-
-                DictationControlAction(
-                    icon = Icons.Default.Replay,
-                    label = "Again",
-                    accentColor = accentColor,
-                    testTag = "dictation_again_btn",
-                    onClick = { viewModel.repeatCurrentWord() }
-                )
-
-                DictationControlAction(
-                    icon = Icons.Outlined.Lightbulb,
-                    label = "Meaning",
-                    accentColor = accentColor,
-                    testTag = "dictation_meaning_btn",
-                    onClick = { viewModel.speakCurrentWordMeaning() }
-                )
-
-                DictationControlAction(
-                    icon = Icons.Default.Visibility,
-                    label = "Show",
-                    accentColor = accentColor,
-                    testTag = "dictation_show_btn",
-                    onClick = {
-                        if (uiState.isWordCardVisible) viewModel.hideCurrentWordCard()
-                        else viewModel.showCurrentWordCard()
+                // When collapsed: Clean outlined Up Arrow with NO background box/container (Pure outline icon, light/dark theme adaptive)
+                if (!isControlsExpanded) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = false, radius = 24.dp),
+                                onClick = { isControlsExpanded = true }
+                            )
+                            .testTag("dictation_expand_controls_arrow"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Show controls",
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                            modifier = Modifier.size(38.dp)
+                        )
                     }
-                )
+                }
 
-                DictationControlAction(
-                    icon = Icons.Default.SkipNext,
-                    label = if (currentIndex == totalWords - 1) "Check" else "Next",
-                    accentColor = accentColor,
-                    testTag = "dictation_next_btn",
-                    onClick = {
-                        if (currentIndex == totalWords - 1) {
-                            onOpenCheckingTime()
-                        } else {
-                            viewModel.nextWord()
+                // When expanded: Slide up from bottom into exact position
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isControlsExpanded,
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + fadeIn(tween(200)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(180, easing = FastOutSlowInEasing)
+                    ) + fadeOut(tween(150))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { /* Consume click inside */ },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Dismiss down arrow handle
+                        IconButton(
+                            onClick = { isControlsExpanded = false },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ExpandMore,
+                                contentDescription = "Hide controls",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        // Hands-Free Auto Settings Strip
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Auto-Dictate Toggle & Repeat Times
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Timer,
+                                            contentDescription = null,
+                                            tint = accentColor,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "Auto-Dictation Repeats",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        listOf(1, 2, 3).forEach { r ->
+                                            val isSelected = autoRepeatTimes == r
+                                            Surface(
+                                                onClick = { autoRepeatTimes = r },
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = if (isSelected) accentColor else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                                modifier = Modifier.testTag("auto_repeat_${r}x_chip")
+                                            ) {
+                                                Text(
+                                                    text = "${r}x",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Writing Pause Interval
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Writing Pause",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        listOf(3, 5, 8, 12).forEach { sec ->
+                                            val isSelected = autoPauseSeconds == sec
+                                            Surface(
+                                                onClick = { autoPauseSeconds = sec },
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = if (isSelected) accentColor else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                                modifier = Modifier.testTag("auto_pause_${sec}s_chip")
+                                            ) {
+                                                Text(
+                                                    text = "${sec}s",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Bottom Actions Row (Previous, Again, Meaning, Show, Next)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DictationControlAction(
+                                icon = Icons.Default.SkipPrevious,
+                                label = "Previous",
+                                accentColor = accentColor,
+                                enabled = currentIndex > 0,
+                                testTag = "dictation_previous_btn",
+                                onClick = { viewModel.previousWord() }
+                            )
+
+                            DictationControlAction(
+                                icon = Icons.Default.Replay,
+                                label = "Again",
+                                accentColor = accentColor,
+                                testTag = "dictation_again_btn",
+                                onClick = { viewModel.repeatCurrentWord() }
+                            )
+
+                            DictationControlAction(
+                                icon = Icons.Default.SlowMotionVideo,
+                                label = "Slow",
+                                accentColor = accentColor,
+                                testTag = "dictation_slow_btn",
+                                onClick = { viewModel.playCurrentWordSlowly() }
+                            )
+
+                            DictationControlAction(
+                                icon = Icons.Outlined.Lightbulb,
+                                label = "Meaning",
+                                accentColor = accentColor,
+                                testTag = "dictation_meaning_btn",
+                                onClick = { viewModel.speakCurrentWordMeaning() }
+                            )
+
+                            DictationControlAction(
+                                icon = Icons.Default.Visibility,
+                                label = "Show",
+                                accentColor = accentColor,
+                                testTag = "dictation_show_btn",
+                                onClick = {
+                                    if (uiState.isWordCardVisible) viewModel.hideCurrentWordCard()
+                                    else viewModel.showCurrentWordCard()
+                                }
+                            )
+
+                            DictationControlAction(
+                                icon = Icons.Default.SkipNext,
+                                label = if (currentIndex == totalWords - 1) "Check" else "Next",
+                                accentColor = accentColor,
+                                testTag = "dictation_next_btn",
+                                onClick = {
+                                    if (currentIndex == totalWords - 1) {
+                                        onOpenCheckingTime()
+                                    } else {
+                                        viewModel.nextWord()
+                                    }
+                                }
+                            )
                         }
                     }
-                )
+                }
             }
         }
     }

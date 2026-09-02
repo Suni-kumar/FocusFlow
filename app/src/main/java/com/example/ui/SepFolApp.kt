@@ -497,6 +497,9 @@ fun SepFolApp() {
                                     onBackClick = navigateBack,
                                     onDeckProgressUpdate = { progress ->
                                         deckViewModel.updateDeckProgress(activeDeck.id, progress)
+                                    },
+                                    onToggleCardMastery = { cardId, isMastered ->
+                                        deckViewModel.toggleCardMastery(activeDeck.id, cardId, isMastered)
                                     }
                                 )
                             }
@@ -541,6 +544,12 @@ fun SepFolApp() {
                                     },
                                     onAiGenerateClick = {
                                         deckViewModel.openAiGenerateDialog()
+                                    },
+                                    onRenameDeckClick = { deck ->
+                                        deckViewModel.openRenameDeckDialog(deck)
+                                    },
+                                    onDeleteDeckClick = { deck ->
+                                        deckViewModel.deleteDeck(deck)
                                     }
                                 )
                             }
@@ -589,6 +598,12 @@ fun SepFolApp() {
                                     onAiGenerateClick = {
                                         deckViewModel.openAiGenerateDialog()
                                     },
+                                    onRenameDeckClick = { deck ->
+                                        deckViewModel.openRenameDeckDialog(deck)
+                                    },
+                                    onDeleteDeckClick = { deck ->
+                                        deckViewModel.deleteDeck(deck)
+                                    },
                                     onSwipeUpFab = {
                                         isWorkspaceSwitcherOpen = true
                                     }
@@ -616,6 +631,8 @@ fun SepFolApp() {
                                 deckTitle = deckTitle,
                                 onComplete = { generatedDeck ->
                                     activeDeck = generatedDeck
+                                    deckViewModel.dismissAiGenerateDialog()
+                                    screenStack = screenStack + ScreenState.STUDY_STAGE
                                 }
                             )
                         }

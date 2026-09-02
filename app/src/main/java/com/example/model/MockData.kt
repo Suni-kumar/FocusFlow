@@ -28,7 +28,8 @@ data class Flashcard(
     val front: String,
     val back: String,
     val topic: String,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val isMastered: Boolean = false
 )
 
 data class FlashcardDeck(

@@ -55,7 +55,11 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -97,6 +101,8 @@ fun StudioScreen(
     onDeckClick: (FlashcardDeck) -> Unit = {},
     onCreateDeckClick: () -> Unit = {},
     onAiGenerateClick: () -> Unit = {},
+    onRenameDeckClick: (FlashcardDeck) -> Unit = {},
+    onDeleteDeckClick: (FlashcardDeck) -> Unit = {},
     onSwipeUpFab: () -> Unit = {},
     decks: List<FlashcardDeck> = emptyList(),
     selectedDeckIds: Set<String> = emptySet(),
@@ -307,6 +313,8 @@ fun StudioScreen(
                                     deck = deck,
                                     isSelected = isSelected,
                                     isSelectionMode = isSelectionMode,
+                                    onRename = { onRenameDeckClick(deck) },
+                                    onDelete = { onDeleteDeckClick(deck) },
                                     onClick = {
                                         if (isSelectionMode) {
                                             onToggleSelection(deck.id)
@@ -617,11 +625,14 @@ fun ManagedDeckItem(
     deck: FlashcardDeck,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
+    onRename: () -> Unit = {},
+    onDelete: () -> Unit = {},
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalView.current
+    var isMenuExpanded by remember { mutableStateOf(false) }
 
     GlassCard(
         modifier = modifier
@@ -714,6 +725,41 @@ fun ManagedDeckItem(
                             backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                             textColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                    
+                    Box {
+                        IconButton(
+                            onClick = { isMenuExpanded = true },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = isMenuExpanded,
+                            onDismissRequest = { isMenuExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("Rename Deck") },
+                                onClick = {
+                                    isMenuExpanded = false
+                                    onRename()
+                                }
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("Delete Deck", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    isMenuExpanded = false
+                                    onDelete()
+                                }
+                            )
+                        }
                     }
                 }
 

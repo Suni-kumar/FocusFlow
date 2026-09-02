@@ -189,6 +189,19 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
         playCurrentWord()
     }
 
+    fun playCurrentWordSlowly() {
+        val state = _uiState.value
+        val deck = state.activeDeck ?: return
+        val words = deck.words
+        if (words.isEmpty() || state.currentWordIndex !in words.indices) return
+
+        val currentWord = words[state.currentWordIndex]
+        voiceCommander.pauseTemporarilyForAudio()
+        audioPlayer.speakDictationWordSlowly(currentWord.word) {
+            voiceCommander.resumeAfterAudio()
+        }
+    }
+
     fun nextWord() {
         val state = _uiState.value
         val deck = state.activeDeck ?: return
