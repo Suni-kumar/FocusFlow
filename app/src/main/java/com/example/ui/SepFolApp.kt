@@ -89,7 +89,6 @@ fun SepFolApp() {
     var selectedTab by remember { mutableStateOf(MainTab.FILES) }
     var screenStack by remember { mutableStateOf(listOf(ScreenState.MAIN_WORKSPACE)) }
     val currentScreen = screenStack.lastOrNull() ?: ScreenState.MAIN_WORKSPACE
-    var activeDeck by remember { mutableStateOf(MockDataSource.decks[0]) }
 
     var visualEngine by remember {
         mutableStateOf(
@@ -139,6 +138,8 @@ fun SepFolApp() {
 
     val folderUiState by folderViewModel.uiState.collectAsState()
     val deckUiState by deckViewModel.uiState.collectAsState()
+    var activeDeckId by remember { mutableStateOf<String?>(null) }
+    val activeDeck = deckUiState.decks.find { it.id == activeDeckId } ?: deckUiState.decks.firstOrNull() ?: MockDataSource.decks[0]
     val dictationUiState by dictationViewModel.uiState.collectAsState()
 
     // Backup & Restore Dialog States
@@ -536,7 +537,7 @@ fun SepFolApp() {
                                     onClearSelection = { deckViewModel.clearSelection() },
                                     onToggleStar = { deckViewModel.toggleStarDeck(it) },
                                     onDeckClick = { deck ->
-                                        activeDeck = deck
+                                        activeDeckId = deck.id
                                         screenStack = screenStack + ScreenState.STUDY_STAGE
                                     },
                                     onCreateDeckClick = {
@@ -589,7 +590,7 @@ fun SepFolApp() {
                                     onClearSelection = { deckViewModel.clearSelection() },
                                     onViewAllDecksClick = { screenStack = screenStack + ScreenState.ALL_DECKS },
                                     onDeckClick = { deck ->
-                                        activeDeck = deck
+                                        activeDeckId = deck.id
                                         screenStack = screenStack + ScreenState.STUDY_STAGE
                                     },
                                     onCreateDeckClick = {
@@ -630,7 +631,7 @@ fun SepFolApp() {
                                 targetCardCount = count,
                                 deckTitle = deckTitle,
                                 onComplete = { generatedDeck ->
-                                    activeDeck = generatedDeck
+                                    activeDeckId = generatedDeck.id
                                     deckViewModel.dismissAiGenerateDialog()
                                     screenStack = screenStack + ScreenState.STUDY_STAGE
                                 }

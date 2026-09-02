@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@androidx.compose.runtime.Stable
 data class DeckUiState(
     val decks: List<FlashcardDeck> = MockDataSource.decks,
     val selectedDeckIds: Set<String> = emptySet(),

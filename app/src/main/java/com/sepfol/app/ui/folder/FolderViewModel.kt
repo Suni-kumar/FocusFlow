@@ -14,6 +14,7 @@ enum class SortOption {
     SIZE_DESC
 }
 
+@androidx.compose.runtime.Stable
 data class FolderItem(
     val id: String,
     val name: String,
@@ -29,11 +30,13 @@ data class FolderItem(
     val isFavorite: Boolean = false
 )
 
+@androidx.compose.runtime.Stable
 data class Breadcrumb(
     val id: String?,
     val name: String
 )
 
+@androidx.compose.runtime.Stable
 data class FolderUiState(
     val currentFolderId: String? = null,
     val folderStack: List<Breadcrumb> = listOf(Breadcrumb(id = null, name = "Root")),

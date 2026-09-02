@@ -23,6 +23,7 @@ enum class VaultItemType {
     FOLDER
 }
 
+@androidx.compose.runtime.Stable
 data class Flashcard(
     val id: String,
     val front: String,
@@ -32,6 +33,7 @@ data class Flashcard(
     val isMastered: Boolean = false
 )
 
+@androidx.compose.runtime.Stable
 data class FlashcardDeck(
     val id: String,
     val title: String,

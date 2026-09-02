@@ -10,6 +10,7 @@ enum class DictationWordStatus {
     NEEDS_PRACTICE
 }
 
+@androidx.compose.runtime.Stable
 data class DictationWord(
     val id: String = UUID.randomUUID().toString(),
     val word: String,
@@ -20,6 +21,7 @@ data class DictationWord(
     val userNotes: String = ""
 )
 
+@androidx.compose.runtime.Stable
 data class DictationDeck(
     val id: String = UUID.randomUUID().toString(),
     val title: String,

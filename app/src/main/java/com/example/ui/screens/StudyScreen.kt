@@ -129,16 +129,19 @@ fun StudyScreen(
     }
     var filterOnlyUnmastered by remember { mutableStateOf(false) }
 
-    var cardsList by remember(deck) {
+    var cardsList by remember(deck.id) {
         mutableStateOf(allCards)
     }
 
-    LaunchedEffect(filterOnlyUnmastered, masteredCardIds) {
+    LaunchedEffect(filterOnlyUnmastered, allCards) {
+        val orderMap = cardsList.withIndex().associate { it.value.id to it.index }
+        var updated = allCards.sortedBy { orderMap[it.id] ?: Int.MAX_VALUE }
+        
         if (filterOnlyUnmastered) {
-            val unmastered = allCards.filter { it.id !in masteredCardIds }
+            val unmastered = updated.filter { !it.isMastered }
             cardsList = if (unmastered.isNotEmpty()) unmastered else allCards
         } else {
-            cardsList = allCards
+            cardsList = updated
         }
     }
 

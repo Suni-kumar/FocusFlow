@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@androidx.compose.runtime.Stable
 data class DictationUiState(
     val decks: List<DictationDeck> = DictationMockDataSource.getInitialDictationDecks(),
     val selectedDeckIds: Set<String> = emptySet(),
