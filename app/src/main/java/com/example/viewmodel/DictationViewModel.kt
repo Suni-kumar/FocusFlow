@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 
 @androidx.compose.runtime.Stable
 data class DictationUiState(
-    val decks: List<DictationDeck> = DictationMockDataSource.getInitialDictationDecks(),
+    val decks: List<DictationDeck> = emptyList(),
     val selectedDeckIds: Set<String> = emptySet(),
     val searchQuery: String = "",
     val selectedTag: String? = null,
@@ -83,9 +83,7 @@ class DictationViewModel @JvmOverloads constructor(
     init {
         viewModelScope.launch {
             repo.allDecks.collect { decks ->
-                if (decks.isNotEmpty()) {
-                    _uiState.update { it.copy(decks = decks) }
-                }
+                _uiState.update { it.copy(decks = decks) }
             }
         }
 

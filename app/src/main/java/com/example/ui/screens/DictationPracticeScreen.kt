@@ -107,7 +107,8 @@ import com.example.data.preferences.UserPreferencesManager
 import com.example.data.speech.DictationVoiceCommand
 import com.example.data.speech.FlashcardAudioPlayer
 import com.example.model.DictationDeck
-import com.example.ui.components.LiquidGlowOrb
+import com.example.ui.components.AudioRadarVisualizer
+import com.example.ui.theme.LocalAccentTheme
 import com.example.viewmodel.DictationViewModel
 
 @Composable
@@ -338,25 +339,20 @@ fun DictationPracticeScreen(
                 }
             }
 
-            // 2. Center Soundwave & Interactive Molten Liquid Glow Orb (Andrew Manzyk Uiverse)
+            // 2. Center Audio Radar Visualizer (Native Compose HUD Radar)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                // Background Glowing Rings (Isolated RenderNode)
-                AcousticPulseRings(
-                    isActive = !isSessionAsleep && (isAudioSpeaking || isMicListening),
-                    accentColor = Color(0xFFFFBF48),
-                    audioLevel = audioLevel
-                )
-
-                // Pure Molten Animated Liquid Glow Orb (No Speaker Icon)
-                LiquidGlowOrb(
-                    size = 190.dp,
-                    isPlaying = isAudioSpeaking || isMicListening,
+                // Native Futuristic Audio-Reactive Radar
+                AudioRadarVisualizer(
+                    size = 210.dp,
+                    isActive = !isSessionAsleep,
+                    isListening = isMicListening || isAudioSpeaking,
                     audioLevel = audioLevel,
+                    accentTheme = LocalAccentTheme.current,
                     onClick = {
                         if (isControlsExpanded) {
                             isControlsExpanded = false
@@ -788,61 +784,6 @@ private fun DictationControlAction(
             ),
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun AcousticPulseRings(
-    isActive: Boolean,
-    accentColor: Color,
-    audioLevel: Float,
-    modifier: Modifier = Modifier
-) {
-    if (!isActive) return
-
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse_waves")
-    val pulseScale1 by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.35f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale1"
-    )
-    val pulseScale2 by infiniteTransition.animateFloat(
-        initialValue = 1.1f,
-        targetValue = 1.65f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale2"
-    )
-
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Box(
-            modifier = Modifier
-                .size(260.dp)
-                .graphicsLayer {
-                    val s = pulseScale2 + (audioLevel * 0.35f)
-                    scaleX = s
-                    scaleY = s
-                }
-                .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.08f))
-        )
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .graphicsLayer {
-                    val s = pulseScale1 + (audioLevel * 0.25f)
-                    scaleX = s
-                    scaleY = s
-                }
-                .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.16f))
         )
     }
 }

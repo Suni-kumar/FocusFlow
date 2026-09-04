@@ -129,6 +129,51 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `deleted items do not return after ViewModel restart`() = runTest {
+        val repo = FolderRepository.createInMemory()
+        val vm1 = FolderViewModel(repository = repo)
+        advanceUntilIdle()
+
+        // Create a custom note
+        vm1.createMarkdownNote("To Be Deleted", "Some content")
+        advanceUntilIdle()
+        val created = vm1.uiState.value.allItems.first { it.name == "To Be Deleted.md" }
+
+        // Delete the note
+        vm1.deleteItem(created)
+        advanceUntilIdle()
+        assertFalse(vm1.uiState.value.allItems.any { it.id == created.id })
+
+        // Simulate app restart / new ViewModel instance attached to same repository/database
+        val vm2 = FolderViewModel(repository = repo)
+        advanceUntilIdle()
+
+        assertFalse("Deleted file must not reappear after restart", vm2.uiState.value.allItems.any { it.id == created.id })
+        assertFalse("Deleted file must not be in current items", vm2.uiState.value.currentItems.any { it.id == created.id })
+    }
+
+    @Test
+    fun `deleting default starter item persists across restarts and does not resurrect`() = runTest {
+        val repo = FolderRepository.createInMemory()
+        val vm1 = FolderViewModel(repository = repo)
+        advanceUntilIdle()
+
+        val initialItems = vm1.uiState.value.allItems
+        assertTrue(initialItems.isNotEmpty())
+        val itemToDelete = initialItems.first()
+
+        vm1.deleteItem(itemToDelete)
+        advanceUntilIdle()
+        assertFalse(vm1.uiState.value.allItems.any { it.id == itemToDelete.id })
+
+        // Recreate ViewModel
+        val vm2 = FolderViewModel(repository = repo)
+        advanceUntilIdle()
+
+        assertFalse("Deleted starter item must remain deleted after restart", vm2.uiState.value.allItems.any { it.id == itemToDelete.id })
+    }
+
+    @Test
     fun `import file adds custom file from storage to active folder`() = runTest {
         advanceUntilIdle()
         val fileName = "Lecture_01_Introduction.pdf"

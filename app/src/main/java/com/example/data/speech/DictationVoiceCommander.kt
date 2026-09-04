@@ -111,14 +111,11 @@ class DictationVoiceCommander(private val context: Context) {
             resetInactivityTimer()
         }
 
-        private var lastEmittedRms = 0f
-
         override fun onRmsChanged(rmsdB: Float) {
-            val norm = (rmsdB.coerceIn(0f, 10f) / 10f)
-            if (kotlin.math.abs(norm - lastEmittedRms) > 0.08f) {
-                lastEmittedRms = norm
-                _audioRmsLevel.value = norm
-            }
+            // SpeechRecognizer provides rmsdB from ~ -2dB to 10+ dB.
+            // Map smoothly to normalized 0f..1f range.
+            val norm = if (rmsdB <= 0f) 0f else (rmsdB / 10f).coerceIn(0f, 1f)
+            _audioRmsLevel.value = norm
         }
 
         override fun onBufferReceived(buffer: ByteArray?) {}

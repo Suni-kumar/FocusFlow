@@ -83,42 +83,32 @@ class FolderViewModel(
     val uiState: StateFlow<FolderUiState> = _uiState.asStateFlow()
 
     init {
-        loadInitialState()
         observeRepository()
-    }
-
-    private fun loadInitialState() {
-        val initialItems = FolderInitialData.getStarterItems()
-        val rootItems = initialItems.filter { it.parentId == null }
-        val recentNotes = initialItems.filter { !it.isDirectory }.sortedByDescending { it.lastModified }.take(6)
-
-        _uiState.value = FolderUiState(
-            currentFolderId = null,
-            folderStack = listOf(Breadcrumb(id = null, name = "Root")),
-            allItems = initialItems,
-            currentItems = rootItems,
-            recentItems = recentNotes,
-            gridColumns = 2
-        )
     }
 
     private fun observeRepository() {
         viewModelScope.launch {
             repo.allItems.collect { items ->
-                if (items.isNotEmpty()) {
-                    _uiState.update { state ->
-                        state.copy(
-                            allItems = items,
-                            currentItems = computeCurrentItems(
-                                items,
-                                state.currentFolderId,
-                                state.searchQuery,
-                                state.activeFilterTab,
-                                state.sortOption
-                            ),
-                            recentItems = items.filter { !it.isDirectory }.sortedByDescending { it.lastModified }.take(8)
-                        )
-                    }
+                _uiState.update { state ->
+                    val isCurrentFolderValid = state.currentFolderId == null || items.any { it.id == state.currentFolderId }
+                    val effectiveFolderId = if (isCurrentFolderValid) state.currentFolderId else null
+                    val effectiveFolderStack = if (isCurrentFolderValid) state.folderStack else listOf(Breadcrumb(id = null, name = "Root"))
+
+                    state.copy(
+                        currentFolderId = effectiveFolderId,
+                        folderStack = effectiveFolderStack,
+                        allItems = items,
+                        currentItems = computeCurrentItems(
+                            items,
+                            effectiveFolderId,
+                            state.searchQuery,
+                            state.activeFilterTab,
+                            state.sortOption
+                        ),
+                        recentItems = items.filter { !it.isDirectory }.sortedByDescending { it.lastModified }.take(8),
+                        selectedNote = if (state.selectedNote != null && items.none { it.id == state.selectedNote.id }) null else state.selectedNote,
+                        selectedViewerItem = if (state.selectedViewerItem != null && items.none { it.id == state.selectedViewerItem.id }) null else state.selectedViewerItem
+                    )
                 }
             }
         }

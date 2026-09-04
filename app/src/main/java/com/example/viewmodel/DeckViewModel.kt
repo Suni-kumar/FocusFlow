@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 @androidx.compose.runtime.Stable
 data class DeckUiState(
-    val decks: List<FlashcardDeck> = MockDataSource.decks,
+    val decks: List<FlashcardDeck> = emptyList(),
     val selectedDeckIds: Set<String> = emptySet(),
     val isCreateDeckDialogOpen: Boolean = false,
     val isAiGenerateDialogOpen: Boolean = false,
@@ -53,9 +53,7 @@ class DeckViewModel(
     init {
         viewModelScope.launch {
             repo.allDecks.collect { decks ->
-                if (decks.isNotEmpty()) {
-                    _uiState.update { it.copy(decks = decks) }
-                }
+                _uiState.update { it.copy(decks = decks) }
             }
         }
     }

@@ -1,6 +1,8 @@
 package com.example.data.speech
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.PlaybackParams
 import android.os.Build
@@ -13,6 +15,7 @@ import android.util.Log
 import android.util.LruCache
 import com.example.BuildConfig
 import com.example.data.preferences.UserPreferencesManager
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -25,6 +28,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -41,8 +45,8 @@ import kotlin.random.Random
 
 /**
  * High-speed Zero-Lag Speech & Audio Engine for FocusFlow Flashcards & Dictation Studio.
- * Optimized for instant sub-30ms responsiveness with local acoustic voice modeling and
- * high-fidelity Gemini Live voice streaming.
+ * Optimized for instant responsiveness with local acoustic voice modeling, guaranteed TTS initialization
+ * synchronization, and high-fidelity Gemini Live voice streaming.
  */
 class FlashcardAudioPlayer private constructor(private val appContext: Context) {
 
@@ -65,19 +69,26 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     val visualizerAmplitudes: StateFlow<List<Float>> = _visualizerAmplitudes.asStateFlow()
 
     private var amplitudeJob: Job? = null
+    private var safetyWatchdogJob: Job? = null
 
     private var tts: TextToSpeech? = null
+    @Volatile
     private var isTtsReady = false
+    private var ttsReadyDeferred = CompletableDeferred<Boolean>()
+
     private var mediaPlayer: MediaPlayer? = null
     private var onSpeechDoneCallback: (() -> Unit)? = null
+    @Volatile
+    private var currentActiveUtteranceId: String? = null
 
     private val memCache = LruCache<String, ByteArray>(50)
     private val cacheDir = File(appContext.cacheDir, "audio_cache").apply { mkdirs() }
 
+    // Fast-failing HTTP client so network delays never block local offline speech
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(25, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(3500, TimeUnit.MILLISECONDS)
+        .readTimeout(4500, TimeUnit.MILLISECONDS)
+        .writeTimeout(3500, TimeUnit.MILLISECONDS)
         .build()
 
     init {
@@ -88,7 +99,6 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         amplitudeJob?.cancel()
         amplitudeJob = scope.launch {
             while (isActive && _isSpeaking.value) {
-                // Generate dynamic realistic audio energy spectrum based on human speech cadence
                 val baseEnergy = Random.nextFloat() * 0.7f + 0.3f
                 val newBars = List(10) { i ->
                     val factor = when (i) {
@@ -102,7 +112,6 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 _visualizerAmplitudes.value = newBars
                 delay(65)
             }
-            // Smooth decay to rest
             _visualizerAmplitudes.value = List(10) { 0.08f }
         }
     }
@@ -113,40 +122,93 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         _visualizerAmplitudes.value = List(10) { 0.08f }
     }
 
+    @Synchronized
     private fun initTts() {
-        tts = TextToSpeech(appContext) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                isTtsReady = true
-                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {
-                        _isSpeaking.value = true
-                        startVisualizerTicker()
+        if (isTtsReady && tts != null) return
+
+        if (ttsReadyDeferred.isCompleted) {
+            ttsReadyDeferred = CompletableDeferred()
+        }
+
+        try {
+            tts = TextToSpeech(appContext) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    isTtsReady = true
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        try {
+                            tts?.setAudioAttributes(
+                                AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                    .build()
+                            )
+                        } catch (e: Exception) {
+                            Log.d(TAG, "TTS AudioAttributes note: ${e.message}")
+                        }
                     }
 
-                    override fun onDone(utteranceId: String?) {
-                        _isSpeaking.value = false
-                        _currentText.value = null
-                        stopVisualizerTicker()
-                        onSpeechDoneCallback?.invoke()
-                    }
+                    tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {
+                            if (utteranceId == currentActiveUtteranceId) {
+                                _isSpeaking.value = true
+                                startVisualizerTicker()
+                            }
+                        }
 
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) {
-                        _isSpeaking.value = false
-                        _currentText.value = null
-                        stopVisualizerTicker()
-                        onSpeechDoneCallback?.invoke()
-                    }
+                        override fun onDone(utteranceId: String?) {
+                            if (utteranceId == currentActiveUtteranceId) {
+                                _isSpeaking.value = false
+                                _currentText.value = null
+                                stopVisualizerTicker()
+                                safetyWatchdogJob?.cancel()
+                                val callback = onSpeechDoneCallback
+                                onSpeechDoneCallback = null
+                                callback?.invoke()
+                            }
+                        }
 
-                    override fun onError(utteranceId: String?, errorCode: Int) {
-                        _isSpeaking.value = false
-                        _currentText.value = null
-                        stopVisualizerTicker()
-                        onSpeechDoneCallback?.invoke()
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                            if (utteranceId == currentActiveUtteranceId) {
+                                _isSpeaking.value = false
+                                _currentText.value = null
+                                stopVisualizerTicker()
+                                safetyWatchdogJob?.cancel()
+                                val callback = onSpeechDoneCallback
+                                onSpeechDoneCallback = null
+                                callback?.invoke()
+                            }
+                        }
+
+                        override fun onError(utteranceId: String?, errorCode: Int) {
+                            if (utteranceId == currentActiveUtteranceId) {
+                                Log.w(TAG, "TTS Utterance $utteranceId error: $errorCode")
+                                _isSpeaking.value = false
+                                _currentText.value = null
+                                stopVisualizerTicker()
+                                safetyWatchdogJob?.cancel()
+                                val callback = onSpeechDoneCallback
+                                onSpeechDoneCallback = null
+                                callback?.invoke()
+                            }
+                        }
+                    })
+                    if (!ttsReadyDeferred.isCompleted) {
+                        ttsReadyDeferred.complete(true)
                     }
-                })
-            } else {
-                Log.w(TAG, "Native TextToSpeech initialization failed with status $status")
+                    Log.d(TAG, "Native TextToSpeech successfully initialized and ready")
+                } else {
+                    isTtsReady = false
+                    if (!ttsReadyDeferred.isCompleted) {
+                        ttsReadyDeferred.complete(false)
+                    }
+                    Log.w(TAG, "Native TextToSpeech initialization failed with status $status")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing TextToSpeech: ${e.message}")
+            if (!ttsReadyDeferred.isCompleted) {
+                ttsReadyDeferred.complete(false)
             }
         }
     }
@@ -181,7 +243,10 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
      */
     fun speak(text: String, forceReplay: Boolean = true, rate: Float = 1.0f, onDone: () -> Unit = {}) {
         val cleanText = text.trim()
-        if (cleanText.isEmpty()) return
+        if (cleanText.isEmpty()) {
+            onDone()
+            return
+        }
 
         stop()
         onSpeechDoneCallback = onDone
@@ -193,35 +258,34 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         val apiKey = getGeminiApiKey()
 
         scope.launch {
-            // If custom rate is specified, dynamically set it
-            if (rate != 1.0f) {
-                tts?.setSpeechRate(rate)
-            } else {
-                tts?.setSpeechRate(prefsManager.voiceSpeed)
-            }
-
             // Check instant disk cache first (zero-lag playback)
             val cacheKey = hashAudioKey(cleanText, selectedVoice, prefsManager.voiceAccent)
             val cachedFile = File(cacheDir, "$cacheKey.wav")
             if (cachedFile.exists() && cachedFile.length() > 0) {
                 _currentEngineType.value = "Cached HD Voice ($selectedVoice)"
-                playAudioFile(cachedFile)
-                return@launch
+                val success = playAudioFile(cachedFile)
+                if (success) return@launch
             }
 
-            // If user prefers Gemini Live HD voice and API key is present, attempt live generative voice streaming
+            // If user prefers Gemini Live HD voice and API key is present, attempt live generative voice streaming with fast timeout
             if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
                 _isLoading.value = true
                 _currentEngineType.value = "Gemini Live HD ($selectedVoice)"
-                
-                val geminiSuccess = tryGeminiTts(
-                    text = cleanText,
-                    locale = lang,
-                    apiKey = apiKey,
-                    voiceName = selectedVoice,
-                    cacheKey = cacheKey,
-                    playImmediately = true
-                )
+
+                val geminiSuccess = try {
+                    withTimeoutOrNull(4000) {
+                        tryGeminiTts(
+                            text = cleanText,
+                            locale = lang,
+                            apiKey = apiKey,
+                            voiceName = selectedVoice,
+                            cacheKey = cacheKey,
+                            playImmediately = true
+                        )
+                    } ?: false
+                } catch (e: Exception) {
+                    false
+                }
 
                 _isLoading.value = false
 
@@ -230,9 +294,9 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 }
             }
 
-            // Instant local offline acoustic engine (sub-30ms zero-lag fallback)
+            // Instant local offline acoustic engine (guaranteed sound)
             _currentEngineType.value = "Offline Engine ($selectedVoice)"
-            playWithLocalTts(cleanText, lang, voicePersona = selectedVoice)
+            playWithLocalTts(cleanText, lang, rate = rate, voicePersona = selectedVoice)
         }
     }
 
@@ -315,7 +379,6 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         scope.launch {
             val cacheKey = hashAudioKey(sample, normVoice, prefsManager.voiceAccent)
             val cachedFile = File(cacheDir, "$cacheKey.wav")
-            // Always refresh preview file to guarantee the user hears the newly selected persona
             if (cachedFile.exists()) {
                 cachedFile.delete()
             }
@@ -323,14 +386,20 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
                 _isLoading.value = true
                 _currentEngineType.value = "Gemini Live HD ($normVoice)"
-                val geminiSuccess = tryGeminiTts(
-                    text = sample,
-                    locale = lang,
-                    apiKey = apiKey,
-                    voiceName = normVoice,
-                    cacheKey = cacheKey,
-                    playImmediately = true
-                )
+                val geminiSuccess = try {
+                    withTimeoutOrNull(4000) {
+                        tryGeminiTts(
+                            text = sample,
+                            locale = lang,
+                            apiKey = apiKey,
+                            voiceName = normVoice,
+                            cacheKey = cacheKey,
+                            playImmediately = true
+                        )
+                    } ?: false
+                } catch (e: Exception) {
+                    false
+                }
                 _isLoading.value = false
                 if (geminiSuccess) return@launch
             }
@@ -365,22 +434,28 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             val cachedFile = File(cacheDir, "$cacheKey.wav")
             if (cachedFile.exists() && cachedFile.length() > 0) {
                 _currentEngineType.value = "Cached Live ($selectedVoice • $accentId)"
-                playAudioFile(cachedFile)
-                return@launch
+                val success = playAudioFile(cachedFile)
+                if (success) return@launch
             }
 
             if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
                 _isLoading.value = true
                 _currentEngineType.value = "Gemini Live HD ($selectedVoice • $accentId)"
-                val geminiSuccess = tryGeminiTts(
-                    text = sample,
-                    locale = lang,
-                    apiKey = apiKey,
-                    voiceName = selectedVoice,
-                    cacheKey = cacheKey,
-                    forcedAccent = accentId,
-                    playImmediately = true
-                )
+                val geminiSuccess = try {
+                    withTimeoutOrNull(4000) {
+                        tryGeminiTts(
+                            text = sample,
+                            locale = lang,
+                            apiKey = apiKey,
+                            voiceName = selectedVoice,
+                            cacheKey = cacheKey,
+                            forcedAccent = accentId,
+                            playImmediately = true
+                        )
+                    } ?: false
+                } catch (e: Exception) {
+                    false
+                }
                 _isLoading.value = false
                 if (geminiSuccess) return@launch
             }
@@ -391,6 +466,10 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     }
 
     fun stop() {
+        currentActiveUtteranceId = null
+        safetyWatchdogJob?.cancel()
+        safetyWatchdogJob = null
+
         try {
             mediaPlayer?.stop()
             mediaPlayer?.release()
@@ -439,115 +518,183 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     /**
      * High-grade local offline TTS synthesizer with distinct gender, pitch, speed, and accent configurations.
      */
-    private fun playWithLocalTts(
+    private suspend fun playWithLocalTts(
         text: String,
         locale: Locale,
+        rate: Float = 1.0f,
         voicePersona: String = prefsManager.geminiVoiceName
     ) {
         if (!isTtsReady || tts == null) {
             initTts()
+            try {
+                withTimeoutOrNull(2500) {
+                    ttsReadyDeferred.await()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "TTS init wait note: ${e.message}")
+            }
         }
 
-        tts?.let { engine ->
-            val normPersona = normalizeVoiceName(voicePersona)
-            val isMalePersona = normPersona in listOf("Puck", "Charon", "Fenrir")
+        val engine = tts
+        if (engine == null || !isTtsReady) {
+            Log.e(TAG, "TTS engine not ready for speech: $text")
+            _isSpeaking.value = false
+            stopVisualizerTicker()
+            val callback = onSpeechDoneCallback
+            onSpeechDoneCallback = null
+            callback?.invoke()
+            return
+        }
 
-            // Critical order: setLanguage MUST be called BEFORE engine.voice is assigned!
-            // In Android TTS, setLanguage() resets engine.voice to the system default voice!
+        val normPersona = normalizeVoiceName(voicePersona)
+        val isMalePersona = normPersona in listOf("Puck", "Charon", "Fenrir")
+
+        try {
             val langResult = engine.setLanguage(locale)
             if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
                 engine.setLanguage(Locale.US)
             }
+        } catch (e: Exception) {
+            Log.d(TAG, "setLanguage note: ${e.message}")
+        }
 
-            val baseSpeed = prefsManager.voiceSpeed
-            val basePitch = prefsManager.voicePitch
+        val userSpeed = if (rate != 1.0f) rate else prefsManager.voiceSpeed
+        val basePitch = prefsManager.voicePitch
 
-            // Real acoustic tuning for distinct male and female personas
-            val (personaPitchMod, personaSpeedMod) = when (normPersona) {
-                "Aoede" -> Pair(1.15f, 1.00f)      // Melodic, expressive soprano female
-                "Kore" -> Pair(0.98f, 0.95f)       // Calm, soothing alto female
-                "Puck" -> Pair(0.68f, 1.05f)       // Youthful, energetic masculine male
-                "Charon" -> Pair(0.55f, 0.92f)     // Deep resonant baritone masculine male
-                "Fenrir" -> Pair(0.62f, 0.98f)     // Balanced articulate clear male
-                else -> Pair(0.65f, 1.0f)
-            }
+        // Acoustic tuning for distinct male and female personas
+        val (personaPitchMod, personaSpeedMod) = when (normPersona) {
+            "Aoede" -> Pair(1.15f, 1.00f)      // Melodic soprano female
+            "Kore" -> Pair(0.98f, 0.95f)       // Calm alto female
+            "Puck" -> Pair(0.68f, 1.05f)       // Energetic male
+            "Charon" -> Pair(0.55f, 0.92f)     // Deep baritone male
+            "Fenrir" -> Pair(0.62f, 0.98f)     // Clear articulate male
+            else -> Pair(0.65f, 1.0f)
+        }
 
-            // Guaranteed masculine fundamental frequency range (0.50f - 0.75f) when male persona is active
-            val finalPitch = if (isMalePersona) {
-                (basePitch * personaPitchMod).coerceIn(0.52f, 0.78f)
-            } else {
-                (basePitch * personaPitchMod).coerceIn(0.92f, 1.50f)
-            }
-            val finalRate = (baseSpeed * personaSpeedMod).coerceIn(0.5f, 2.0f)
+        val finalPitch = if (isMalePersona) {
+            (basePitch * personaPitchMod).coerceIn(0.52f, 0.78f)
+        } else {
+            (basePitch * personaPitchMod).coerceIn(0.92f, 1.50f)
+        }
+        val finalRate = (userSpeed * personaSpeedMod).coerceIn(0.5f, 2.0f)
 
-            // Select matching voice for locale and gender persona from available device TTS voices
-            try {
-                val allVoices = engine.voices?.toList().orEmpty()
-                if (allVoices.isNotEmpty()) {
-                    val localeVoices = allVoices.filter { v ->
-                        v.locale.language.equals(locale.language, ignoreCase = true) ||
-                                (locale.language == "hi" && v.locale.country.equals("IN", ignoreCase = true)) ||
-                                (locale.language == "en" && v.locale.language.equals("en", ignoreCase = true))
-                    }.ifEmpty { allVoices }
+        // Select matching installed voice
+        try {
+            val allVoices = engine.voices?.toList().orEmpty()
+            if (allVoices.isNotEmpty()) {
+                val localeVoices = allVoices.filter { v ->
+                    !v.isNetworkConnectionRequired &&
+                            v.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true &&
+                            (v.locale.language.equals(locale.language, ignoreCase = true) ||
+                                    (locale.language == "hi" && v.locale.country.equals("IN", ignoreCase = true)) ||
+                                    (locale.language == "en" && v.locale.language.equals("en", ignoreCase = true)))
+                }.ifEmpty {
+                    allVoices.filter { !it.isNetworkConnectionRequired && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
+                }
 
-                    // Multilingual keywords identifying male and female voices (Google TTS, Samsung, etc.)
-                    val maleKeywords = listOf(
-                        "male", "man", "boy", "guy", "david", "george", "mark", "alex", "james", "richard",
-                        "hic", "hid", "enc", "end", "iom", "iol", "tpc", "tpd", "#m", "-m-", "_m_", "m0", "m1", "m2",
-                        "hin-ind-male", "hi_in_male", "en_us_male", "en_in_male"
-                    )
-                    val femaleKeywords = listOf(
-                        "female", "woman", "girl", "lady", "samantha", "zira", "victoria", "susan", "catherine",
-                        "hia", "hib", "hie", "ena", "enb", "ene", "sfg", "sfd", "tpa", "tpb", "#f", "-f-", "_f_", "f0", "f1", "f2",
-                        "hin-ind-female", "hi_in_female", "en_us_female", "en_in_female"
-                    )
+                val maleKeywords = listOf(
+                    "male", "man", "boy", "guy", "david", "george", "mark", "alex", "james", "richard",
+                    "hic", "hid", "enc", "end", "iom", "iol", "tpc", "tpd", "#m", "-m-", "_m_", "m0", "m1", "m2",
+                    "hin-ind-male", "hi_in_male", "en_us_male", "en_in_male"
+                )
+                val femaleKeywords = listOf(
+                    "female", "woman", "girl", "lady", "samantha", "zira", "victoria", "susan", "catherine",
+                    "hia", "hib", "hie", "ena", "enb", "ene", "sfg", "sfd", "tpa", "tpb", "#f", "-f-", "_f_", "f0", "f1", "f2",
+                    "hin-ind-female", "hi_in_female", "en_us_female", "en_in_female"
+                )
 
-                    fun scoreVoice(v: android.speech.tts.Voice): Int {
-                        val n = v.name.lowercase()
-                        val feats = v.features.orEmpty()
-                        var score = 0
-                        val isMaleName = maleKeywords.any { n.contains(it) }
-                        val isFemaleName = femaleKeywords.any { n.contains(it) }
-                        val hasMaleFeat = feats.any { it.contains("male", ignoreCase = true) && !it.contains("female", ignoreCase = true) }
-                        val hasFemaleFeat = feats.any { it.contains("female", ignoreCase = true) }
+                fun scoreVoice(v: Voice): Int {
+                    val n = v.name.lowercase()
+                    val feats = v.features.orEmpty()
+                    var score = 0
+                    val isMaleName = maleKeywords.any { n.contains(it) }
+                    val isFemaleName = femaleKeywords.any { n.contains(it) }
+                    val hasMaleFeat = feats.any { it.contains("male", ignoreCase = true) && !it.contains("female", ignoreCase = true) }
+                    val hasFemaleFeat = feats.any { it.contains("female", ignoreCase = true) }
 
-                        if (isMalePersona) {
-                            if (isMaleName) score += 90
-                            if (hasMaleFeat) score += 70
-                            if (isFemaleName) score -= 100
-                            if (hasFemaleFeat) score -= 100
-                        } else {
-                            if (isFemaleName) score += 90
-                            if (hasFemaleFeat) score += 70
-                            if (isMaleName) score -= 100
-                            if (hasMaleFeat) score -= 100
-                        }
-                        score += v.quality
-                        return score
+                    if (isMalePersona) {
+                        if (isMaleName) score += 90
+                        if (hasMaleFeat) score += 70
+                        if (isFemaleName) score -= 100
+                        if (hasFemaleFeat) score -= 100
+                    } else {
+                        if (isFemaleName) score += 90
+                        if (hasFemaleFeat) score += 70
+                        if (isMaleName) score -= 100
+                        if (hasMaleFeat) score -= 100
                     }
+                    score += v.quality
+                    return score
+                }
 
-                    val ranked = localeVoices.map { it to scoreVoice(it) }.sortedByDescending { it.second }
-                    val bestVoice = ranked.firstOrNull()?.first
-                    if (bestVoice != null) {
+                val ranked = localeVoices.map { it to scoreVoice(it) }.sortedByDescending { it.second }
+                val bestVoice = ranked.firstOrNull()?.first
+                if (bestVoice != null) {
+                    try {
                         engine.voice = bestVoice
-                        Log.d(TAG, "Selected TTS voice: ${bestVoice.name} (score: ${ranked.first().second}) for persona $normPersona")
+                    } catch (e: Exception) {
+                        Log.d(TAG, "Voice assign note: ${e.message}")
                     }
                 }
-            } catch (e: Exception) {
-                Log.d(TAG, "Local voice selection note: ${e.message}")
             }
+        } catch (e: Exception) {
+            Log.d(TAG, "Local voice selection note: ${e.message}")
+        }
 
-            // Apply acoustic shaping after voice assignment
+        try {
             engine.setPitch(finalPitch)
             engine.setSpeechRate(finalRate)
+        } catch (e: Exception) {
+            Log.d(TAG, "Pitch/rate apply note: ${e.message}")
+        }
 
-            val params = Bundle().apply {
-                putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "flashcard_speech_${System.currentTimeMillis()}")
+        val utteranceId = "flashcard_speech_${System.currentTimeMillis()}_${Random.nextInt(1000, 9999)}"
+        currentActiveUtteranceId = utteranceId
+
+        val params = Bundle().apply {
+            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+            putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
+        }
+
+        _isSpeaking.value = true
+        startVisualizerTicker()
+
+        // Safety watchdog to unblock callbacks if OS TTS service hangs
+        safetyWatchdogJob?.cancel()
+        val estimatedDurationMs = ((text.length * 100L) / finalRate.coerceAtLeast(0.5f)).toLong().coerceIn(2000L, 10000L)
+        safetyWatchdogJob = scope.launch {
+            delay(estimatedDurationMs + 2500L)
+            if (_isSpeaking.value && currentActiveUtteranceId == utteranceId) {
+                Log.w(TAG, "Safety watchdog unblocking TTS for $utteranceId")
+                _isSpeaking.value = false
+                _currentText.value = null
+                stopVisualizerTicker()
+                val callback = onSpeechDoneCallback
+                onSpeechDoneCallback = null
+                callback?.invoke()
             }
+        }
 
-            _isSpeaking.value = true
-            startVisualizerTicker()
-            engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, "flashcard_speech_${System.currentTimeMillis()}")
+        val speakResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        if (speakResult != TextToSpeech.SUCCESS) {
+            Log.w(TAG, "engine.speak returned $speakResult. Retrying with default voice...")
+            try {
+                engine.setLanguage(Locale.US)
+            } catch (e: Exception) {
+                Log.d(TAG, "Fallback locale set note: ${e.message}")
+            }
+            val fallbackResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+            if (fallbackResult != TextToSpeech.SUCCESS) {
+                Log.e(TAG, "Fallback speak also failed: $fallbackResult")
+                _isSpeaking.value = false
+                _currentText.value = null
+                stopVisualizerTicker()
+                safetyWatchdogJob?.cancel()
+                val callback = onSpeechDoneCallback
+                onSpeechDoneCallback = null
+                callback?.invoke()
+            }
         }
     }
 
@@ -729,6 +876,14 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         try {
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                }
                 setDataSource(file.absolutePath)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     try {
@@ -749,13 +904,17 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                     _isSpeaking.value = false
                     _currentText.value = null
                     stopVisualizerTicker()
-                    onSpeechDoneCallback?.invoke()
+                    val callback = onSpeechDoneCallback
+                    onSpeechDoneCallback = null
+                    callback?.invoke()
                 }
                 setOnErrorListener { _, _, _ ->
                     _isSpeaking.value = false
                     _currentText.value = null
                     stopVisualizerTicker()
-                    onSpeechDoneCallback?.invoke()
+                    val callback = onSpeechDoneCallback
+                    onSpeechDoneCallback = null
+                    callback?.invoke()
                     false
                 }
                 prepareAsync()
@@ -764,7 +923,9 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         } catch (e: Exception) {
             Log.e(TAG, "Error playing audio file", e)
             stopVisualizerTicker()
-            onSpeechDoneCallback?.invoke()
+            val callback = onSpeechDoneCallback
+            onSpeechDoneCallback = null
+            callback?.invoke()
             false
         }
     }
@@ -779,6 +940,14 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             withContext(Dispatchers.Main) {
                 mediaPlayer?.release()
                 mediaPlayer = MediaPlayer().apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                .build()
+                        )
+                    }
                     setDataSource(tempFile.absolutePath)
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -803,15 +972,19 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                         _isSpeaking.value = false
                         _currentText.value = null
                         stopVisualizerTicker()
-                        onSpeechDoneCallback?.invoke()
                         tempFile.delete()
+                        val callback = onSpeechDoneCallback
+                        onSpeechDoneCallback = null
+                        callback?.invoke()
                     }
                     setOnErrorListener { _, _, _ ->
                         _isSpeaking.value = false
                         _currentText.value = null
                         stopVisualizerTicker()
-                        onSpeechDoneCallback?.invoke()
                         tempFile.delete()
+                        val callback = onSpeechDoneCallback
+                        onSpeechDoneCallback = null
+                        callback?.invoke()
                         false
                     }
                     prepareAsync()
@@ -821,7 +994,9 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         } catch (e: Exception) {
             Log.e(TAG, "Error playing audio bytes", e)
             stopVisualizerTicker()
-            onSpeechDoneCallback?.invoke()
+            val callback = onSpeechDoneCallback
+            onSpeechDoneCallback = null
+            callback?.invoke()
             return@withContext false
         }
     }

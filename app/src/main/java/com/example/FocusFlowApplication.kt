@@ -54,13 +54,19 @@ class FocusFlowApplication : Application() {
         if (!prefsManager.isDatabaseInitialized) {
             applicationScope.launch {
                 try {
-                    folderRepository.seedInitialData(FolderInitialData.getStarterItems())
-                    flashcardRepository.seedInitialData(MockDataSource.decks)
-                    dictationRepository.seedInitialData(DictationMockDataSource.getInitialDictationDecks())
+                    val folderCount = folderRepository.getItemCount()
+                    val deckCount = flashcardRepository.getDeckCount()
+                    val dictationCount = dictationRepository.getDeckCount()
+
+                    if (folderCount == 0 && deckCount == 0 && dictationCount == 0) {
+                        folderRepository.seedInitialData(FolderInitialData.getStarterItems())
+                        flashcardRepository.seedInitialData(MockDataSource.decks)
+                        dictationRepository.seedInitialData(DictationMockDataSource.getInitialDictationDecks())
+                        Log.i("FocusFlowApp", "Initial starter data seeded on clean install.")
+                    }
                     prefsManager.isDatabaseInitialized = true
-                    Log.i("FocusFlowApp", "Initial database seeded successfully.")
                 } catch (e: Exception) {
-                    Log.e("FocusFlowApp", "Failed to seed initial database", e)
+                    Log.e("FocusFlowApp", "Failed to initialize database", e)
                 }
             }
         }

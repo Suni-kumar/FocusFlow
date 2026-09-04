@@ -99,6 +99,7 @@ import com.example.data.preferences.UserPreferencesManager
 import com.example.data.speech.DictationVoiceCommand
 import com.example.data.speech.DictationVoiceCommander
 import com.example.data.speech.FlashcardAudioPlayer
+import com.example.model.Flashcard
 import com.example.model.FlashcardDeck
 import com.example.model.MockDataSource
 import com.example.ui.components.FlashcardSpeakerButton
@@ -125,7 +126,7 @@ fun StudyScreen(
     val audioPlayer = remember { FlashcardAudioPlayer.getInstance(context) }
 
     val allCards = remember(deck.cards) {
-        deck.cards.ifEmpty { MockDataSource.neuralPlasticityCards }
+        deck.cards
     }
     
     // Instead of local state, calculate from the deck cards
@@ -172,7 +173,16 @@ fun StudyScreen(
     val dragOffsetX = remember { Animatable(0f) }
 
     val safeIndex = currentCardIndex.coerceIn(0, (cardsList.size - 1).coerceAtLeast(0))
-    val currentCard = if (cardsList.isNotEmpty()) cardsList[safeIndex] else allCards[0]
+    val currentCard = if (cardsList.isNotEmpty()) {
+        cardsList[safeIndex]
+    } else {
+        Flashcard(
+            id = "empty_deck_${deck.id}",
+            front = "No cards available in this deck",
+            back = "Use the Edit or Add buttons to create flashcards for this deck.",
+            topic = deck.title
+        )
+    }
 
     val frontScrollState = rememberScrollState()
     val backScrollState = rememberScrollState()

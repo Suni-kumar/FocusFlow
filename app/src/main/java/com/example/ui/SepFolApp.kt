@@ -139,7 +139,7 @@ fun SepFolApp() {
     val folderUiState by folderViewModel.uiState.collectAsState()
     val deckUiState by deckViewModel.uiState.collectAsState()
     var activeDeckId by remember { mutableStateOf<String?>(null) }
-    val activeDeck = deckUiState.decks.find { it.id == activeDeckId } ?: deckUiState.decks.firstOrNull() ?: MockDataSource.decks[0]
+    val activeDeck = deckUiState.decks.find { it.id == activeDeckId } ?: deckUiState.decks.firstOrNull()
     val dictationUiState by dictationViewModel.uiState.collectAsState()
 
     // Backup & Restore Dialog States
@@ -485,9 +485,9 @@ fun SepFolApp() {
                                     selectedAccent = selectedAccent
                                 )
                             }
-                            screen == ScreenState.STUDY_STAGE -> {
+                            screen == ScreenState.STUDY_STAGE && activeDeck != null -> {
                                 StudyScreen(
-                                    deck = activeDeck,
+                                    deck = activeDeck!!,
                                     isDarkTheme = isEffectiveDarkTheme,
                                     onToggleTheme = {
                                         val nextMode = if (isEffectiveDarkTheme) BrightnessMode.LIGHT else BrightnessMode.DARK
@@ -497,10 +497,10 @@ fun SepFolApp() {
                                     },
                                     onBackClick = navigateBack,
                                     onDeckProgressUpdate = { progress ->
-                                        deckViewModel.updateDeckProgress(activeDeck.id, progress)
+                                        deckViewModel.updateDeckProgress(activeDeck!!.id, progress)
                                     },
                                     onToggleCardMastery = { cardId, isMastered ->
-                                        deckViewModel.toggleCardMastery(activeDeck.id, cardId, isMastered)
+                                        deckViewModel.toggleCardMastery(activeDeck!!.id, cardId, isMastered)
                                     }
                                 )
                             }
