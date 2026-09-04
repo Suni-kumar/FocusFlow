@@ -50,6 +50,8 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicNone
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -69,6 +71,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -93,6 +96,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.preferences.UserPreferencesManager
+import com.example.data.speech.DictationVoiceCommand
+import com.example.data.speech.DictationVoiceCommander
 import com.example.data.speech.FlashcardAudioPlayer
 import com.example.model.FlashcardDeck
 import com.example.model.MockDataSource
@@ -157,6 +162,12 @@ fun StudyScreen(
     var autoPlayCountdown by remember { mutableIntStateOf(0) }
     var currentVoiceSpeed by remember { mutableStateOf(prefsManager.voiceSpeed) }
 
+    // Hands-Free Voice Control Engine
+    val voiceCommander = remember { DictationVoiceCommander(context) }
+    var isVoiceControlActive by remember { mutableStateOf(false) }
+    val lastVoiceCommand by voiceCommander.lastDetectedCommand.collectAsState()
+    val isListeningToVoice by voiceCommander.isListening.collectAsState()
+
     val scope = rememberCoroutineScope()
     val dragOffsetX = remember { Animatable(0f) }
 
@@ -175,12 +186,14 @@ fun StudyScreen(
         showTags = false
     }
 
-    // Hands-Free Auto-Play Orchestration
+    // Hands-Free Auto-Play Orchestration with Full Utterance Completion (No cut-off)
     LaunchedEffect(isAutoPlayActive, currentCardIndex, isFlipped) {
         if (isAutoPlayActive && cardsList.isNotEmpty()) {
             if (!isFlipped) {
-                // 1. Speak Question
-                audioPlayer.speak(currentCard.front, rate = currentVoiceSpeed)
+                // 1. Speak Question completely (waits until full audio finishes)
+                audioPlayer.speakAndWait(currentCard.front, rate = currentVoiceSpeed)
+                if (!isAutoPlayActive) return@LaunchedEffect
+
                 // 2. Wait 3 seconds with countdown
                 for (sec in 3 downTo 1) {
                     autoPlayCountdown = sec
@@ -191,8 +204,10 @@ fun StudyScreen(
                     isFlipped = true
                 }
             } else {
-                // 3. Speak Answer
-                audioPlayer.speak(currentCard.back, rate = currentVoiceSpeed)
+                // 3. Speak Answer completely (waits until full audio finishes)
+                audioPlayer.speakAndWait(currentCard.back, rate = currentVoiceSpeed)
+                if (!isAutoPlayActive) return@LaunchedEffect
+
                 // 4. Wait 3.5 seconds
                 for (sec in 3 downTo 1) {
                     autoPlayCountdown = sec
@@ -211,6 +226,62 @@ fun StudyScreen(
             }
         } else {
             autoPlayCountdown = 0
+        }
+    }
+
+    // Voice Command Event Listener for Hands-Free Flashcard Navigation
+    LaunchedEffect(lastVoiceCommand) {
+        if (!isVoiceControlActive) return@LaunchedEffect
+        when (lastVoiceCommand) {
+            DictationVoiceCommand.FLIP -> {
+                AppHaptic.vibrateClick(context, hapticView)
+                isFlipped = !isFlipped
+            }
+            DictationVoiceCommand.NEXT -> {
+                if (currentCardIndex < cardsList.size - 1) {
+                    AppHaptic.vibrateClick(context, hapticView)
+                    isFlipped = false
+                    currentCardIndex++
+                }
+            }
+            DictationVoiceCommand.PREVIOUS -> {
+                if (currentCardIndex > 0) {
+                    AppHaptic.vibrateClick(context, hapticView)
+                    isFlipped = false
+                    currentCardIndex--
+                }
+            }
+            DictationVoiceCommand.REPEAT -> {
+                AppHaptic.vibrateClick(context, hapticView)
+                val textToSay = if (isFlipped) currentCard.back else currentCard.front
+                audioPlayer.speak(textToSay, rate = currentVoiceSpeed)
+            }
+            DictationVoiceCommand.MASTER -> {
+                AppHaptic.vibrateHeavy(context, hapticView)
+                onToggleCardMastery?.invoke(currentCard.id, true)
+                if (currentCardIndex < cardsList.size - 1) {
+                    isFlipped = false
+                    currentCardIndex++
+                }
+            }
+            DictationVoiceCommand.UNMASTER -> {
+                AppHaptic.vibrateClick(context, hapticView)
+                onToggleCardMastery?.invoke(currentCard.id, false)
+            }
+            DictationVoiceCommand.PAUSE -> {
+                AppHaptic.vibrateClick(context, hapticView)
+                isAutoPlayActive = false
+                audioPlayer.stop()
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(isVoiceControlActive) {
+        if (isVoiceControlActive) {
+            voiceCommander.startListening()
+        } else {
+            voiceCommander.stopListening()
         }
     }
 
@@ -244,13 +315,17 @@ fun StudyScreen(
     DisposableEffect(Unit) {
         onDispose {
             audioPlayer.stop()
+            voiceCommander.stopListening()
+            voiceCommander.destroy()
         }
     }
 
     // Intercept hardware/gesture back press
     BackHandler(enabled = true) {
         audioPlayer.stop()
+        voiceCommander.stopListening()
         isAutoPlayActive = false
+        isVoiceControlActive = false
         if (isCardExpanded) {
             AppHaptic.vibrateClick(context, hapticView)
             isCardExpanded = false
@@ -417,36 +492,74 @@ fun StudyScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Auto-Play Toggle Button
-                    Surface(
-                        onClick = {
-                            AppHaptic.vibrateClick(context, hapticView)
-                            isAutoPlayActive = !isAutoPlayActive
-                        },
-                        shape = RoundedCornerShape(9999.dp),
-                        color = if (isAutoPlayActive) FocusBlue.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                        )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        // Auto-Play Toggle Button
+                        Surface(
+                            onClick = {
+                                AppHaptic.vibrateClick(context, hapticView)
+                                isAutoPlayActive = !isAutoPlayActive
+                            },
+                            shape = RoundedCornerShape(9999.dp),
+                            color = if (isAutoPlayActive) FocusBlue.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                            )
                         ) {
-                            Icon(
-                                imageVector = if (isAutoPlayActive) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (isAutoPlayActive) "Pause Auto-Advance" else "Start Auto-Advance",
-                                tint = if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isAutoPlayActive) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = if (isAutoPlayActive) "Pause Auto-Advance" else "Start Auto-Advance",
+                                    tint = if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = if (isAutoPlayActive) "Auto-Play (${autoPlayCountdown}s)" else "Auto-Play",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Hands-Free Voice Commands Button
+                        Surface(
+                            onClick = {
+                                AppHaptic.vibrateClick(context, hapticView)
+                                isVoiceControlActive = !isVoiceControlActive
+                            },
+                            shape = RoundedCornerShape(9999.dp),
+                            color = if (isVoiceControlActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isVoiceControlActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                             )
-                            Text(
-                                text = if (isAutoPlayActive) "Auto-Play (${autoPlayCountdown}s)" else "Auto-Play",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isAutoPlayActive) FocusBlue else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isVoiceControlActive) Icons.Default.Mic else Icons.Default.MicNone,
+                                    contentDescription = if (isVoiceControlActive) "Disable Voice Control" else "Enable Voice Control",
+                                    tint = if (isVoiceControlActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = if (isVoiceControlActive) "Voice: ON" else "Voice",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isVoiceControlActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
 
@@ -482,6 +595,38 @@ fun StudyScreen(
             }
 
             Spacer(modifier = Modifier.height(4.dp))
+
+            AnimatedVisibility(
+                visible = isVoiceControlActive,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "Say: \"Flip\", \"Next\", \"Back\", \"Repeat\", or \"Master\"",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
 
             // 3D Flashcard Stack Container
             Box(

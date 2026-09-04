@@ -93,43 +93,43 @@ data class GeminiVoiceOption(
 
 val GEMINI_VOICES = listOf(
     GeminiVoiceOption(
-        id = "Aoede",
-        name = "Aoede",
-        gender = "Female",
-        toneDescription = "Warm, expressive & melodic. Natural conversational cadence.",
-        tags = listOf("Recommended", "Expressive", "Tutor"),
-        accentColor = Color(0xFF8B5CF6)
-    ),
-    GeminiVoiceOption(
-        id = "Kore",
-        name = "Kore",
-        gender = "Female",
-        toneDescription = "Soft, soothing & clear. Ideal for calm, deep study sessions.",
-        tags = listOf("Gentle", "Clear", "Hindi-Ready"),
-        accentColor = Color(0xFF10B981)
-    ),
-    GeminiVoiceOption(
         id = "Puck",
         name = "Puck",
         gender = "Male",
-        toneDescription = "Energetic, youthful & engaging. High clarity and enthusiasm.",
-        tags = listOf("Dynamic", "Fast", "Upbeat"),
+        toneDescription = "Energetic, youthful & engaging male voice. High clarity and enthusiasm.",
+        tags = listOf("Male Tutor", "Recommended", "Dynamic"),
         accentColor = Color(0xFF38BDF8)
     ),
     GeminiVoiceOption(
         id = "Charon",
         name = "Charon",
         gender = "Male",
-        toneDescription = "Deep, resonant & authoritative. Serious academic delivery.",
-        tags = listOf("Deep", "Authoritative", "Steady"),
+        toneDescription = "Deep, resonant & authoritative male voice. Serious academic baritone.",
+        tags = listOf("Male Tutor", "Deep Voice", "Steady"),
         accentColor = Color(0xFFF59E0B)
     ),
     GeminiVoiceOption(
         id = "Fenrir",
         name = "Fenrir",
         gender = "Male",
-        toneDescription = "Calm, balanced & articulate. Great for technical & STEM concepts.",
-        tags = listOf("Balanced", "Crisp", "Neutral"),
+        toneDescription = "Calm, balanced & articulate male voice. Great for technical & STEM concepts.",
+        tags = listOf("Male Voice", "Crisp", "Neutral"),
+        accentColor = Color(0xFF10B981)
+    ),
+    GeminiVoiceOption(
+        id = "Aoede",
+        name = "Aoede",
+        gender = "Female",
+        toneDescription = "Warm, expressive & melodic female voice. Natural conversational cadence.",
+        tags = listOf("Female Voice", "Expressive", "Tutor"),
+        accentColor = Color(0xFF8B5CF6)
+    ),
+    GeminiVoiceOption(
+        id = "Kore",
+        name = "Kore",
+        gender = "Female",
+        toneDescription = "Soft, soothing & clear female voice. Ideal for calm, deep study sessions.",
+        tags = listOf("Female Voice", "Gentle", "Clear"),
         accentColor = Color(0xFFEC4899)
     )
 )
@@ -198,6 +198,7 @@ fun VoiceSettingsScreen(
     var preferGeminiVoice by remember { mutableStateOf(prefs.isPreferGeminiVoice) }
     var customApiKeyInput by remember { mutableStateOf(prefs.customApiKey) }
     var showApiKeyField by remember { mutableStateOf(false) }
+    var previewingVoiceId by remember { mutableStateOf<String?>(null) }
 
     val hasApiKey = prefs.customApiKey.isNotBlank()
 
@@ -569,7 +570,11 @@ fun VoiceSettingsScreen(
                                     ) {
                                         Button(
                                             onClick = {
-                                                prefs.customApiKey = customApiKeyInput.trim()
+                                                val trimmed = customApiKeyInput.trim()
+                                                prefs.customApiKey = trimmed
+                                                prefs.isPreferGeminiVoice = true
+                                                preferGeminiVoice = true
+                                                audioPlayer.clearAudioCache()
                                             },
                                             shape = RoundedCornerShape(8.dp),
                                             colors = ButtonDefaults.buttonColors(
@@ -615,6 +620,7 @@ fun VoiceSettingsScreen(
                             .clickable {
                                 selectedVoiceId = voice.id
                                 prefs.geminiVoiceName = voice.id
+                                audioPlayer.clearAudioCache()
                             }
                             .testTag("voice_option_${voice.id.lowercase()}"),
                         shape = RoundedCornerShape(14.dp),
@@ -702,6 +708,8 @@ fun VoiceSettingsScreen(
                                 onClick = {
                                     selectedVoiceId = voice.id
                                     prefs.geminiVoiceName = voice.id
+                                    previewingVoiceId = voice.id
+                                    audioPlayer.clearAudioCache()
                                     audioPlayer.previewVoice(
                                         voiceName = voice.id,
                                         customPhrase = if (selectedAccentId == "HINDI_IN") {
@@ -717,7 +725,7 @@ fun VoiceSettingsScreen(
                                     .background(selectedAccent.primaryColor.copy(alpha = 0.15f))
                                     .testTag("preview_voice_${voice.id.lowercase()}")
                             ) {
-                                if (isLoading && isSelected) {
+                                if (isLoading && previewingVoiceId == voice.id) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(16.dp),
                                         strokeWidth = 2.dp,

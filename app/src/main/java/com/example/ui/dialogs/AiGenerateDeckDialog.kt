@@ -1,5 +1,10 @@
 package com.example.ui.dialogs
 
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -30,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
@@ -57,6 +63,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.testTag
@@ -77,10 +84,12 @@ fun AiGenerateDeckDialog(
     hasCustomApiKey: Boolean = false,
     onDismiss: () -> Unit,
     onConfigureApiKeyClick: () -> Unit = {},
-    onGenerate: (deckTitle: String, topicOrNotes: String, cardCount: Int) -> Unit
+    onGenerate: (deckTitle: String, topicOrNotes: String, cardCount: Int, userInstructions: String) -> Unit
 ) {
     var deckName by remember { mutableStateOf("") }
     var promptText by remember(initialPrompt) { mutableStateOf(initialPrompt) }
+    var instructionsText by remember { mutableStateOf("") }
+    var showAdvancedInstructions by remember { mutableStateOf(false) }
     var selectedCardCount by remember { mutableIntStateOf(15) }
     val haptic = LocalView.current
 
@@ -120,6 +129,19 @@ fun AiGenerateDeckDialog(
         "System Architecture",
         "Spanish Vocabulary"
     )
+
+    val context = LocalContext.current
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val spokenMatches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val recognizedText = spokenMatches?.firstOrNull()
+            if (!recognizedText.isNullOrBlank()) {
+                promptText = if (promptText.isBlank()) recognizedText else "$promptText $recognizedText"
+            }
+        }
+    }
 
     Dialog(
         onDismissRequest = {
@@ -366,13 +388,64 @@ fun AiGenerateDeckDialog(
 
                 // Field 2: Topic / Notes Input Area
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "TOPIC OR SOURCE TEXT",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        letterSpacing = 0.08.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "TOPIC OR SOURCE TEXT",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = 0.08.sp
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable(enabled = !isGenerating) {
+                                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                        putExtra(
+                                            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                                        )
+                                        putExtra(
+                                            RecognizerIntent.EXTRA_PROMPT,
+                                            "Speak your study topic or paste notes..."
+                                        )
+                                    }
+                                    try {
+                                        speechLauncher.launch(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(
+                                            context,
+                                            "Voice input not available on device",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .testTag("ai_deck_voice_input_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Dictate topic with voice",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "Voice Input",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
 
                     OutlinedTextField(
                         value = promptText,
@@ -410,6 +483,63 @@ fun AiGenerateDeckDialog(
                             disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     )
+                }
+
+                // Optional Custom Instructions / Guidelines Toggle
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = !isGenerating) {
+                                showAdvancedInstructions = !showAdvancedInstructions
+                            }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = if (showAdvancedInstructions) "▾ Custom Focus / Instructions" else "▸ Custom Focus / Instructions (Optional)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    if (showAdvancedInstructions) {
+                        OutlinedTextField(
+                            value = instructionsText,
+                            onValueChange = { instructionsText = it },
+                            placeholder = {
+                                Text(
+                                    text = "e.g. Focus on mechanisms, high-yield clinical pearls, formula derivations...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    fontSize = 12.sp
+                                )
+                            },
+                            enabled = !isGenerating,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant,
+                                    RoundedCornerShape(10.dp)
+                                ),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
                 }
 
                 // Quick Suggestion Chips (when input is blank)
@@ -621,7 +751,7 @@ fun AiGenerateDeckDialog(
                         onClick = {
                             if (promptText.isNotBlank() && !isGenerating) {
                                 haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                onGenerate(deckName, promptText, selectedCardCount)
+                                onGenerate(deckName, promptText, selectedCardCount, instructionsText)
                             }
                         },
                         enabled = promptText.isNotBlank() && !isGenerating,

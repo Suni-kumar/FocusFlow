@@ -3,8 +3,10 @@ package com.example.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.FocusFlowApplication
 import com.example.data.ai.GeminiDictationService
 import com.example.data.preferences.UserPreferencesManager
+import com.example.data.repository.DictationRepository
 import com.example.data.speech.DictationVoiceCommand
 import com.example.data.speech.DictationVoiceCommander
 import com.example.data.speech.FlashcardAudioPlayer
@@ -52,7 +54,17 @@ data class DictationUiState(
     val aiGenerationProgressMessage: String get() = aiProgressMessage
 }
 
-class DictationViewModel(application: Application) : AndroidViewModel(application) {
+class DictationViewModel @JvmOverloads constructor(
+    application: Application,
+    repository: DictationRepository? = null
+) : AndroidViewModel(application) {
+
+    private val repo: DictationRepository = repository
+        ?: try {
+            FocusFlowApplication.instance.dictationRepository
+        } catch (e: Exception) {
+            DictationRepository.createInMemory()
+        }
 
     private val prefsManager = UserPreferencesManager(application)
     private val audioPlayer = FlashcardAudioPlayer.getInstance(application)
@@ -69,6 +81,14 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
     private var autoDismissCardJob: Job? = null
 
     init {
+        viewModelScope.launch {
+            repo.allDecks.collect { decks ->
+                if (decks.isNotEmpty()) {
+                    _uiState.update { it.copy(decks = decks) }
+                }
+            }
+        }
+
         voiceCommander.onCommandRecognized = { command ->
             handleVoiceCommand(command)
         }
@@ -141,6 +161,9 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                     if (deck.id == deckId) deck.copy(isStarred = !deck.isStarred) else deck
                 }
             )
+        }
+        viewModelScope.launch {
+            repo.toggleStarDeck(deckId)
         }
     }
 
@@ -278,6 +301,7 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                 // UI intercepts
             }
             DictationVoiceCommand.NONE -> {}
+            else -> {}
         }
     }
 
@@ -312,6 +336,9 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                     isPracticeActive = false,
                     activeDeck = null
                 )
+            }
+            viewModelScope.launch {
+                repo.updateDeckPracticeStats(active.id, accuracyFraction, "Just now")
             }
         } else {
             _uiState.update { it.copy(isPracticeActive = false, activeDeck = null) }
@@ -373,6 +400,9 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                 statusMessage = "Created \"${newDeck.title}\" with ${newDeck.words.size} words"
             )
         }
+        viewModelScope.launch {
+            repo.insertDeckWithWords(newDeck)
+        }
     }
 
     fun updateDeck(updatedDeck: DictationDeck) {
@@ -384,6 +414,9 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                 statusMessage = "Updated \"${updatedDeck.title}\""
             )
         }
+        viewModelScope.launch {
+            repo.insertDeckWithWords(updatedDeck)
+        }
     }
 
     fun deleteDeck(deckId: String) {
@@ -393,6 +426,9 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                 selectedDeckIds = state.selectedDeckIds - deckId,
                 statusMessage = "Deck deleted"
             )
+        }
+        viewModelScope.launch {
+            repo.deleteDeck(deckId)
         }
     }
 
@@ -405,6 +441,43 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                 selectedDeckIds = emptySet(),
                 statusMessage = "Deleted ${selected.size} deck(s)"
             )
+        }
+        viewModelScope.launch {
+            repo.deleteDecks(selected.toList())
+        }
+    }
+
+    fun restoreDecks(importedDecks: List<DictationDeck>, merge: Boolean) {
+        if (importedDecks.isEmpty()) return
+        _uiState.update { state ->
+            val finalDecks = if (merge) {
+                val map = state.decks.associateBy { it.id }.toMutableMap()
+                for (d in importedDecks) map[d.id] = d
+                map.values.toList()
+            } else {
+                importedDecks
+            }
+            state.copy(
+                decks = finalDecks,
+                selectedDeckIds = emptySet(),
+                statusMessage = if (merge) "Merged ${importedDecks.size} dictation decks" else "Restored ${importedDecks.size} dictation decks"
+            )
+        }
+        viewModelScope.launch {
+            if (!merge) {
+                repo.clearAll()
+            }
+            repo.insertDecksWithWords(importedDecks)
+        }
+    }
+
+    fun addOrUpdateDeck(deck: DictationDeck) {
+        _uiState.update { state ->
+            val updated = listOf(deck) + state.decks.filter { it.id != deck.id }
+            state.copy(decks = updated, statusMessage = "Imported dictation deck \"${deck.title}\"")
+        }
+        viewModelScope.launch {
+            repo.insertDeckWithWords(deck)
         }
     }
 
@@ -444,6 +517,9 @@ class DictationViewModel(application: Application) : AndroidViewModel(applicatio
                         isAiGenerateDialogOpen = false,
                         statusMessage = "Created \"${generatedDeck.title}\" with ${generatedDeck.words.size} words"
                     )
+                }
+                viewModelScope.launch {
+                    repo.insertDeckWithWords(generatedDeck)
                 }
                 onComplete?.invoke(generatedDeck)
             } catch (e: Exception) {

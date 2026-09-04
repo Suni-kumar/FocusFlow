@@ -192,10 +192,18 @@ class GeminiDictationService {
 
             for (i in 0 until jsonArray.length()) {
                 val item = jsonArray.getJSONObject(i)
-                val word = item.optString("word").trim()
-                val meaning = item.optString("meaning").trim()
+                val word = (item.optString("word").takeIf { it.isNotBlank() }
+                    ?: item.optString("term").takeIf { it.isNotBlank() }
+                    ?: item.optString("spelling").takeIf { it.isNotBlank() }
+                    ?: item.optString("text")).orEmpty().trim()
+                val meaning = (item.optString("meaning").takeIf { it.isNotBlank() }
+                    ?: item.optString("definition").takeIf { it.isNotBlank() }
+                    ?: item.optString("translation").takeIf { it.isNotBlank() }
+                    ?: item.optString("explanation")).orEmpty().trim()
                 val phonetic = item.optString("phonetic").trim()
-                val example = item.optString("exampleSentence").trim()
+                val example = (item.optString("exampleSentence").takeIf { it.isNotBlank() }
+                    ?: item.optString("example").takeIf { it.isNotBlank() }
+                    ?: item.optString("sentence")).orEmpty().trim()
 
                 if (word.isNotBlank()) {
                     result.add(

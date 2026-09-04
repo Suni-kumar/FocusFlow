@@ -28,6 +28,9 @@ enum class DictationVoiceCommand {
     SAY_MEANING,
     CHECK_TIME,
     PAUSE,
+    FLIP,
+    MASTER,
+    UNMASTER,
     NONE
 }
 
@@ -156,17 +159,16 @@ class DictationVoiceCommander(private val context: Context) {
             consecutiveErrors = 0
             resetInactivityTimer()
 
-            // Echo guard: ignore results that finish within 350ms of audio player output
+            // Echo guard: ignore results that finish within 600ms of audio player output
             val timeSinceAudio = System.currentTimeMillis() - lastAudioPlaybackFinishTime
-            if (timeSinceAudio > 350) {
+            if (timeSinceAudio > 600) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
                     val spoken = matches[0].trim()
                     _lastRecognizedText.value = spoken
                     val command = parseSpokenCommand(spoken)
                     if (command != DictationVoiceCommand.NONE) {
-                        _lastDetectedCommand.value = command
-                        onCommandRecognized?.invoke(command)
+                        dispatchCommand(command)
                     }
                 }
             }
@@ -175,28 +177,47 @@ class DictationVoiceCommander(private val context: Context) {
             if (isListeningActive && !isPausedTemporarily && !_isAsleepDueToInactivity.value) {
                 mainHandler.postDelayed({
                     startListeningInternal()
-                }, 100)
+                }, 150)
             }
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
             resetInactivityTimer()
             val timeSinceAudio = System.currentTimeMillis() - lastAudioPlaybackFinishTime
-            if (timeSinceAudio > 350) {
+            if (timeSinceAudio > 600) {
                 val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
                     val spoken = matches[0].trim()
                     _lastRecognizedText.value = spoken
                     val command = parseSpokenCommand(spoken)
                     if (command != DictationVoiceCommand.NONE) {
-                        _lastDetectedCommand.value = command
-                        onCommandRecognized?.invoke(command)
+                        dispatchCommand(command)
                     }
                 }
             }
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {}
+    }
+
+    private var lastDispatchedCommand: DictationVoiceCommand = DictationVoiceCommand.NONE
+    private var lastDispatchedCommandTime: Long = 0L
+
+    private fun dispatchCommand(command: DictationVoiceCommand) {
+        if (command == DictationVoiceCommand.NONE) return
+        val now = System.currentTimeMillis()
+        // Debounce identical commands within 1200ms
+        if (command == lastDispatchedCommand && (now - lastDispatchedCommandTime) < 1200L) {
+            return
+        }
+        // Debounce any commands within 600ms to avoid rapid consecutive jumps
+        if ((now - lastDispatchedCommandTime) < 600L) {
+            return
+        }
+        lastDispatchedCommand = command
+        lastDispatchedCommandTime = now
+        _lastDetectedCommand.value = command
+        onCommandRecognized?.invoke(command)
     }
 
     /**
@@ -269,7 +290,7 @@ class DictationVoiceCommander(private val context: Context) {
                 if (isListeningActive && !isPausedTemporarily) {
                     startListeningInternal()
                 }
-            }, 380) // 380ms acoustic room clearance delay to prevent self-trigger
+            }, 500) // 500ms acoustic room clearance delay to prevent self-trigger
         }
     }
 
@@ -401,6 +422,27 @@ class DictationVoiceCommander(private val context: Context) {
                     text.contains("रुको") || text.contains("रुकिए") || text.contains("स्टॉप") ||
                     text.contains("शांत") -> {
                 DictationVoiceCommand.PAUSE
+            }
+
+            // Flashcards: "Flip" / "Turn" / "Palto" / "पलटो" / "उल्टा"
+            text.contains("flip") || text.contains("turn") || text.contains("palto") ||
+                    text.contains("palat") || text.contains("ulta") || text.contains("rotate") ||
+                    text.contains("पलटो") || text.contains("पलट") || text.contains("उल्टा") -> {
+                DictationVoiceCommand.FLIP
+            }
+
+            // Flashcards: "Master" / "Mastered" / "याद है" / "आता है" / "yaad hai" / "aata hai"
+            text.contains("master") || text.contains("mastered") || text.contains("yaad hai") ||
+                    text.contains("aata hai") || text.contains("learned") ||
+                    text.contains("याद है") || text.contains("आता है") || text.contains("मास्टर") -> {
+                DictationVoiceCommand.MASTER
+            }
+
+            // Flashcards: "Unmaster" / "Don't know" / "nahi aata" / "नहीं आता" / "bhul gaya"
+            text.contains("unmaster") || text.contains("nahi aata") || text.contains("bhul gaya") ||
+                    text.contains("forget") || text.contains("forgot") ||
+                    text.contains("नहीं आता") || text.contains("भूल गया") -> {
+                DictationVoiceCommand.UNMASTER
             }
 
             else -> DictationVoiceCommand.NONE

@@ -1,7 +1,16 @@
 package com.example
 
+import com.example.data.repository.FolderRepository
 import com.sepfol.app.ui.folder.FolderItem
 import com.sepfol.app.ui.folder.FolderViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -9,17 +18,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class FolderViewModelTest {
 
+    private val testDispatcher = StandardTestDispatcher()
     private lateinit var viewModel: FolderViewModel
 
     @Before
     fun setUp() {
-        viewModel = FolderViewModel()
+        Dispatchers.setMain(testDispatcher)
+        viewModel = FolderViewModel(repository = FolderRepository.createInMemory())
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
-    fun `initial state contains root folders and notes`() {
+    fun `initial state contains root folders and notes`() = runTest {
+        advanceUntilIdle()
         val state = viewModel.uiState.value
         assertEquals(null, state.currentFolderId)
         assertEquals(1, state.folderStack.size)
@@ -29,11 +48,13 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `open folder updates stack and filters children`() {
+    fun `open folder updates stack and filters children`() = runTest {
+        advanceUntilIdle()
         val state = viewModel.uiState.value
         val universityFolder = state.currentItems.first { it.name == "University" }
 
         viewModel.openFolder(universityFolder)
+        advanceUntilIdle()
 
         val updatedState = viewModel.uiState.value
         assertEquals(universityFolder.id, updatedState.currentFolderId)
@@ -43,12 +64,15 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `navigate up returns to parent folder`() {
+    fun `navigate up returns to parent folder`() = runTest {
+        advanceUntilIdle()
         val universityFolder = viewModel.uiState.value.currentItems.first { it.name == "University" }
         viewModel.openFolder(universityFolder)
+        advanceUntilIdle()
         assertEquals(2, viewModel.uiState.value.folderStack.size)
 
         val handled = viewModel.navigateUp()
+        advanceUntilIdle()
         assertTrue(handled)
 
         val rootState = viewModel.uiState.value
@@ -58,9 +82,11 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `create folder adds item to active directory`() {
+    fun `create folder adds item to active directory`() = runTest {
+        advanceUntilIdle()
         val folderName = "Cellular Biology"
         viewModel.createFolder(folderName)
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         val created = state.currentItems.firstOrNull { it.name == folderName }
@@ -71,10 +97,12 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `create markdown note auto-appends md extension and sets size`() {
+    fun `create markdown note auto-appends md extension and sets size`() = runTest {
+        advanceUntilIdle()
         val title = "Action Potentials"
         val content = "# Action Potential Stages\n1. Depolarization\n2. Repolarization"
         viewModel.createMarkdownNote(title, content)
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         val created = state.currentItems.firstOrNull { it.name == "Action Potentials.md" }
@@ -87,18 +115,22 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `delete item removes item and reflects in current items`() {
+    fun `delete item removes item and reflects in current items`() = runTest {
+        advanceUntilIdle()
         viewModel.createFolder("Temp Folder")
+        advanceUntilIdle()
         val folder = viewModel.uiState.value.currentItems.first { it.name == "Temp Folder" }
 
         viewModel.deleteItem(folder)
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertFalse(state.currentItems.any { it.id == folder.id })
     }
 
     @Test
-    fun `import file adds custom file from storage to active folder`() {
+    fun `import file adds custom file from storage to active folder`() = runTest {
+        advanceUntilIdle()
         val fileName = "Lecture_01_Introduction.pdf"
         val mimeType = "application/pdf"
         val sizeBytes = 2048576L
@@ -110,6 +142,7 @@ class FolderViewModelTest {
             sizeBytes = sizeBytes,
             contentData = content
         )
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         val imported = state.currentItems.firstOrNull { it.name == fileName }
@@ -123,7 +156,8 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `toggleSpeedDial toggles isSpeedDialOpen correctly`() {
+    fun `toggleSpeedDial toggles isSpeedDialOpen correctly`() = runTest {
+        advanceUntilIdle()
         assertFalse(viewModel.uiState.value.isSpeedDialOpen)
 
         viewModel.toggleSpeedDial()
@@ -134,7 +168,8 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `openCreateFolderDialog closes speed dial and opens dialog`() {
+    fun `openCreateFolderDialog closes speed dial and opens dialog`() = runTest {
+        advanceUntilIdle()
         viewModel.openSpeedDial()
         assertTrue(viewModel.uiState.value.isSpeedDialOpen)
 
@@ -144,7 +179,8 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `openCreateNoteDialog closes speed dial and opens dialog`() {
+    fun `openCreateNoteDialog closes speed dial and opens dialog`() = runTest {
+        advanceUntilIdle()
         viewModel.openSpeedDial()
         assertTrue(viewModel.uiState.value.isSpeedDialOpen)
 

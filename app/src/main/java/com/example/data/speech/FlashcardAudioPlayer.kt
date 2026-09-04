@@ -23,7 +23,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -208,7 +210,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             }
 
             // If user prefers Gemini Live HD voice and API key is present, attempt live generative voice streaming
-            if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY" && rate == 1.0f) {
+            if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
                 _isLoading.value = true
                 _currentEngineType.value = "Gemini Live HD ($selectedVoice)"
                 
@@ -233,6 +235,22 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             playWithLocalTts(cleanText, lang, voicePersona = selectedVoice)
         }
     }
+
+    /**
+     * Suspending version of speak that suspends until audio finishes speaking.
+     * Prevents voice cut-off during auto-play and multi-step study loops.
+     */
+    suspend fun speakAndWait(text: String, rate: Float = 1.0f): Boolean =
+        suspendCancellableCoroutine { continuation ->
+            speak(text, forceReplay = true, rate = rate, onDone = {
+                if (continuation.isActive) {
+                    continuation.resume(true)
+                }
+            })
+            continuation.invokeOnCancellation {
+                stop()
+            }
+        }
 
     /**
      * Dictation Practice: Speaks a specific word cleanly for dictation with zero delay.
@@ -261,6 +279,21 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     }
 
     /**
+     * Clears cached audio files to guarantee newly selected voices and API keys take effect immediately.
+     */
+    fun clearAudioCache() {
+        try {
+            cacheDir.listFiles()?.forEach { file ->
+                if (file.isFile && (file.name.endsWith(".wav") || file.name.endsWith(".mp3"))) {
+                    file.delete()
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Clear audio cache note: ${e.message}")
+        }
+    }
+
+    /**
      * Previews a specific Gemini Voice persona with a demo sentence.
      */
     fun previewVoice(voiceName: String, customPhrase: String? = null) {
@@ -282,10 +315,9 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         scope.launch {
             val cacheKey = hashAudioKey(sample, normVoice, prefsManager.voiceAccent)
             val cachedFile = File(cacheDir, "$cacheKey.wav")
-            if (cachedFile.exists() && cachedFile.length() > 0) {
-                _currentEngineType.value = "Cached Voice ($normVoice)"
-                playAudioFile(cachedFile)
-                return@launch
+            // Always refresh preview file to guarantee the user hears the newly selected persona
+            if (cachedFile.exists()) {
+                cachedFile.delete()
             }
 
             if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
@@ -417,6 +449,11 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         }
 
         tts?.let { engine ->
+            val normPersona = normalizeVoiceName(voicePersona)
+            val isMalePersona = normPersona in listOf("Puck", "Charon", "Fenrir")
+
+            // Critical order: setLanguage MUST be called BEFORE engine.voice is assigned!
+            // In Android TTS, setLanguage() resets engine.voice to the system default voice!
             val langResult = engine.setLanguage(locale)
             if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
                 engine.setLanguage(Locale.US)
@@ -425,64 +462,84 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             val baseSpeed = prefsManager.voiceSpeed
             val basePitch = prefsManager.voicePitch
 
-            val normPersona = normalizeVoiceName(voicePersona)
-            val isMalePersona = normPersona in listOf("Puck", "Charon", "Fenrir")
-
             // Real acoustic tuning for distinct male and female personas
             val (personaPitchMod, personaSpeedMod) = when (normPersona) {
-                "Aoede" -> Pair(1.12f, 1.00f)      // Melodic, expressive soprano female
-                "Kore" -> Pair(0.96f, 0.95f)       // Calm, soothing alto female
-                "Puck" -> Pair(0.82f, 1.06f)       // Youthful, energetic masculine male
-                "Charon" -> Pair(0.68f, 0.92f)     // Deep resonant baritone masculine male
-                "Fenrir" -> Pair(0.76f, 0.98f)     // Balanced articulate clear male
-                else -> Pair(1.0f, 1.0f)
+                "Aoede" -> Pair(1.15f, 1.00f)      // Melodic, expressive soprano female
+                "Kore" -> Pair(0.98f, 0.95f)       // Calm, soothing alto female
+                "Puck" -> Pair(0.68f, 1.05f)       // Youthful, energetic masculine male
+                "Charon" -> Pair(0.55f, 0.92f)     // Deep resonant baritone masculine male
+                "Fenrir" -> Pair(0.62f, 0.98f)     // Balanced articulate clear male
+                else -> Pair(0.65f, 1.0f)
             }
 
-            val finalPitch = (basePitch * personaPitchMod).coerceIn(0.5f, 2.0f)
+            // Guaranteed masculine fundamental frequency range (0.50f - 0.75f) when male persona is active
+            val finalPitch = if (isMalePersona) {
+                (basePitch * personaPitchMod).coerceIn(0.52f, 0.78f)
+            } else {
+                (basePitch * personaPitchMod).coerceIn(0.92f, 1.50f)
+            }
             val finalRate = (baseSpeed * personaSpeedMod).coerceIn(0.5f, 2.0f)
-
-            engine.setPitch(finalPitch)
-            engine.setSpeechRate(finalRate)
 
             // Select matching voice for locale and gender persona from available device TTS voices
             try {
-                val availableVoices = engine.voices?.filter { voice ->
-                    (voice.locale.language == locale.language || (locale.language == "hi" && voice.locale.country == "IN")) &&
-                            !voice.isNetworkConnectionRequired
-                }
+                val allVoices = engine.voices?.toList().orEmpty()
+                if (allVoices.isNotEmpty()) {
+                    val localeVoices = allVoices.filter { v ->
+                        v.locale.language.equals(locale.language, ignoreCase = true) ||
+                                (locale.language == "hi" && v.locale.country.equals("IN", ignoreCase = true)) ||
+                                (locale.language == "en" && v.locale.language.equals("en", ignoreCase = true))
+                    }.ifEmpty { allVoices }
 
-                if (!availableVoices.isNullOrEmpty()) {
-                    val matchingVoices = availableVoices.filter { v ->
+                    // Multilingual keywords identifying male and female voices (Google TTS, Samsung, etc.)
+                    val maleKeywords = listOf(
+                        "male", "man", "boy", "guy", "david", "george", "mark", "alex", "james", "richard",
+                        "hic", "hid", "enc", "end", "iom", "iol", "tpc", "tpd", "#m", "-m-", "_m_", "m0", "m1", "m2",
+                        "hin-ind-male", "hi_in_male", "en_us_male", "en_in_male"
+                    )
+                    val femaleKeywords = listOf(
+                        "female", "woman", "girl", "lady", "samantha", "zira", "victoria", "susan", "catherine",
+                        "hia", "hib", "hie", "ena", "enb", "ene", "sfg", "sfd", "tpa", "tpb", "#f", "-f-", "_f_", "f0", "f1", "f2",
+                        "hin-ind-female", "hi_in_female", "en_us_female", "en_in_female"
+                    )
+
+                    fun scoreVoice(v: android.speech.tts.Voice): Int {
                         val n = v.name.lowercase()
-                        val isExplicitFemale = n.contains("female") || n.contains("f0") || n.contains("-f-") || 
-                                n.contains("woman") || n.contains("girl") || n.contains("samantha") || n.contains("zira")
-                        val isExplicitMale = n.contains("male") || n.contains("m0") || n.contains("-m-") || 
-                                n.contains("man") || n.contains("boy") || n.contains("david") || n.contains("guy")
+                        val feats = v.features.orEmpty()
+                        var score = 0
+                        val isMaleName = maleKeywords.any { n.contains(it) }
+                        val isFemaleName = femaleKeywords.any { n.contains(it) }
+                        val hasMaleFeat = feats.any { it.contains("male", ignoreCase = true) && !it.contains("female", ignoreCase = true) }
+                        val hasFemaleFeat = feats.any { it.contains("female", ignoreCase = true) }
 
                         if (isMalePersona) {
-                            isExplicitMale || (!isExplicitFemale && !n.contains("f0"))
+                            if (isMaleName) score += 90
+                            if (hasMaleFeat) score += 70
+                            if (isFemaleName) score -= 100
+                            if (hasFemaleFeat) score -= 100
                         } else {
-                            isExplicitFemale || (!isExplicitMale && !n.contains("m0"))
+                            if (isFemaleName) score += 90
+                            if (hasFemaleFeat) score += 70
+                            if (isMaleName) score -= 100
+                            if (hasMaleFeat) score -= 100
                         }
+                        score += v.quality
+                        return score
                     }
 
-                    val chosenVoice = if (matchingVoices.isNotEmpty()) {
-                        if (normPersona == "Charon" && matchingVoices.size > 1) {
-                            matchingVoices.lastOrNull()
-                        } else {
-                            matchingVoices.maxByOrNull { it.quality } ?: matchingVoices.first()
-                        }
-                    } else {
-                        availableVoices.maxByOrNull { it.quality }
-                    }
-
-                    if (chosenVoice != null) {
-                        engine.voice = chosenVoice
+                    val ranked = localeVoices.map { it to scoreVoice(it) }.sortedByDescending { it.second }
+                    val bestVoice = ranked.firstOrNull()?.first
+                    if (bestVoice != null) {
+                        engine.voice = bestVoice
+                        Log.d(TAG, "Selected TTS voice: ${bestVoice.name} (score: ${ranked.first().second}) for persona $normPersona")
                     }
                 }
             } catch (e: Exception) {
                 Log.d(TAG, "Local voice selection note: ${e.message}")
             }
+
+            // Apply acoustic shaping after voice assignment
+            engine.setPitch(finalPitch)
+            engine.setSpeechRate(finalRate)
 
             val params = Bundle().apply {
                 putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "flashcard_speech_${System.currentTimeMillis()}")
@@ -505,7 +562,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     ): Boolean = withContext(Dispatchers.IO) {
         val models = listOf(
             "gemini-2.0-flash",
-            "gemini-1.5-flash"
+            "gemini-2.0-flash-exp"
         )
 
         val normVoice = normalizeVoiceName(voiceName)
@@ -592,6 +649,8 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                             }
                         }
                     }
+                } else {
+                    Log.w(TAG, "Gemini Voice API HTTP ${response.code} error: $responseStr")
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Gemini Voice API attempt on $model failed: ${e.message}")
@@ -804,12 +863,14 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                 return Locale.forLanguageTag("hi-IN")
             }
 
-            val lower = text.lowercase()
-            val hinglishKeywords = listOf(
-                " kya ", " hai ", " kyu ", " kaise ", " kahan ", " nahi ", " hota ", " hoti ", 
-                " karte ", " kijiye ", " matlab ", " samjhaiye ", " arth ", " paribhasha "
+            val lower = text.lowercase().trim()
+            val hinglishWords = setOf(
+                "kya", "hai", "hain", "kyu", "kyun", "kaise", "kahan", "nahi", "nahin",
+                "hota", "hoti", "hote", "karte", "kijiye", "karna", "matlab", "samjhaiye",
+                "samjhao", "arth", "paribhasha", "prashna", "uttar", "batao", "bataiye", "aur"
             )
-            if (hinglishKeywords.any { lower.contains(it) }) {
+            val tokens = lower.split(Regex("[\\s\\p{Punct}]+")).filter { it.isNotBlank() }
+            if (tokens.any { it in hinglishWords }) {
                 return Locale.forLanguageTag("hi-IN")
             }
 

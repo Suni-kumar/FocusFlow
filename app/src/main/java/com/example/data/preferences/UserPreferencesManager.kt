@@ -21,7 +21,12 @@ class UserPreferencesManager(context: Context) {
         private const val KEY_VOICE_SPEED = "voice_speed"
         private const val KEY_VOICE_PITCH = "voice_pitch"
         private const val KEY_PREFER_GEMINI_VOICE = "prefer_gemini_voice"
+        private const val KEY_DATABASE_INITIALIZED = "focusflow_database_seeded_v1"
     }
+
+    var isDatabaseInitialized: Boolean
+        get() = prefs.getBoolean(KEY_DATABASE_INITIALIZED, false)
+        set(value) = prefs.edit().putBoolean(KEY_DATABASE_INITIALIZED, value).apply()
 
     var customApiKey: String
         get() = prefs.getString(KEY_CUSTOM_API_KEY, "") ?: ""
@@ -57,7 +62,7 @@ class UserPreferencesManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_VISUAL_ENGINE, value).apply()
 
     var geminiVoiceName: String
-        get() = prefs.getString(KEY_GEMINI_VOICE_NAME, "Aoede") ?: "Aoede"
+        get() = prefs.getString(KEY_GEMINI_VOICE_NAME, "Puck") ?: "Puck"
         set(value) = prefs.edit().putString(KEY_GEMINI_VOICE_NAME, value).apply()
 
     var voiceAccent: String

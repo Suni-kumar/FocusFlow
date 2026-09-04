@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
@@ -49,6 +50,7 @@ fun FlashcardSpeakerButton(
     val isLoading by audioPlayer.isLoading.collectAsState()
 
     val isThisCardSpeaking = isSpeaking && currentSpeakingText == textToSpeak.trim()
+    val isThisCardLoading = isLoading && currentSpeakingText == textToSpeak.trim()
 
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
 
@@ -56,7 +58,7 @@ fun FlashcardSpeakerButton(
         modifier = modifier
             .size(34.dp)
             .then(
-                if (isThisCardSpeaking) {
+                if (isThisCardSpeaking || isThisCardLoading) {
                     Modifier.shadow(
                         elevation = 6.dp,
                         shape = CircleShape,
@@ -67,7 +69,7 @@ fun FlashcardSpeakerButton(
             )
             .clip(CircleShape)
             .background(
-                if (isThisCardSpeaking) {
+                if (isThisCardSpeaking || isThisCardLoading) {
                     activeColor.copy(alpha = if (isDark) 0.30f else 0.22f)
                 } else {
                     if (isDark) Color(0xFF2A284A).copy(alpha = 0.6f)
@@ -75,8 +77,8 @@ fun FlashcardSpeakerButton(
                 }
             )
             .border(
-                width = if (isThisCardSpeaking) 1.5.dp else 1.dp,
-                color = if (isThisCardSpeaking) activeColor else (if (isDark) Color.White.copy(alpha = 0.15f) else Color(0xFFD4B8CB).copy(alpha = 0.45f)),
+                width = if (isThisCardSpeaking || isThisCardLoading) 1.5.dp else 1.dp,
+                color = if (isThisCardSpeaking || isThisCardLoading) activeColor else (if (isDark) Color.White.copy(alpha = 0.15f) else Color(0xFFD4B8CB).copy(alpha = 0.45f)),
                 shape = CircleShape
             )
             .clickable(
@@ -84,7 +86,7 @@ fun FlashcardSpeakerButton(
                 indication = ripple(bounded = true, radius = 18.dp, color = activeColor),
                 onClick = {
                     AppHaptic.vibrateClick(context, hapticView)
-                    if (isThisCardSpeaking) {
+                    if (isThisCardSpeaking || isThisCardLoading) {
                         audioPlayer.stop()
                     } else {
                         audioPlayer.speak(textToSpeak)
@@ -94,7 +96,13 @@ fun FlashcardSpeakerButton(
             .testTag("flashcard_speaker_button"),
         contentAlignment = Alignment.Center
     ) {
-        if (isThisCardSpeaking) {
+        if (isThisCardLoading) {
+            CircularProgressIndicator(
+                strokeWidth = 2.dp,
+                color = activeColor,
+                modifier = Modifier.size(16.dp)
+            )
+        } else if (isThisCardSpeaking) {
             Icon(
                 imageVector = Icons.Default.GraphicEq,
                 contentDescription = "Stop reading flashcard",

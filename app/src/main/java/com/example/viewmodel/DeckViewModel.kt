@@ -3,8 +3,11 @@ package com.example.viewmodel
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.FocusFlowApplication
+import com.example.data.ai.GeminiApiException
 import com.example.data.ai.GeminiFlashcardService
 import com.example.data.ai.GenerationSource
+import com.example.data.repository.FlashcardRepository
 import com.example.model.Flashcard
 import com.example.model.FlashcardDeck
 import com.example.model.MockDataSource
@@ -33,11 +36,29 @@ data class DeckUiState(
 }
 
 class DeckViewModel(
-    private val aiService: GeminiFlashcardService = GeminiFlashcardService()
+    private val aiService: GeminiFlashcardService = GeminiFlashcardService(),
+    repository: FlashcardRepository? = null
 ) : ViewModel() {
+
+    private val repo: FlashcardRepository = repository
+        ?: try {
+            FocusFlowApplication.instance.flashcardRepository
+        } catch (e: Exception) {
+            FlashcardRepository.createInMemory()
+        }
 
     private val _uiState = MutableStateFlow(DeckUiState())
     val uiState: StateFlow<DeckUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repo.allDecks.collect { decks ->
+                if (decks.isNotEmpty()) {
+                    _uiState.update { it.copy(decks = decks) }
+                }
+            }
+        }
+    }
 
     private val categoryColors = listOf(
         Color(0xFF8B5CF6), // Neon Purple
@@ -104,10 +125,11 @@ class DeckViewModel(
         topicOrNotes: String,
         targetCardCount: Int,
         deckTitle: String = "",
+        userInstructions: String = "",
         onComplete: ((FlashcardDeck) -> Unit)? = null
     ) {
-        val prompt = topicOrNotes.trim()
-        if (prompt.isEmpty() || _uiState.value.isAiGenerating) return
+        val trimmed = topicOrNotes.trim()
+        if (trimmed.isEmpty() && deckTitle.trim().isEmpty() || _uiState.value.isAiGenerating) return
 
         viewModelScope.launch {
             _uiState.update {
@@ -119,12 +141,22 @@ class DeckViewModel(
 
             try {
                 _uiState.update {
-                    it.copy(aiGenerationProgressMessage = "Generating high-yield cards...")
+                    it.copy(aiGenerationProgressMessage = "Analyzing source and synthesizing cards...")
                 }
 
+                val isExplicitQa = com.example.data.ai.OfflineFlashcardParser.hasExplicitQaStructure(trimmed)
+                val isMultiLineNotes = trimmed.contains("\n") && trimmed.length > 50
+
+                val input = com.example.data.ai.FlashcardGenerationInput(
+                    deckName = deckTitle.trim(),
+                    topic = if (!isExplicitQa && !isMultiLineNotes) trimmed else "",
+                    sourceText = if (isExplicitQa || isMultiLineNotes) trimmed else "",
+                    userInstructions = userInstructions.trim(),
+                    targetCardCount = targetCardCount
+                )
+
                 val result = aiService.generateFlashcards(
-                    topicOrPrompt = prompt,
-                    targetCardCount = targetCardCount,
+                    input = input,
                     userCustomApiKey = _uiState.value.customApiKey
                 )
 
@@ -149,13 +181,13 @@ class DeckViewModel(
                     categoryColor = assignedColor,
                     cards = result.cards,
                     tags = result.tags,
-                    isAiGenerated = true
+                    isAiGenerated = (result.source != GenerationSource.OFFLINE_HEURISTIC)
                 )
 
                 val sourceNotice = when (result.source) {
                     GenerationSource.BYOK_CLIENT -> "Generated with personal Gemini API key"
                     GenerationSource.SERVER_PROXY_FALLBACK -> "Generated with Gemini AI Cloud"
-                    GenerationSource.OFFLINE_HEURISTIC -> "Generated with Smart Taxonomy Engine"
+                    GenerationSource.OFFLINE_HEURISTIC -> "Generated with Offline Active Recall Engine"
                 }
 
                 val finalStatus = if (!result.warningMessage.isNullOrBlank()) {
@@ -174,14 +206,25 @@ class DeckViewModel(
                         newlyGeneratedDeckId = newDeck.id
                     )
                 }
+                viewModelScope.launch {
+                    repo.insertDeckWithCards(newDeck)
+                }
 
                 onComplete?.invoke(newDeck)
+            } catch (e: GeminiApiException) {
+                _uiState.update {
+                    it.copy(
+                        isAiGenerating = false,
+                        aiGenerationProgressMessage = "Gemini Error: ${e.userFacingMessage}",
+                        statusMessage = "Gemini Error: ${e.userFacingMessage}"
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isAiGenerating = false,
-                        aiGenerationProgressMessage = "Error: ${e.message ?: "fallback applied"}",
-                        statusMessage = "Generation notice: ${e.message ?: "fallback applied"}"
+                        aiGenerationProgressMessage = "Error: ${e.message ?: "Generation failed"}",
+                        statusMessage = "Generation notice: ${e.message ?: "Generation failed"}"
                     )
                 }
             }
@@ -189,16 +232,20 @@ class DeckViewModel(
     }
 
     fun updateDeckProgress(deckId: String, progress: Float, lastReviewed: String = "Just now") {
+        val clampedProgress = progress.coerceIn(0f, 1f)
         _uiState.update { state ->
             val updatedDecks = state.decks.map { deck ->
                 if (deck.id == deckId) {
                     deck.copy(
-                        progress = progress.coerceIn(0f, 1f),
+                        progress = clampedProgress,
                         lastReviewed = lastReviewed
                     )
                 } else deck
             }
             state.copy(decks = updatedDecks)
+        }
+        viewModelScope.launch {
+            repo.updateDeckProgress(deckId, clampedProgress, lastReviewed)
         }
     }
 
@@ -218,6 +265,9 @@ class DeckViewModel(
                 } else deck
             }
             state.copy(decks = updatedDecks)
+        }
+        viewModelScope.launch {
+            repo.toggleCardMastery(deckId, cardId, isMastered)
         }
     }
 
@@ -285,6 +335,9 @@ class DeckViewModel(
                 statusMessage = "Created deck \"$trimmedTitle\" with ${flashcards.size} cards"
             )
         }
+        viewModelScope.launch {
+            repo.insertDeckWithCards(newDeck)
+        }
     }
 
     fun openRenameDeckDialog(deck: FlashcardDeck) {
@@ -321,6 +374,9 @@ class DeckViewModel(
                 statusMessage = "Renamed deck to \"$trimmed\""
             )
         }
+        viewModelScope.launch {
+            repo.renameDeck(deckId, trimmed)
+        }
     }
 
     fun deleteDeck(deck: FlashcardDeck) {
@@ -331,6 +387,9 @@ class DeckViewModel(
                 selectedDeckIds = state.selectedDeckIds - deck.id,
                 statusMessage = "Deleted deck \"${deck.title}\""
             )
+        }
+        viewModelScope.launch {
+            repo.deleteDeck(deck.id)
         }
     }
 
@@ -347,6 +406,9 @@ class DeckViewModel(
                 selectedDeckIds = emptySet(),
                 statusMessage = if (count == 1) "Deleted 1 deck" else "Deleted $count decks"
             )
+        }
+        viewModelScope.launch {
+            repo.deleteDecks(toDelete.toList())
         }
     }
 
@@ -371,6 +433,12 @@ class DeckViewModel(
                 statusMessage = if (merge) "Merged ${importedDecks.size} decks ($totalCards cards)" else "Restored ${importedDecks.size} decks ($totalCards cards)"
             )
         }
+        viewModelScope.launch {
+            if (!merge) {
+                repo.clearAll()
+            }
+            repo.insertDecksWithCards(importedDecks)
+        }
     }
 
     fun addOrUpdateDeck(deck: FlashcardDeck) {
@@ -381,6 +449,9 @@ class DeckViewModel(
                 statusMessage = "Imported deck \"${deck.title}\""
             )
         }
+        viewModelScope.launch {
+            repo.insertDeckWithCards(deck)
+        }
     }
 
     fun toggleStarDeck(deckId: String) {
@@ -389,6 +460,56 @@ class DeckViewModel(
                 if (deck.id == deckId) deck.copy(isStarred = !deck.isStarred) else deck
             }
             state.copy(decks = updated)
+        }
+        viewModelScope.launch {
+            repo.toggleStarDeck(deckId)
+        }
+    }
+
+    fun addCardToDeck(deckId: String, card: Flashcard) {
+        _uiState.update { state ->
+            val updated = state.decks.map { deck ->
+                if (deck.id == deckId) {
+                    val newCards = deck.cards + card
+                    deck.copy(cards = newCards, cardCount = newCards.size)
+                } else deck
+            }
+            state.copy(decks = updated)
+        }
+        viewModelScope.launch {
+            repo.addCardToDeck(deckId, card)
+        }
+    }
+
+    fun editCard(deckId: String, cardId: String, front: String, back: String) {
+        _uiState.update { state ->
+            val updated = state.decks.map { deck ->
+                if (deck.id == deckId) {
+                    val newCards = deck.cards.map {
+                        if (it.id == cardId) it.copy(front = front, back = back) else it
+                    }
+                    deck.copy(cards = newCards)
+                } else deck
+            }
+            state.copy(decks = updated)
+        }
+        viewModelScope.launch {
+            repo.editCard(deckId, cardId, front, back)
+        }
+    }
+
+    fun deleteCard(deckId: String, cardId: String) {
+        _uiState.update { state ->
+            val updated = state.decks.map { deck ->
+                if (deck.id == deckId) {
+                    val newCards = deck.cards.filter { it.id != cardId }
+                    deck.copy(cards = newCards, cardCount = newCards.size)
+                } else deck
+            }
+            state.copy(decks = updated)
+        }
+        viewModelScope.launch {
+            repo.deleteCard(cardId)
         }
     }
 

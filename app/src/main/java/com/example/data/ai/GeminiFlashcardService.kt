@@ -44,19 +44,28 @@ class GeminiFlashcardService {
         .build()
 
     suspend fun generateFlashcards(
-        topicOrPrompt: String,
-        targetCardCount: Int,
+        input: FlashcardGenerationInput,
         userCustomApiKey: String? = null
     ): FlashcardGenerationResult = withContext(Dispatchers.IO) {
-        val trimmedTopic = topicOrPrompt.trim()
-        if (trimmedTopic.isEmpty()) {
-            return@withContext FlashcardGenerationResult(
-                title = "Quick Study Deck",
-                description = "General study concepts and active recall items.",
-                cards = generateHeuristicCards("General Study", targetCardCount),
-                source = GenerationSource.OFFLINE_HEURISTIC,
-                tags = listOf("#HighYield", "#Definitions")
-            )
+        val effectiveTopic = input.effectiveTopic.ifBlank {
+            deriveTitleFromText(input.sourceText)
+        }
+
+        // Check if input has explicit Q&A structure. If so, source is authoritative.
+        val hasExplicitQa = input.sourceText.isNotBlank() && OfflineFlashcardParser.hasExplicitQaStructure(input.sourceText)
+        if (hasExplicitQa) {
+            val extracted = OfflineFlashcardService.generate(input)
+            if (extracted.isNotEmpty()) {
+                val allTags = extracted.flatMap { it.tags }.distinct().take(4)
+                val finalTitle = input.deckName.ifBlank { effectiveTopic }
+                return@withContext FlashcardGenerationResult(
+                    title = finalTitle,
+                    description = "Authoritative extracted flashcard deck for $finalTitle (${extracted.size} cards).",
+                    cards = extracted,
+                    source = GenerationSource.OFFLINE_HEURISTIC,
+                    tags = if (allTags.isNotEmpty()) allTags else listOf("#ActiveRecall", "#Extracted")
+                )
+            }
         }
 
         // 1. Dual-Tier Key Resolution
@@ -65,10 +74,10 @@ class GeminiFlashcardService {
         var warningNote: String? = null
         if (apiKeyToUse.isNotBlank() && apiKeyToUse != "MY_GEMINI_API_KEY") {
             try {
-                val aiCards = callGeminiApi(trimmedTopic, targetCardCount, apiKeyToUse)
+                val aiCards = callGeminiApi(input, effectiveTopic, apiKeyToUse)
                 if (aiCards.isNotEmpty()) {
                     val allTags = aiCards.flatMap { it.tags }.distinct().take(5)
-                    val derivedTitle = deriveTitleFromTopic(trimmedTopic)
+                    val derivedTitle = input.deckName.ifBlank { effectiveTopic }
                     return@withContext FlashcardGenerationResult(
                         title = derivedTitle,
                         description = "AI-generated active recall deck for $derivedTitle (${aiCards.size} cards).",
@@ -78,27 +87,62 @@ class GeminiFlashcardService {
                     )
                 }
             } catch (e: GeminiApiException) {
-                warningNote = e.userFacingMessage
                 Log.w("GeminiFlashcardService", "Gemini API explicit error: ${e.userFacingMessage}", e)
+                if (source == GenerationSource.BYOK_CLIENT || e.httpCode in listOf(400, 401, 403, 429)) {
+                    throw e
+                }
+                warningNote = e.userFacingMessage
             } catch (e: Exception) {
-                warningNote = "Cloud AI synthesis timed out. Smart taxonomy engine applied."
-                Log.w("GeminiFlashcardService", "AI generation failed, falling back to smart heuristic engine", e)
+                if (source == GenerationSource.BYOK_CLIENT) {
+                    throw GeminiApiException(500, "Gemini generation failed: ${e.message ?: "Network timeout"}")
+                }
+                warningNote = "Cloud AI synthesis unavailable. Offline deterministic engine applied."
+                Log.w("GeminiFlashcardService", "AI generation failed, falling back to deterministic offline engine", e)
             }
         }
 
-        // 3. Smart Heuristic Taxonomy Fallback (Offline & Error Resilience)
-        val fallbackCards = generateHeuristicCards(trimmedTopic, targetCardCount)
-        val fallbackTags = fallbackCards.flatMap { it.tags }.distinct().take(4)
-        val title = deriveTitleFromTopic(trimmedTopic)
+        // 3. Offline Deterministic Fallback
+        val offlineCards = OfflineFlashcardService.generate(input)
+        val finalTitle = input.deckName.ifBlank { effectiveTopic }
 
+        if (offlineCards.isEmpty()) {
+            throw GeminiApiException(
+                400,
+                "Could not find a clear question/answer structure in this text. Try adding Question/Answer or Front/Back labels, or provide a topic for generation."
+            )
+        }
+
+        val fallbackTags = offlineCards.flatMap { it.tags }.distinct().take(4)
         FlashcardGenerationResult(
-            title = title,
-            description = "High-yield smart taxonomy deck for $title (${fallbackCards.size} cards).",
-            cards = fallbackCards,
+            title = finalTitle,
+            description = "High-yield active recall deck for $finalTitle (${offlineCards.size} cards).",
+            cards = offlineCards,
             source = GenerationSource.OFFLINE_HEURISTIC,
-            tags = if (fallbackTags.isNotEmpty()) fallbackTags else listOf("#HighYield", "#KeyConcepts"),
+            tags = if (fallbackTags.isNotEmpty()) fallbackTags else listOf("#HighYield", "#ActiveRecall"),
             warningMessage = warningNote
         )
+    }
+
+    /**
+     * Backward-compatible convenience wrapper for callers providing a raw string.
+     */
+    suspend fun generateFlashcards(
+        topicOrPrompt: String,
+        targetCardCount: Int,
+        userCustomApiKey: String? = null
+    ): FlashcardGenerationResult {
+        val trimmed = topicOrPrompt.trim()
+        val isExplicitQa = OfflineFlashcardParser.hasExplicitQaStructure(trimmed)
+        val isMultiLineNotes = trimmed.contains("\n") && trimmed.length > 60
+
+        val input = FlashcardGenerationInput(
+            deckName = if (!isExplicitQa && !isMultiLineNotes) trimmed.take(50) else "",
+            topic = if (!isExplicitQa && !isMultiLineNotes) trimmed else "",
+            sourceText = if (isExplicitQa || isMultiLineNotes) trimmed else "",
+            userInstructions = "",
+            targetCardCount = targetCardCount
+        )
+        return generateFlashcards(input, userCustomApiKey)
     }
 
     private fun resolveApiKey(userKey: String?): Pair<String, GenerationSource> {
@@ -121,48 +165,65 @@ class GeminiFlashcardService {
     }
 
     private fun callGeminiApi(
-        topic: String,
-        targetCardCount: Int,
+        input: FlashcardGenerationInput,
+        effectiveTopic: String,
         apiKey: String
     ): List<Flashcard> {
         val models = listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
         var lastException: Exception? = null
 
+        val systemPrompt = """
+            You are a master academic educator, cognitive science specialist, and active recall author.
+            Your task is to create high-yield, conceptually rigorous study flashcards.
+            
+            SEMANTIC ROLES OF INPUT FIELDS:
+            1. DECK NAME: Organizational metadata. NEVER generate questions about the deck name.
+            2. TOPIC: Defines the academic subject and boundary.
+            3. SOURCE TEXT: Primary authoritative reference. When provided, ground cards strictly in this content.
+            4. USER INSTRUCTIONS: Controls pedagogical style, difficulty level, target audience, or focus areas.
+            
+            STRICT QUALITY & PEDAGOGY RULES:
+            - SOURCE FIRST: If the source contains explicit Front/Back, Q/A, or Question/Answer pairs, extract and preserve them faithfully.
+            - NO MECHANICAL QUESTIONS: NEVER generate repetitive questions starting only with "What is...".
+            - DIVERSE QUESTION ARCHETYPES: Appropriately vary between mechanisms ("How does..."), causal relationships ("Why does..."), distinctions/comparisons ("How does X differ from Y?"), key formulas/variables, boundary conditions, and practical applications.
+            - NO STRUCTURAL ARTIFACTS: NEVER create questions about labels like "Front", "Back", "Question", "Answer", "Topic", or "Source Text".
+            - PRESERVE MULTI-LINE COMPLETENESS: Complex answers, multi-step mechanisms, or list points must be fully captured on the card back.
+            - STRICT JSON OUTPUT: Return ONLY a JSON array of objects or an object containing a "cards" array.
+            
+            JSON Object Structure:
+            [
+              {
+                "front": "High-yield active recall prompt or question",
+                "back": "Accurate, concise, and complete explanatory answer",
+                "tags": ["#Tag1", "#Tag2"]
+              }
+            ]
+        """.trimIndent()
+
+        val userPromptBuilder = StringBuilder()
+        if (input.deckName.isNotBlank()) {
+            userPromptBuilder.append("DECK NAME (Organizational Metadata):\n${input.deckName.trim()}\n\n")
+        }
+        if (effectiveTopic.isNotBlank()) {
+            userPromptBuilder.append("TOPIC (Scope & Subject):\n$effectiveTopic\n\n")
+        }
+        if (input.sourceText.isNotBlank()) {
+            userPromptBuilder.append("SOURCE TEXT (Primary Reference Material):\n${input.sourceText.trim()}\n\n")
+        }
+        if (input.userInstructions.isNotBlank()) {
+            userPromptBuilder.append("USER INSTRUCTIONS (Pedagogical Direction & Constraints):\n${input.userInstructions.trim()}\n\n")
+        }
+        userPromptBuilder.append("TARGET CARD COUNT: Generate up to ${input.targetCardCount} unique, high-yield flashcards adhering strictly to the system instructions.")
+
         for (model in models) {
             try {
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-
-                val systemPrompt = """
-                    You are an expert tutor creating high-yield active recall study flashcards.
-                    Analyze the given topic or notes and generate exactly $targetCardCount unique, non-duplicate flashcards.
-                    
-                    CRITICAL BEHAVIORAL RULE (STRICT PRESERVATION):
-                    - IF the user provides explicit questions and answers (e.g. "Q: ... A: ...", "Front: ... Back: ...", or a direct list of items to memorize), you MUST extract and use them EXACTLY as provided. Do NOT re-write, modify, or invent new questions for the provided pairs. Just format them into the JSON structure.
-                    - ONLY generate new conceptual questions if the user provides general, unstructured notes.
-                    
-                    CRITICAL FORMAT RULES:
-                    - Output MUST be a single valid JSON array of objects. Do NOT include markdown text outside the JSON array.
-                    - Ensure every question and answer is complete and not truncated.
-                    - Each object must have:
-                      * "front": Clear question or the exact provided front text.
-                      * "back": Concise answer or the exact provided back text.
-                      * "tags": Array of 1 to 3 relevant categorical tags (e.g., ["#Definitions", "#HighYield", "#KeyConcept"]).
-                    
-                    Example:
-                    [
-                      {
-                        "front": "What is Hebbian Plasticity?",
-                        "back": "Neurons that fire together wire together: repeated activation strengthens synaptic efficiency.",
-                        "tags": ["#Definitions", "#HighYield"]
-                      }
-                    ]
-                """.trimIndent()
 
                 val requestJson = JSONObject().apply {
                     val contentsArray = JSONArray().apply {
                         put(JSONObject().apply {
                             val partsArray = JSONArray().apply {
-                                put(JSONObject().put("text", "Topic / Notes / Q&A:\n$topic\n\nGenerate exactly $targetCardCount flashcards based on the above content. Remember: if exact questions and answers are provided above, preserve them exactly!"))
+                                put(JSONObject().put("text", userPromptBuilder.toString()))
                             }
                             put("parts", partsArray)
                         })
@@ -196,21 +257,30 @@ class GeminiFlashcardService {
 
                 if (!response.isSuccessful) {
                     Log.w("GeminiFlashcardService", "Model $model returned code ${response.code}: $responseBodyStr")
-                    if (response.code == 400 || response.code == 403) {
-                        throw GeminiApiException(response.code, "Invalid Gemini API Key. Please verify your key in Settings.")
+                    if (response.code in listOf(400, 401, 403)) {
+                        throw GeminiApiException(response.code, "Invalid or unauthorized Gemini API Key. Please verify your key in Settings.")
                     } else if (response.code == 429) {
                         throw GeminiApiException(429, "Gemini API rate limit or quota exceeded. Free tier quota limit reached.")
                     }
                     continue
                 }
 
-                val parsedCards = parseGeminiResponse(responseBodyStr, topic)
-                if (parsedCards.isNotEmpty()) {
-                    return parsedCards
+                val candidates = parseGeminiResponseCandidates(responseBodyStr, effectiveTopic)
+                val validatedCards = FlashcardValidator.filterAndDeduplicate(
+                    candidates = candidates,
+                    fallbackTopic = effectiveTopic,
+                    targetCount = input.targetCardCount
+                )
+
+                if (validatedCards.isNotEmpty()) {
+                    return validatedCards
                 }
             } catch (e: Exception) {
                 lastException = e
                 Log.w("GeminiFlashcardService", "Attempt with $model failed: ${e.message}")
+                if (e is GeminiApiException && (e.httpCode in listOf(400, 401, 403, 429))) {
+                    throw e
+                }
             }
         }
 
@@ -220,13 +290,18 @@ class GeminiFlashcardService {
         return emptyList()
     }
 
-    private fun parseGeminiResponse(rawJson: String, topic: String): List<Flashcard> {
-        val root = JSONObject(rawJson)
-        val candidates = root.optJSONArray("candidates") ?: return emptyList()
-        if (candidates.length() == 0) return emptyList()
+    private fun parseGeminiResponseCandidates(rawJson: String, topic: String): List<FlashcardCandidate> {
+        val root = try {
+            JSONObject(rawJson)
+        } catch (e: Exception) {
+            return emptyList()
+        }
 
-        val candidate = candidates.getJSONObject(0)
-        val content = candidate.optJSONObject("content") ?: return emptyList()
+        val candidatesArr = root.optJSONArray("candidates") ?: return emptyList()
+        if (candidatesArr.length() == 0) return emptyList()
+
+        val candidateObj = candidatesArr.getJSONObject(0)
+        val content = candidateObj.optJSONObject("content") ?: return emptyList()
         val parts = content.optJSONArray("parts") ?: return emptyList()
         if (parts.length() == 0) return emptyList()
 
@@ -241,32 +316,46 @@ class GeminiFlashcardService {
             text = text.removeSuffix("```").trim()
         }
 
-        val jsonArray = try {
-            JSONArray(text)
+        val jsonArray: JSONArray = try {
+            if (text.startsWith("[")) {
+                JSONArray(text)
+            } else {
+                val jsonObject = JSONObject(text)
+                jsonObject.optJSONArray("cards")
+                    ?: jsonObject.optJSONArray("flashcards")
+                    ?: jsonObject.optJSONArray("items")
+                    ?: JSONArray()
+            }
         } catch (e: Exception) {
             // Find JSON array bounds
             val start = text.indexOf('[')
             val end = text.lastIndexOf(']')
             if (start != -1 && end != -1 && end > start) {
-                JSONArray(text.substring(start, end + 1))
+                try {
+                    JSONArray(text.substring(start, end + 1))
+                } catch (e2: Exception) {
+                    return emptyList()
+                }
             } else {
                 return emptyList()
             }
         }
 
-        val flashcards = mutableListOf<Flashcard>()
-        val seenFronts = mutableSetOf<String>()
+        val cardCandidates = mutableListOf<FlashcardCandidate>()
 
         for (i in 0 until jsonArray.length()) {
             val item = jsonArray.optJSONObject(i) ?: continue
-            val front = item.optString("front", "").trim()
-            val back = item.optString("back", "").trim()
+            val front = (item.optString("front").takeIf { it.isNotBlank() }
+                ?: item.optString("question").takeIf { it.isNotBlank() }
+                ?: item.optString("term").takeIf { it.isNotBlank() }
+                ?: item.optString("prompt").takeIf { it.isNotBlank() }
+                ?: item.optString("q")).orEmpty().trim()
 
-            // Skip truncated, empty, or duplicate questions
-            if (front.length < 3 || back.length < 2) continue
-            val normalizedKey = front.lowercase().replace("[^a-z0-9]".toRegex(), "")
-            if (normalizedKey in seenFronts) continue
-            seenFronts.add(normalizedKey)
+            val back = (item.optString("back").takeIf { it.isNotBlank() }
+                ?: item.optString("answer").takeIf { it.isNotBlank() }
+                ?: item.optString("definition").takeIf { it.isNotBlank() }
+                ?: item.optString("explanation").takeIf { it.isNotBlank() }
+                ?: item.optString("a")).orEmpty().trim()
 
             val tagsArray = item.optJSONArray("tags")
             val tagsList = mutableListOf<String>()
@@ -279,22 +368,21 @@ class GeminiFlashcardService {
                 }
             }
 
-            val safeTags = if (tagsList.isNotEmpty()) tagsList else classifyTaxonomy(front, back)
-            flashcards.add(
-                Flashcard(
-                    id = "ai_c_${System.currentTimeMillis()}_$i",
+            cardCandidates.add(
+                FlashcardCandidate(
                     front = front,
                     back = back,
-                    topic = topic.take(40),
-                    tags = safeTags
+                    topic = topic,
+                    tags = if (tagsList.isNotEmpty()) tagsList else classifyTaxonomy(front, back)
                 )
             )
         }
-        return flashcards
+
+        return cardCandidates
     }
 
     /**
-     * Smart Regex Taxonomy Engine (Offline Fallback & Tag Classifier)
+     * Smart Regex Taxonomy Engine (Tag Classifier)
      */
     fun classifyTaxonomy(front: String, back: String): List<String> {
         val combined = "$front $back".lowercase()
@@ -333,84 +421,7 @@ class GeminiFlashcardService {
         return tags.distinct().take(3)
     }
 
-    /**
-     * Smart heuristic generation for offline mode or fallback
-     */
-    private fun generateHeuristicCards(rawText: String, count: Int): List<Flashcard> {
-        val lines = rawText.split("\n", ";", ".")
-            .map { it.trim() }
-            .filter { it.length > 5 }
-
-        val cards = mutableListOf<Flashcard>()
-        val topicName = deriveTitleFromTopic(rawText)
-
-        // Pattern 1: "X is Y" or "X: Y" or "X - Y"
-        val splitRegex = Regex("(?i)\\s+(?:is|refers to|means|defines|represents)\\s+|\\s*:\\s*|\\s*-\\s*|\\s*=\\s*")
-
-        for ((idx, line) in lines.withIndex()) {
-            if (cards.size >= count) break
-            val parts = line.split(splitRegex, limit = 2)
-            if (parts.size == 2 && parts[0].length >= 3 && parts[1].length >= 5) {
-                val q = "What is ${parts[0].trim()}?"
-                val a = parts[1].trim().replaceFirstChar { it.uppercase() }
-                cards.add(
-                    Flashcard(
-                        id = "heur_${System.currentTimeMillis()}_$idx",
-                        front = q,
-                        back = a,
-                        topic = topicName,
-                        tags = classifyTaxonomy(q, a)
-                    )
-                )
-            }
-        }
-
-        // If not enough cards from delimiters, generate contextual high-yield prompts
-        var extraIndex = 1
-        while (cards.size < count) {
-            val cardIdx = cards.size + 1
-            val (front, back) = when (cardIdx % 6) {
-                1 -> Pair(
-                    "What is the foundational definition and primary role of $topicName?",
-                    "It encompasses the core underlying principles, structural mechanisms, and primary real-world application."
-                )
-                2 -> Pair(
-                    "What key mechanisms drive $topicName?",
-                    "Key pathways, state transitions, and environmental interactions regulate how $topicName functions dynamically."
-                )
-                3 -> Pair(
-                    "What are the critical variables and formulas associated with $topicName?",
-                    "Core equations measure rate of change, equilibrium balance, and boundary efficiency."
-                )
-                4 -> Pair(
-                    "Explain the primary advantages and constraints of $topicName.",
-                    "Strengths include high efficiency and scalability, while constraints involve edge-case dependencies and input sensitivity."
-                )
-                5 -> Pair(
-                    "What are the most common exam questions and clinical/technical nuances for $topicName?",
-                    "Focus on distinguishing differential factors, reciprocal interactions, and high-yield edge cases."
-                )
-                else -> Pair(
-                    "How does $topicName integrate into broader systems and practical workflows?",
-                    "It acts as a vital bridge connecting structural components with end-to-end systemic performance."
-                )
-            }
-
-            cards.add(
-                Flashcard(
-                    id = "heur_${System.currentTimeMillis()}_extra_${extraIndex++}",
-                    front = front,
-                    back = back,
-                    topic = topicName,
-                    tags = classifyTaxonomy(front, back)
-                )
-            )
-        }
-
-        return cards.take(count)
-    }
-
-    private fun deriveTitleFromTopic(text: String): String {
+    private fun deriveTitleFromText(text: String): String {
         val firstLine = text.lineSequence().firstOrNull()?.trim() ?: "Study Topic"
         val clean = firstLine.replace(Regex("[^a-zA-Z0-9\\s-]"), "")
         val words = clean.split("\\s+".toRegex()).filter { it.isNotBlank() }
@@ -423,3 +434,4 @@ class GeminiFlashcardService {
         }
     }
 }
+

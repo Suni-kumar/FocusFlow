@@ -1,10 +1,15 @@
 package com.sepfol.app.ui.folder
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.FocusFlowApplication
+import com.example.data.repository.FolderRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 enum class SortOption {
     NAME_ASC,
@@ -62,248 +67,28 @@ data class FolderUiState(
         get() = selectedItemIds.isNotEmpty()
 }
 
-class FolderViewModel : ViewModel() {
+class FolderViewModel(
+    application: Application? = null,
+    repository: FolderRepository? = null
+) : ViewModel() {
+
+    private val repo: FolderRepository = repository
+        ?: try {
+            FocusFlowApplication.instance.folderRepository
+        } catch (e: Exception) {
+            FolderRepository.createInMemory()
+        }
 
     private val _uiState = MutableStateFlow(FolderUiState())
     val uiState: StateFlow<FolderUiState> = _uiState.asStateFlow()
 
     init {
-        loadInitialData()
+        loadInitialState()
+        observeRepository()
     }
 
-    private fun loadInitialData() {
-        val initialItems = listOf(
-            // Root Folders
-            FolderItem(
-                id = "folder_university",
-                name = "University",
-                isDirectory = true,
-                parentId = null,
-                lastModified = System.currentTimeMillis() - 3600000 * 2,
-                itemCount = 3
-            ),
-            FolderItem(
-                id = "folder_work",
-                name = "Work",
-                isDirectory = true,
-                parentId = null,
-                lastModified = System.currentTimeMillis() - 3600000 * 5,
-                itemCount = 2
-            ),
-            FolderItem(
-                id = "folder_personal",
-                name = "Personal",
-                isDirectory = true,
-                parentId = null,
-                lastModified = System.currentTimeMillis() - 86400000 * 2,
-                itemCount = 1
-            ),
-            FolderItem(
-                id = "folder_flashcards",
-                name = "Flashcards & Decks",
-                isDirectory = true,
-                parentId = null,
-                lastModified = System.currentTimeMillis() - 86400000 * 3,
-                itemCount = 2
-            ),
-
-            // Inside University
-            FolderItem(
-                id = "folder_neuro",
-                name = "Neurobiology",
-                isDirectory = true,
-                parentId = "folder_university",
-                lastModified = System.currentTimeMillis() - 3600000,
-                itemCount = 2
-            ),
-            FolderItem(
-                id = "file_bio10",
-                name = "Bio Lecture 10.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_university",
-                contentData = "# Bio Lecture 10: Cellular Energetics\n\n- Key concepts of membrane potential and ATP synthesis.\n- Electron transport chain in the inner mitochondrial membrane.\n- Chemiosmosis and electrochemical proton gradients.",
-                sizeBytes = 2450L,
-                lastModified = System.currentTimeMillis() - 7200000
-            ),
-            FolderItem(
-                id = "file_assign",
-                name = "Assignment Checklist.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_university",
-                contentData = "# University Tasks\n- [x] Submit Neurobiology Lab Report\n- [ ] Literature review for Cognitive Psychology\n- [ ] Practice JLPT deck for 30 minutes",
-                sizeBytes = 320L,
-                lastModified = System.currentTimeMillis() - 14400000
-            ),
-
-            // Inside Neurobiology subfolder
-            FolderItem(
-                id = "file_synaptic",
-                name = "Synaptic Pruning Notes.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_neuro",
-                contentData = "# Synaptic Pruning\n\nThe brain eliminates extra synapses to increase cognitive efficiency.\nOccurs predominantly during late childhood and early adolescence.\n\n### Key Mechanisms:\n1. Microglia engulfment of inactive dendritic spines.\n2. Complement cascade (C1q, C3) tagging.",
-                sizeBytes = 1420L,
-                lastModified = System.currentTimeMillis() - 120000
-            ),
-            FolderItem(
-                id = "file_hebbian",
-                name = "Hebbian Learning.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_neuro",
-                contentData = "# Hebbian Theory\n\n*\"Neurons that fire together, wire together.\"*\n\nDescribes how the adaptation of neurons occurs in the brain during the learning process.",
-                sizeBytes = 890L,
-                lastModified = System.currentTimeMillis() - 3600000
-            ),
-
-            // Inside Work
-            FolderItem(
-                id = "file_q3",
-                name = "Q3 Product Architecture.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_work",
-                contentData = "# Q3 Client System Architecture\n\n- Offline-first local SQLite cache with Room.\n- Reactive Flow streams for instant UI re-render.\n- Liquid glass UI components with zero latency.",
-                sizeBytes = 3100L,
-                lastModified = System.currentTimeMillis() - 3600000 * 4
-            ),
-            FolderItem(
-                id = "file_retro",
-                name = "Sprint Retrospective.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_work",
-                contentData = "# Sprint Retro\n- Faster compose state reconciliation.\n- Clean breadcrumb hierarchy navigation.\n- Validated modal inputs.",
-                sizeBytes = 1200L,
-                lastModified = System.currentTimeMillis() - 86400000
-            ),
-
-            // Inside Personal
-            FolderItem(
-                id = "file_books",
-                name = "Reading List 2026.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_personal",
-                contentData = "# 2026 Reading List\n1. Gödel, Escher, Bach - Douglas Hofstadter\n2. The Master and His Emissary - Iain McGilchrist\n3. Structure and Interpretation of Computer Programs",
-                sizeBytes = 410L,
-                lastModified = System.currentTimeMillis() - 86400000 * 2
-            ),
-
-            // Inside Flashcards folder
-            FolderItem(
-                id = "file_qm",
-                name = "Quantum Mechanics Summary.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_flashcards",
-                contentData = "# Quantum Mechanics Postulates\n\n1. State vector |ψ⟩ in Hilbert space.\n2. Observables represented by Hermitian operators.\n3. Probability given by Born rule P = |⟨φ|ψ⟩|².",
-                sizeBytes = 1850L,
-                lastModified = System.currentTimeMillis() - 86400000 * 3
-            ),
-            FolderItem(
-                id = "file_jlpt",
-                name = "JLPT N2 Vocabulary List.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = "folder_flashcards",
-                contentData = "# JLPT N2 Target Kanji\n- 考慮 (こうりょ) : Consideration\n- 把握 (はあく) : Grasp / comprehension\n- 促進 (そくしん) : Promotion / acceleration",
-                sizeBytes = 5600L,
-                lastModified = System.currentTimeMillis() - 86400000 * 4
-            ),
-
-            // Root Files (PDFs, Images & Notes)
-            FolderItem(
-                id = "file_maths_pdf",
-                name = "Maths_SecP1X_2026_27.pdf",
-                isDirectory = false,
-                extension = "pdf",
-                mimeType = "application/pdf",
-                parentId = null,
-                contentData = "Mathematics Subject Code 041 & 241 Class X (2026-27) Comprehensive Syllabus & Course Structure with 10 Pages",
-                sizeBytes = 2450000L,
-                lastModified = System.currentTimeMillis() - 60000
-            ),
-            FolderItem(
-                id = "file_physics_pdf",
-                name = "Physics_Mechanics_Handbook.pdf",
-                isDirectory = false,
-                extension = "pdf",
-                mimeType = "application/pdf",
-                parentId = null,
-                contentData = "Complete mechanics formulas, diagrams, vectors, and Newtonian physics questions",
-                sizeBytes = 3800000L,
-                lastModified = System.currentTimeMillis() - 3600000
-            ),
-            FolderItem(
-                id = "file_cell_img",
-                name = "Biology_Cell_Diagram.png",
-                isDirectory = false,
-                extension = "png",
-                mimeType = "image/png",
-                parentId = null,
-                contentData = "High-resolution diagram of plant & animal cell organelles and mitochondria",
-                sizeBytes = 1950000L,
-                lastModified = System.currentTimeMillis() - 7200000
-            ),
-            FolderItem(
-                id = "file_arch_img",
-                name = "System_Architecture_Diagram.png",
-                isDirectory = false,
-                extension = "png",
-                mimeType = "image/png",
-                parentId = "folder_work",
-                contentData = "High level client architecture diagram with offline-first Room cache",
-                sizeBytes = 2800000L,
-                lastModified = System.currentTimeMillis() - 14400000
-            ),
-            FolderItem(
-                id = "file_root_bio",
-                name = "Biology Notes.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = null,
-                contentData = "# High Level Biology Notes\nComprehensive overview of neurobiology, synaptic plasticity, and biological systems.",
-                sizeBytes = 1600L,
-                lastModified = System.currentTimeMillis() - 120000
-            ),
-            FolderItem(
-                id = "file_root_report",
-                name = "Q3 Report.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = null,
-                contentData = "# Q3 Executive Overview\nSummary of quarterly performance and study metrics.",
-                sizeBytes = 2800L,
-                lastModified = System.currentTimeMillis() - 3600000
-            ),
-            FolderItem(
-                id = "file_root_neuro",
-                name = "Neuro Systems.md",
-                isDirectory = false,
-                extension = "md",
-                mimeType = "text/markdown",
-                parentId = null,
-                contentData = "# Central vs Peripheral Nervous System\nStructural mappings and synaptic pathway diagrams.",
-                sizeBytes = 2100L,
-                lastModified = System.currentTimeMillis() - 86400000 * 3
-            )
-        )
-
+    private fun loadInitialState() {
+        val initialItems = FolderInitialData.getStarterItems()
         val rootItems = initialItems.filter { it.parentId == null }
         val recentNotes = initialItems.filter { !it.isDirectory }.sortedByDescending { it.lastModified }.take(6)
 
@@ -315,6 +100,28 @@ class FolderViewModel : ViewModel() {
             recentItems = recentNotes,
             gridColumns = 2
         )
+    }
+
+    private fun observeRepository() {
+        viewModelScope.launch {
+            repo.allItems.collect { items ->
+                if (items.isNotEmpty()) {
+                    _uiState.update { state ->
+                        state.copy(
+                            allItems = items,
+                            currentItems = computeCurrentItems(
+                                items,
+                                state.currentFolderId,
+                                state.searchQuery,
+                                state.activeFilterTab,
+                                state.sortOption
+                            ),
+                            recentItems = items.filter { !it.isDirectory }.sortedByDescending { it.lastModified }.take(8)
+                        )
+                    }
+                }
+            }
+        }
     }
 
     fun openFolder(folder: FolderItem) {
@@ -412,6 +219,9 @@ class FolderViewModel : ViewModel() {
                 statusMessage = "Created folder \"$trimmed\""
             )
         }
+        viewModelScope.launch {
+            repo.insertItem(newFolder)
+        }
     }
 
     fun createMarkdownNote(title: String, content: String) {
@@ -449,6 +259,9 @@ class FolderViewModel : ViewModel() {
                 isCreateNoteDialogOpen = false,
                 statusMessage = "Saved note \"$finalTitle\""
             )
+        }
+        viewModelScope.launch {
+            repo.insertItem(newNote)
         }
     }
 
@@ -490,25 +303,28 @@ class FolderViewModel : ViewModel() {
                 statusMessage = "Imported \"$fileName\" successfully"
             )
         }
+        viewModelScope.launch {
+            repo.insertItem(newItem)
+        }
     }
 
     fun deleteItem(item: FolderItem) {
-        _uiState.update { state ->
-            // Recursively collect ids to delete if folder
-            val idsToDelete = mutableSetOf(item.id)
-            if (item.isDirectory) {
-                fun collectChildIds(parentId: String) {
-                    val children = state.allItems.filter { it.parentId == parentId }
-                    for (child in children) {
-                        idsToDelete.add(child.id)
-                        if (child.isDirectory) {
-                            collectChildIds(child.id)
-                        }
+        val idsToDelete = mutableSetOf(item.id)
+        val currentAll = _uiState.value.allItems
+        if (item.isDirectory) {
+            fun collectChildIds(parentId: String) {
+                val children = currentAll.filter { it.parentId == parentId }
+                for (child in children) {
+                    idsToDelete.add(child.id)
+                    if (child.isDirectory) {
+                        collectChildIds(child.id)
                     }
                 }
-                collectChildIds(item.id)
             }
+            collectChildIds(item.id)
+        }
 
+        _uiState.update { state ->
             val updatedAll = state.allItems.filter { it.id !in idsToDelete }
             val updatedRecent = state.recentItems.filter { it.id !in idsToDelete }
 
@@ -519,6 +335,9 @@ class FolderViewModel : ViewModel() {
                 selectedNote = if (state.selectedNote?.id in idsToDelete) null else state.selectedNote,
                 statusMessage = "Deleted \"${item.name}\""
             )
+        }
+        viewModelScope.launch {
+            repo.deleteItems(idsToDelete.toList())
         }
     }
 
@@ -576,15 +395,14 @@ class FolderViewModel : ViewModel() {
         }
 
         val extension = if (!item.isDirectory && trimmed.contains('.')) trimmed.substringAfterLast('.', "") else item.extension
+        val updatedItem = item.copy(name = trimmed, extension = extension, lastModified = System.currentTimeMillis())
 
         _uiState.update { state ->
             val updatedAll = state.allItems.map {
-                if (it.id == item.id) it.copy(name = trimmed, extension = extension, lastModified = System.currentTimeMillis())
-                else it
+                if (it.id == item.id) updatedItem else it
             }
             val updatedRecent = state.recentItems.map {
-                if (it.id == item.id) it.copy(name = trimmed, extension = extension, lastModified = System.currentTimeMillis())
-                else it
+                if (it.id == item.id) updatedItem else it
             }
             state.copy(
                 allItems = updatedAll,
@@ -596,16 +414,20 @@ class FolderViewModel : ViewModel() {
                 statusMessage = "Renamed to \"$trimmed\""
             )
         }
+        viewModelScope.launch {
+            repo.updateItem(updatedItem)
+        }
     }
 
     fun togglePin(item: FolderItem) {
+        val newPin = !item.isPinned
+        val updatedItem = item.copy(isPinned = newPin)
         _uiState.update { state ->
-            val newPin = !item.isPinned
             val updatedAll = state.allItems.map {
-                if (it.id == item.id) it.copy(isPinned = newPin) else it
+                if (it.id == item.id) updatedItem else it
             }
             val updatedRecent = state.recentItems.map {
-                if (it.id == item.id) it.copy(isPinned = newPin) else it
+                if (it.id == item.id) updatedItem else it
             }
             state.copy(
                 allItems = updatedAll,
@@ -615,16 +437,20 @@ class FolderViewModel : ViewModel() {
                 statusMessage = if (newPin) "Pinned \"${item.name}\"" else "Unpinned \"${item.name}\""
             )
         }
+        viewModelScope.launch {
+            repo.updateItem(updatedItem)
+        }
     }
 
     fun toggleFavorite(item: FolderItem) {
+        val newFav = !item.isFavorite
+        val updatedItem = item.copy(isFavorite = newFav)
         _uiState.update { state ->
-            val newFav = !item.isFavorite
             val updatedAll = state.allItems.map {
-                if (it.id == item.id) it.copy(isFavorite = newFav) else it
+                if (it.id == item.id) updatedItem else it
             }
             val updatedRecent = state.recentItems.map {
-                if (it.id == item.id) it.copy(isFavorite = newFav) else it
+                if (it.id == item.id) updatedItem else it
             }
             state.copy(
                 allItems = updatedAll,
@@ -633,6 +459,9 @@ class FolderViewModel : ViewModel() {
                 actionMenuItem = null,
                 statusMessage = if (newFav) "Added to Starred" else "Removed from Starred"
             )
+        }
+        viewModelScope.launch {
+            repo.updateItem(updatedItem)
         }
     }
 
@@ -660,6 +489,9 @@ class FolderViewModel : ViewModel() {
                 statusMessage = "Created \"$copyName\""
             )
         }
+        viewModelScope.launch {
+            repo.insertItem(duplicated)
+        }
     }
 
     fun moveItem(item: FolderItem, targetFolderId: String?) {
@@ -668,10 +500,11 @@ class FolderViewModel : ViewModel() {
             return
         }
 
+        val updatedItem = item.copy(parentId = targetFolderId, lastModified = System.currentTimeMillis())
+
         _uiState.update { state ->
             val updatedAll = state.allItems.map {
-                if (it.id == item.id) it.copy(parentId = targetFolderId, lastModified = System.currentTimeMillis())
-                else it
+                if (it.id == item.id) updatedItem else it
             }
             state.copy(
                 allItems = updatedAll,
@@ -680,6 +513,9 @@ class FolderViewModel : ViewModel() {
                 actionMenuItem = null,
                 statusMessage = "Moved \"${item.name}\""
             )
+        }
+        viewModelScope.launch {
+            repo.updateItem(updatedItem)
         }
     }
 
@@ -832,6 +668,9 @@ class FolderViewModel : ViewModel() {
                 statusMessage = if (count == 1) "Deleted 1 item" else "Deleted $count items"
             )
         }
+        viewModelScope.launch {
+            repo.deleteItems(allIdsToDelete.toList())
+        }
     }
 
     fun restoreItems(importedItems: List<FolderItem>, merge: Boolean) {
@@ -872,6 +711,12 @@ class FolderViewModel : ViewModel() {
                 statusMessage = if (merge) "Merged ${importedItems.size} items from backup" else "Restored ${importedItems.size} items from backup"
             )
         }
+        viewModelScope.launch {
+            if (!merge) {
+                repo.clearAll()
+            }
+            repo.insertItems(importedItems)
+        }
     }
 
     fun addOrUpdateItem(item: FolderItem) {
@@ -890,6 +735,9 @@ class FolderViewModel : ViewModel() {
                 currentItems = computedCurrent,
                 recentItems = computedRecent
             )
+        }
+        viewModelScope.launch {
+            repo.insertItem(item)
         }
     }
 
