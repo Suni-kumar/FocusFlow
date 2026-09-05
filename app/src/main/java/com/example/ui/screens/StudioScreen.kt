@@ -106,13 +106,14 @@ fun StudioScreen(
     onSwipeUpFab: () -> Unit = {},
     decks: List<FlashcardDeck> = emptyList(),
     selectedDeckIds: Set<String> = emptySet(),
+    gridColumns: Int = 2,
     onToggleSelection: (String) -> Unit = {},
     onClearSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isSelectionMode = selectedDeckIds.isNotEmpty()
     var isSpeedDialOpen by remember { mutableStateOf(false) }
-    val deckChunks = remember(decks) { decks.chunked(2) }
+    val deckChunks = remember(decks, gridColumns) { decks.chunked(gridColumns.coerceIn(1, 4)) }
 
     // Intercept back button if speed dial is open or in selection mode
     BackHandler(enabled = isSpeedDialOpen || isSelectionMode) {
@@ -311,6 +312,7 @@ fun StudioScreen(
                                 val isSelected = deck.id in selectedDeckIds
                                 ManagedDeckItem(
                                     deck = deck,
+                                    gridColumns = gridColumns,
                                     isSelected = isSelected,
                                     isSelectionMode = isSelectionMode,
                                     onRename = { onRenameDeckClick(deck) },
@@ -328,8 +330,10 @@ fun StudioScreen(
                                 )
                             }
                         }
-                        if (chunk.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
+                        if (chunk.size < gridColumns) {
+                            repeat(gridColumns - chunk.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -623,6 +627,7 @@ fun StudioCompactSpeedDialItem(
 @Composable
 fun ManagedDeckItem(
     deck: FlashcardDeck,
+    gridColumns: Int = 2,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
     onRename: () -> Unit = {},
@@ -634,10 +639,15 @@ fun ManagedDeckItem(
     val haptic = LocalView.current
     var isMenuExpanded by remember { mutableStateOf(false) }
 
+    val isCompact = gridColumns >= 3
+    val isUltraCompact = gridColumns >= 4
+    val cardHeight = if (isUltraCompact) 138.dp else if (isCompact) 140.dp else 135.dp
+    val cardPadding = if (isUltraCompact) 6.dp else if (isCompact) 8.dp else 12.dp
+
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .height(135.dp)
+            .height(cardHeight)
             .testTag("managed_deck_${deck.id}"),
         backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else null,
         elevation = if (isSelected) 6.dp else 3.dp,
@@ -653,10 +663,10 @@ fun ManagedDeckItem(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(cardPadding),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (isCompact) 3.dp else 6.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -672,13 +682,13 @@ fun ManagedDeckItem(
                         imageVector = iconVector,
                         contentDescription = null,
                         tint = deck.categoryColor,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
                     )
 
                     if (isSelectionMode) {
                         Box(
                             modifier = Modifier
-                                .size(22.dp)
+                                .size(if (isCompact) 18.dp else 22.dp)
                                 .clip(CircleShape)
                                 .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                                 .border(1.5.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), CircleShape),
@@ -689,109 +699,117 @@ fun ManagedDeckItem(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
                                     tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(if (isCompact) 11.dp else 14.dp)
                                 )
                             }
-                        }
-                    } else if (deck.isAiGenerated) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(9999.dp))
-                                    .background(Color(0xFF8B5CF6).copy(alpha = 0.2f))
-                                    .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "AI",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFC084FC),
-                                    fontSize = 10.sp
-                                )
-                            }
-                            BadgeChip(
-                                text = "${deck.cards.size} cards",
-                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                textColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     } else {
-                        BadgeChip(
-                            text = "${deck.cards.size} cards",
-                            backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            textColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    Box {
-                        IconButton(
-                            onClick = { isMenuExpanded = true },
-                            modifier = Modifier.size(24.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 2.dp else 4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More options",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = isMenuExpanded,
-                            onDismissRequest = { isMenuExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                        ) {
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text("Rename Deck") },
-                                onClick = {
-                                    isMenuExpanded = false
-                                    onRename()
+                            if (deck.isAiGenerated && !isUltraCompact) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(9999.dp))
+                                        .background(Color(0xFF8B5CF6).copy(alpha = 0.2f))
+                                        .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
+                                        .padding(horizontal = if (isCompact) 4.dp else 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "AI",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFC084FC),
+                                        fontSize = if (isCompact) 9.sp else 10.sp
+                                    )
                                 }
-                            )
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text("Delete Deck", color = MaterialTheme.colorScheme.error) },
-                                onClick = {
-                                    isMenuExpanded = false
-                                    onDelete()
+                            }
+                            if (!isUltraCompact) {
+                                BadgeChip(
+                                    text = if (isCompact) "${deck.cards.size}c" else "${deck.cards.size} cards",
+                                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            Box {
+                                IconButton(
+                                    onClick = { isMenuExpanded = true },
+                                    modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = "More options",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(if (isCompact) 14.dp else 16.dp)
+                                    )
                                 }
-                            )
+                                
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = isMenuExpanded,
+                                    onDismissRequest = { isMenuExpanded = false },
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Rename Deck") },
+                                        onClick = {
+                                            isMenuExpanded = false
+                                            onRename()
+                                        }
+                                    )
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Delete Deck", color = MaterialTheme.colorScheme.error) },
+                                        onClick = {
+                                            isMenuExpanded = false
+                                            onDelete()
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
                 Text(
                     text = deck.title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = if (isUltraCompact) 11.sp else if (isCompact) 12.sp else 14.sp
                 )
+
+                if (isUltraCompact) {
+                    Text(
+                        text = "${deck.cards.size} cards",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                }
             }
 
             // Progress section
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (isCompact) 2.dp else 4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (deck.progress > 0.5f) "Reviewing" else "Due: ${deck.cards.size.coerceAtLeast(1)}",
+                        text = if (isCompact) "Due" else "Due: ${deck.cards.size.coerceAtLeast(1)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        fontSize = if (isUltraCompact) 9.sp else if (isCompact) 10.sp else 11.sp
                     )
                     Text(
                         text = "${(deck.progress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = deck.categoryColor,
-                        fontSize = 11.sp
+                        fontSize = if (isUltraCompact) 9.sp else if (isCompact) 10.sp else 11.sp
                     )
                 }
 
@@ -799,14 +817,14 @@ fun ManagedDeckItem(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
+                        .height(if (isCompact) 3.dp else 4.dp)
                         .clip(RoundedCornerShape(9999.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainer)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(deck.progress.coerceIn(0f, 1f))
-                            .height(4.dp)
+                            .height(if (isCompact) 3.dp else 4.dp)
                             .clip(RoundedCornerShape(9999.dp))
                             .background(deck.categoryColor)
                     )

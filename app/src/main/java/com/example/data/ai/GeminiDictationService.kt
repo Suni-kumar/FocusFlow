@@ -19,9 +19,9 @@ import java.util.concurrent.TimeUnit
 class GeminiDictationService {
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(25, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(25, TimeUnit.SECONDS)
         .build()
 
     companion object {
@@ -41,7 +41,9 @@ class GeminiDictationService {
             getBuildConfigApiKey()
         }
 
-        if (apiKeyToUse.isNotBlank() && apiKeyToUse != "MY_GEMINI_API_KEY") {
+        val hasOnlineKey = apiKeyToUse.isNotBlank() && apiKeyToUse != "MY_GEMINI_API_KEY"
+
+        if (hasOnlineKey) {
             try {
                 val words = callGeminiForDictation(trimmedInput, apiKeyToUse, targetWordCount)
                 if (words.isNotEmpty()) {
@@ -60,11 +62,11 @@ class GeminiDictationService {
                     )
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Gemini Dictation generation failed, falling back to smart heuristic taxonomy", e)
+                Log.w(TAG, "Gemini Dictation online generation failed, falling back to rich offline semantic engine", e)
             }
         }
 
-        // Smart Intelligent Heuristic & Vocabulary Taxonomy Engine Fallback
+        // Deep offline semantic extraction & morpho-semantic dictionary engine
         val parsedWords = fallbackOfflineSmartParser(trimmedInput, targetWordCount)
         val resolvedTitle = deckTitleOverride?.takeIf { it.isNotBlank() }
             ?: extractTitleFromTopicOrWords(trimmedInput, parsedWords)
@@ -95,20 +97,26 @@ class GeminiDictationService {
         apiKey: String,
         targetCount: Int
     ): List<DictationWord> {
-        val models = listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
+        val models = listOf("gemini-3.6-flash")
 
         val systemInstruction = """
-            You are an expert language tutor and dictation specialist.
-            The user will provide either a Topic (e.g. "GRE High Frequency Words", "Medical Terms", "Daily Idioms", "Hindi-English Words") OR raw study text/notes.
-            Your task is to generate/extract exactly $targetCount clear, high-yield words or short phrases for audio dictation and spelling practice.
-            
-            For each item, provide:
-            1. 'word': The exact word or short phrase to be pronounced and spelled.
-            2. 'meaning': A clear, memorable definition or translation (in English or Hindi-English).
-            3. 'phonetic': Approximate IPA pronunciation (e.g., /ˌel.ə.kwənt/).
-            4. 'exampleSentence': A concise, natural example sentence demonstrating usage.
+            You are an expert language tutor, lexicographer, and audio dictation specialist.
+            The user will provide either:
+            1. Raw study text, pasted notes, chapter excerpt, or a list of words.
+            2. OR a topic/domain name (e.g. "GRE High Frequency Words", "Advanced Physics", "Hindi-English Words").
 
-            Output ONLY a single valid JSON array of objects.
+            YOUR MANDATE:
+            Extract or generate exactly $targetCount distinct, high-value words or short phrases for spelling and audio dictation practice.
+            IMPORTANT:
+            - If the user uploaded or pasted words or notes, prioritize extracting and defining THEIR actual words rather than generating unrelated random words.
+            - Ensure you produce AT LEAST $targetCount words (do NOT return just 1 or 2 items).
+            - For each item provide:
+              1. 'word': The exact word or short phrase to be spelled.
+              2. 'meaning': A crystal-clear, memorable definition or Hindi translation.
+              3. 'phonetic': Approximate IPA pronunciation (e.g. /ˌser.ənˈdɪp.ə.ti/).
+              4. 'exampleSentence': A concise, natural example sentence demonstrating the word.
+
+            Output ONLY a valid JSON array of objects.
             Format:
             [
               {
@@ -120,7 +128,7 @@ class GeminiDictationService {
             ]
         """.trimIndent()
 
-        val prompt = "Generate or extract $targetCount structured dictation words from this topic/content:\n$input"
+        val prompt = "Create exactly $targetCount dictation flashcards from this text/topic:\n$input"
 
         for (model in models) {
             try {
@@ -223,46 +231,74 @@ class GeminiDictationService {
         return result
     }
 
-    private fun fallbackOfflineSmartParser(rawInput: String, targetCount: Int): List<DictationWord> {
-        val lower = rawInput.lowercase()
+    /**
+     * Deep offline semantic parser that prioritizes user's uploaded text/notes/word list.
+     * Looks up each word in OfflineVocabularyDictionary and auto-synthesizes accurate
+     * definitions, phonetic spellings, and context sentences when needed.
+     */
+    fun fallbackOfflineSmartParser(rawInput: String, targetCount: Int): List<DictationWord> {
+        val trimmed = rawInput.trim()
+        val lower = trimmed.lowercase()
 
-        // 1. Check if user typed a known domain/subject to supply rich curated lists
-        if (lower.contains("gre") || lower.contains("vocab") || lower.contains("advanced english")) {
-            return getGreVocabularySample(targetCount)
-        }
-        if (lower.contains("hindi") || lower.contains("shabd")) {
-            return getHindiVocabularySample(targetCount)
-        }
-        if (lower.contains("idiom") || lower.contains("phrase")) {
-            return getIdiomsSample(targetCount)
-        }
-        if (lower.contains("bio") || lower.contains("cell") || lower.contains("organ")) {
-            return getBiologySample(targetCount)
-        }
-        if (lower.contains("physics") || lower.contains("science") || lower.contains("space")) {
-            return getPhysicsSample(targetCount)
-        }
-        if (lower.contains("tech") || lower.contains("computer") || lower.contains("coding") || lower.contains("ai")) {
-            return getComputerScienceSample(targetCount)
+        val isTopicOnly = (trimmed.length < 50 && !trimmed.contains("\n") && !trimmed.contains(",") && !trimmed.contains(":") && !trimmed.contains(" - "))
+
+        // If the user entered a pure broad topic (not a pasted list/notes)
+        if (isTopicOnly) {
+            if (lower.contains("gre") || lower.contains("vocab") || lower.contains("advanced english") || lower.contains("ielts")) {
+                return getGreVocabularySample(targetCount)
+            }
+            if (lower.contains("hindi") || lower.contains("shabd")) {
+                return getHindiVocabularySample(targetCount)
+            }
+            if (lower.contains("idiom") || lower.contains("phrase")) {
+                return getIdiomsSample(targetCount)
+            }
+            if (lower.contains("bio") || lower.contains("cell") || lower.contains("organ")) {
+                return getBiologySample(targetCount)
+            }
+            if (lower.contains("physics") || lower.contains("science") || lower.contains("space")) {
+                return getPhysicsSample(targetCount)
+            }
+            if (lower.contains("tech") || lower.contains("computer") || lower.contains("coding") || lower.contains("ai")) {
+                return getComputerScienceSample(targetCount)
+            }
         }
 
-        // 2. Parse raw text lines with bullet/number/special character sanitization
-        val lines = rawInput.split("\n", ";", "\r").map { it.trim() }.filter { it.isNotBlank() }
         val wordsList = mutableListOf<DictationWord>()
         val seenWords = mutableSetOf<String>()
 
+        // 1. Line-by-line parsing (Handles: "Word: Meaning", "Word - Meaning", "1. Word", "Word")
+        val lines = trimmed.split("\n", "\r", ";").map { it.trim() }.filter { it.isNotBlank() }
         for (line in lines) {
-            val (cleanWord, cleanMeaning) = cleanAndExtractWordLine(line)
+            val (cleanWord, explicitMeaning) = cleanAndExtractWordLine(line)
             if (cleanWord.isNotBlank() && cleanWord.length >= 2) {
                 val normalizedKey = cleanWord.lowercase().replace("[^a-z0-9]".toRegex(), "")
-                if (normalizedKey !in seenWords) {
+                if (normalizedKey.isNotBlank() && normalizedKey !in seenWords) {
                     seenWords.add(normalizedKey)
+
+                    // Lookup in rich offline dictionary or synthesize
+                    val dictEntry = OfflineVocabularyDictionary.findExactOrStem(cleanWord)
+                    val meaningToUse = when {
+                        explicitMeaning.isNotBlank() -> explicitMeaning
+                        dictEntry != null -> dictEntry.meaning
+                        else -> OfflineVocabularyDictionary.synthesizeWordDefinition(cleanWord, trimmed).meaning
+                    }
+
+                    val phoneticToUse = dictEntry?.phonetic
+                        ?: OfflineVocabularyDictionary.generateApproximatePhonetic(cleanWord)
+
+                    val exampleToUse = when {
+                        dictEntry != null -> dictEntry.example
+                        else -> OfflineVocabularyDictionary.synthesizeWordDefinition(cleanWord, trimmed).example
+                    }
+
                     wordsList.add(
                         DictationWord(
                             id = "dw_${UUID.randomUUID()}",
-                            word = cleanWord,
-                            meaning = if (cleanMeaning.isNotBlank()) cleanMeaning else "Spelling and meaning for $cleanWord",
-                            exampleSentence = "Listen carefully to $cleanWord and practice writing it."
+                            word = cleanWord.replaceFirstChar { it.uppercase() },
+                            meaning = meaningToUse,
+                            phonetic = phoneticToUse,
+                            exampleSentence = exampleToUse
                         )
                     )
                 }
@@ -270,35 +306,102 @@ class GeminiDictationService {
             if (wordsList.size >= targetCount) break
         }
 
-        if (wordsList.isEmpty()) {
-            val words = rawInput.split("\\s+".toRegex())
-                .map { sanitizeWordToken(it) }
-                .filter { it.length > 2 }
-                .distinct()
-                .take(targetCount)
+        // 2. Comma-separated or bullet list fallback
+        if (wordsList.size < targetCount && (trimmed.contains(",") || trimmed.contains("•"))) {
+            val tokens = trimmed.split(",", "•", "|", "/").map { it.trim() }.filter { it.isNotBlank() }
+            for (token in tokens) {
+                val (cleanWord, explicitMeaning) = cleanAndExtractWordLine(token)
+                if (cleanWord.isNotBlank() && cleanWord.length >= 2) {
+                    val normalizedKey = cleanWord.lowercase().replace("[^a-z0-9]".toRegex(), "")
+                    if (normalizedKey.isNotBlank() && normalizedKey !in seenWords) {
+                        seenWords.add(normalizedKey)
+                        val dictEntry = OfflineVocabularyDictionary.findExactOrStem(cleanWord)
+                        val meaningToUse = when {
+                            explicitMeaning.isNotBlank() -> explicitMeaning
+                            dictEntry != null -> dictEntry.meaning
+                            else -> OfflineVocabularyDictionary.synthesizeWordDefinition(cleanWord, trimmed).meaning
+                        }
+                        val phoneticToUse = dictEntry?.phonetic
+                            ?: OfflineVocabularyDictionary.generateApproximatePhonetic(cleanWord)
+                        val exampleToUse = dictEntry?.example
+                            ?: OfflineVocabularyDictionary.synthesizeWordDefinition(cleanWord, trimmed).example
 
-            for (w in words) {
-                val normalizedKey = w.lowercase()
-                if (normalizedKey !in seenWords) {
-                    seenWords.add(normalizedKey)
-                    wordsList.add(
-                        DictationWord(
-                            id = "dw_${UUID.randomUUID()}",
-                            word = w.replaceFirstChar { it.uppercase() },
-                            meaning = "Essential vocabulary term: $w",
-                            exampleSentence = "Listen and spell $w."
+                        wordsList.add(
+                            DictationWord(
+                                id = "dw_${UUID.randomUUID()}",
+                                word = cleanWord.replaceFirstChar { it.uppercase() },
+                                meaning = meaningToUse,
+                                phonetic = phoneticToUse,
+                                exampleSentence = exampleToUse
+                            )
                         )
-                    )
+                    }
                 }
+                if (wordsList.size >= targetCount) break
             }
         }
 
-        return if (wordsList.isNotEmpty()) wordsList.take(targetCount) else getGreVocabularySample(targetCount)
+        // 3. Raw Prose / Essay / Notes Keyword Extraction (extracts meaningful vocabulary terms)
+        if (wordsList.size < targetCount) {
+            val stopWords = setOf(
+                "the", "and", "that", "have", "for", "not", "with", "you", "this", "but", "his", "from",
+                "they", "say", "her", "she", "will", "one", "all", "would", "there", "their", "what",
+                "out", "about", "who", "get", "which", "when", "make", "can", "like", "time", "just",
+                "him", "know", "take", "people", "into", "year", "your", "good", "some", "could",
+                "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over",
+                "think", "also", "back", "after", "use", "two", "how", "our", "work", "first", "well",
+                "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"
+            )
+
+            val rawTokens = trimmed.split("\\s+".toRegex())
+                .map { sanitizeWordToken(it) }
+                .filter { it.length >= 4 && it.lowercase() !in stopWords }
+
+            for (rawToken in rawTokens) {
+                val normalized = rawToken.lowercase().replace("[^a-z0-9]".toRegex(), "")
+                if (normalized.length >= 3 && normalized !in seenWords) {
+                    seenWords.add(normalized)
+                    val dictEntry = OfflineVocabularyDictionary.findExactOrStem(rawToken)
+                    val meaningToUse = dictEntry?.meaning
+                        ?: OfflineVocabularyDictionary.synthesizeWordDefinition(rawToken, trimmed).meaning
+                    val phoneticToUse = dictEntry?.phonetic
+                        ?: OfflineVocabularyDictionary.generateApproximatePhonetic(rawToken)
+                    val exampleToUse = dictEntry?.example
+                        ?: OfflineVocabularyDictionary.synthesizeWordDefinition(rawToken, trimmed).example
+
+                    wordsList.add(
+                        DictationWord(
+                            id = "dw_${UUID.randomUUID()}",
+                            word = rawToken.replaceFirstChar { it.uppercase() },
+                            meaning = meaningToUse,
+                            phonetic = phoneticToUse,
+                            exampleSentence = exampleToUse
+                        )
+                    )
+                }
+                if (wordsList.size >= targetCount) break
+            }
+        }
+
+        // If user provided very few words, backfill with top academic vocabulary up to targetCount
+        if (wordsList.size < targetCount) {
+            val backfill = getGreVocabularySample(targetCount)
+            for (fallbackWord in backfill) {
+                val norm = fallbackWord.word.lowercase()
+                if (norm !in seenWords) {
+                    seenWords.add(norm)
+                    wordsList.add(fallbackWord)
+                }
+                if (wordsList.size >= targetCount) break
+            }
+        }
+
+        return wordsList.take(targetCount)
     }
 
     private fun cleanAndExtractWordLine(rawLine: String): Pair<String, String> {
         // Remove leading bullets, numbers, lists: e.g. "1. ", "• ", "- ", "(a) ", "1) "
-        var cleaned = rawLine.trim()
+        val cleaned = rawLine.trim()
             .replace("^([0-9]{1,3}[.)\\]]|\\([0-9]{1,3}\\)|[a-zA-Z][.)\\]]|•|\\*|\\-|\\+|\\>|→|~)\\s*".toRegex(), "")
             .trim()
 
@@ -313,7 +416,6 @@ class GeminiDictationService {
             return Pair(rawWord, meaning)
         }
 
-        // If line is a single term or comma separated
         val rawWord = sanitizeWordToken(cleaned)
         return Pair(rawWord, "")
     }
@@ -322,7 +424,8 @@ class GeminiDictationService {
         return token.trim()
             .replace("^[\"\'\\[\\(«“‘]+".toRegex(), "")
             .replace("[\"\'\\]\\)»”’]+$".toRegex(), "")
-            .replace("^[•\\-*_~]+\\s*".toRegex(), "")
+            .replace("^[•\\-*_~.,]+\\s*".toRegex(), "")
+            .replace("[.,;:!?]+$".toRegex(), "")
             .trim()
     }
 
@@ -361,7 +464,12 @@ class GeminiDictationService {
             DictationWord(word = "Pragmatic", meaning = "Dealing with things sensibly and realistically.", phonetic = "/præɡˈmæt.ɪk/", exampleSentence = "We need a pragmatic approach rather than theoretical ideals."),
             DictationWord(word = "Ineffable", meaning = "Too great or extreme to be expressed in words.", phonetic = "/ɪnˈef.ə.bəl/", exampleSentence = "The view from the mountain peak inspired ineffable joy."),
             DictationWord(word = "Resilience", meaning = "The capacity to recover quickly from difficulties.", phonetic = "/rɪˈzɪl.jəns/", exampleSentence = "The community showed remarkable resilience after the storm."),
-            DictationWord(word = "Tenacious", meaning = "Tending to keep a firm hold of something; persistent.", phonetic = "/təˈneɪ.ʃəs/", exampleSentence = "She had a tenacious grip on her principles and goals.")
+            DictationWord(word = "Tenacious", meaning = "Tending to keep a firm hold of something; persistent.", phonetic = "/təˈneɪ.ʃəs/", exampleSentence = "She had a tenacious grip on her principles and goals."),
+            DictationWord(word = "Alleviate", meaning = "To make suffering or a problem less severe.", phonetic = "/əˈliː.vi.eɪt/", exampleSentence = "The medicine helped alleviate her severe symptoms."),
+            DictationWord(word = "Ambiguous", meaning = "Open to more than one interpretation; unclear.", phonetic = "/æmˈbɪɡ.ju.əs/", exampleSentence = "He gave an ambiguous answer to the difficult question."),
+            DictationWord(word = "Benevolent", meaning = "Well-meaning, kindly, and charitable.", phonetic = "/bəˈnev.əl.ənt/", exampleSentence = "The benevolent donor funded scholarships for rural youth."),
+            DictationWord(word = "Candid", meaning = "Truthful and straightforward; frank.", phonetic = "/ˈkæn.dɪd/", exampleSentence = "We had a candid conversation about the project delays."),
+            DictationWord(word = "Diligent", meaning = "Having or showing care and conscientiousness in work.", phonetic = "/ˈdɪl.ɪ.dʒənt/", exampleSentence = "Diligent students practice every day to achieve fluency.")
         )
         return pool.take(count)
     }
@@ -372,7 +480,12 @@ class GeminiDictationService {
             DictationWord(word = "Sankalp", meaning = "Determination, solemn resolution, or firm resolve (संकल्प).", phonetic = "/səŋˈkəlp/", exampleSentence = "With strong sankalp, no goal is impossible to achieve."),
             DictationWord(word = "Prerana", meaning = "Inspiration or motivation to achieve something noble (प्रेरणा).", phonetic = "/preːɾ.ɳaː/", exampleSentence = "Her dedication was a constant source of prerana for the students."),
             DictationWord(word = "Satya", meaning = "Truthfulness, honesty, and alignment with reality (सत्य).", phonetic = "/sət̪.jə/", exampleSentence = "Satya is the foundation of integrity."),
-            DictationWord(word = "Sahaj", meaning = "Natural, effortless, and simple (सहज).", phonetic = "/sə.ɦədʒ/", exampleSentence = "His speaking style was wonderfully sahaj and engaging.")
+            DictationWord(word = "Sahaj", meaning = "Natural, effortless, and simple (सहज).", phonetic = "/sə.ɦədʒ/", exampleSentence = "His speaking style was wonderfully sahaj and engaging."),
+            DictationWord(word = "Shanti", meaning = "Peace, tranquility, and calmness of mind (शान्ति).", phonetic = "/ˈʃaːn.t̪i/", exampleSentence = "Meditation brings inner shanti amidst everyday noise."),
+            DictationWord(word = "Karm", meaning = "Action, duty, or deed that shapes one's future (कर्म).", phonetic = "/kərm/", exampleSentence = "Focus on your karm without anxiety for the outcome."),
+            DictationWord(word = "Samarpan", meaning = "Total dedication or surrender to a higher cause (समर्पण).", phonetic = "/sə.mərˈpəɳ/", exampleSentence = "Success in research demands immense dedication and samarpan."),
+            DictationWord(word = "Anurag", meaning = "Deep affection, love, or devotion (अनुराग).", phonetic = "/ə.nʊˈraːɡ/", exampleSentence = "He pursued classical literature with profound anurag."),
+            DictationWord(word = "Vivek", meaning = "Discretion, wisdom, and right discernment (विवेक).", phonetic = "/vɪˈveːk/", exampleSentence = "Exercise vivek when deciding on important matters.")
         )
         return pool.take(count)
     }
@@ -383,7 +496,12 @@ class GeminiDictationService {
             DictationWord(word = "Break the ice", meaning = "To make people feel more comfortable in a social setting.", phonetic = "/breɪk ði aɪs/", exampleSentence = "A quick warm-up game helped break the ice."),
             DictationWord(word = "Piece of cake", meaning = "Something that is very easy to accomplish.", phonetic = "/piːs əv keɪk/", exampleSentence = "Once we practiced, the test felt like a piece of cake."),
             DictationWord(word = "Burn the midnight oil", meaning = "To work or study late into the night.", phonetic = "/bɜːrn ðə ˈmɪd.naɪt ɔɪl/", exampleSentence = "Students often burn the midnight oil before final exams."),
-            DictationWord(word = "Hit the nail on the head", meaning = "To describe exactly what is causing a situation.", phonetic = "/hɪt ðə neɪl ɒn ðə hed/", exampleSentence = "Her summary hit the nail right on the head.")
+            DictationWord(word = "Hit the nail on the head", meaning = "To describe exactly what is causing a situation.", phonetic = "/hɪt ðə neɪl ɒn ðə hed/", exampleSentence = "Her summary hit the nail right on the head."),
+            DictationWord(word = "Once in a blue moon", meaning = "Happening very rarely.", phonetic = "/wʌns ɪn ə bluː muːn/", exampleSentence = "We visit our hometown once in a blue moon."),
+            DictationWord(word = "Spill the beans", meaning = "To disclose a secret prematurely.", phonetic = "/spɪl ðə biːnz/", exampleSentence = "Do not spill the beans about the surprise anniversary party."),
+            DictationWord(word = "Under the weather", meaning = "Feeling slightly unwell or sick.", phonetic = "/ˈʌn.dər ðə ˈweð.ər/", exampleSentence = "He stayed home today because he was feeling under the weather."),
+            DictationWord(word = "Cost an arm and a leg", meaning = "To be extraordinarily expensive.", phonetic = "/kɒst ən ɑːm ænd ə leɡ/", exampleSentence = "The latest flagship smartphone costs an arm and a leg."),
+            DictationWord(word = "See eye to eye", meaning = "To agree fully with someone.", phonetic = "/siː aɪ tuː aɪ/", exampleSentence = "The partners do not always see eye to eye on hiring decisions.")
         )
         return pool.take(count)
     }
@@ -394,7 +512,12 @@ class GeminiDictationService {
             DictationWord(word = "Photosynthesis", meaning = "Process by which green plants use sunlight to synthesize nutrients.", phonetic = "/ˌfəʊ.təʊˈsɪn.θə.sɪs/", exampleSentence = "Chlorophyll absorbs sunlight to drive photosynthesis."),
             DictationWord(word = "Homeostasis", meaning = "The maintenance of stable internal physiological conditions.", phonetic = "/ˌhəʊ.mi.əʊˈsteɪ.sɪs/", exampleSentence = "The human body maintains homeostasis through feedback mechanisms."),
             DictationWord(word = "Chromosome", meaning = "Thread-like structure of nucleic acids carrying genetic information.", phonetic = "/ˈkrəʊ.mə.səʊm/", exampleSentence = "Humans normally possess 23 pairs of chromosomes."),
-            DictationWord(word = "Ribosome", meaning = "Cellular particle made of RNA and protein that synthesizes proteins.", phonetic = "/ˈraɪ.bə.səʊm/", exampleSentence = "Ribosomes translate mRNA sequences into polypeptide chains.")
+            DictationWord(word = "Ribosome", meaning = "Cellular particle made of RNA and protein that synthesizes proteins.", phonetic = "/ˈraɪ.bə.səʊm/", exampleSentence = "Ribosomes translate mRNA sequences into polypeptide chains."),
+            DictationWord(word = "Hemoglobin", meaning = "Red protein responsible for transporting oxygen in the blood.", phonetic = "/ˌhiː.məˈɡloʊ.bɪn/", exampleSentence = "Iron is a vital component for healthy hemoglobin synthesis."),
+            DictationWord(word = "Metabolism", meaning = "The chemical processes that occur within a living organism to maintain life.", phonetic = "/məˈtæb.əl.ɪ.zəm/", exampleSentence = "Regular exercise stimulates an active metabolism."),
+            DictationWord(word = "Enzyme", meaning = "A biological catalyst that accelerates specific chemical reactions.", phonetic = "/ˈen.zaɪm/", exampleSentence = "Digestive enzymes break down complex carbohydrates into glucose."),
+            DictationWord(word = "Pathogen", meaning = "A bacterium, virus, or other microorganism that can cause disease.", phonetic = "/ˈpæθ.ə.dʒən/", exampleSentence = "Antibodies help the immune system identify and neutralize pathogens."),
+            DictationWord(word = "Neuron", meaning = "A specialized cell transmitting nerve impulses in the nervous system.", phonetic = "/ˈnjʊər.ɒn/", exampleSentence = "Billions of neurons form the intricate neural network of the brain.")
         )
         return pool.take(count)
     }
@@ -404,7 +527,13 @@ class GeminiDictationService {
             DictationWord(word = "Thermodynamics", meaning = "The branch of physical science dealing with heat and mechanical energy.", phonetic = "/ˌθɜː.məʊ.daɪˈnæm.ɪks/", exampleSentence = "The first law of thermodynamics states energy cannot be created or destroyed."),
             DictationWord(word = "Superconductivity", meaning = "Zero electrical resistance occurring in certain materials at low temperatures.", phonetic = "/ˌsuː.pəˌkɒn.dʌkˈtɪv.ə.ti/", exampleSentence = "Superconductivity enables powerful magnetic levitation."),
             DictationWord(word = "Diffraction", meaning = "The bending of waves around the corners of an obstacle.", phonetic = "/dɪˈfræk.ʃən/", exampleSentence = "Laser light showed a clear diffraction pattern on the screen."),
-            DictationWord(word = "Centripetal force", meaning = "Force that makes a body follow a curved path directed toward center.", phonetic = "/senˈtrɪp.ɪ.təl fɔːs/", exampleSentence = "Gravity acts as the centripetal force keeping planets in orbit.")
+            DictationWord(word = "Centripetal force", meaning = "Force that makes a body follow a curved path directed toward center.", phonetic = "/senˈtrɪp.ɪ.təl fɔːs/", exampleSentence = "Gravity acts as the centripetal force keeping planets in orbit."),
+            DictationWord(word = "Refraction", meaning = "The change in direction of a wave passing from one medium to another.", phonetic = "/rɪˈfræk.ʃən/", exampleSentence = "Light refraction through water droplets creates a colorful rainbow."),
+            DictationWord(word = "Momentum", meaning = "The quantity of motion of a moving body, measured as product of mass and velocity.", phonetic = "/məˈmen.təm/", exampleSentence = "Conservation of momentum applies during elastic billiard collisions."),
+            DictationWord(word = "Capacitance", meaning = "The ability of a system to store an electric charge.", phonetic = "/kəˈpæs.ɪ.təns/", exampleSentence = "Capacitors with higher capacitance store more electrical energy."),
+            DictationWord(word = "Electromagnetism", meaning = "The interaction of electric currents or fields and magnetic fields.", phonetic = "/iˌlek.troʊˈmæɡ.nə.tɪ.zəm/", exampleSentence = "Maxwell's equations unified electricity and magnetism into electromagnetism."),
+            DictationWord(word = "Oscillation", meaning = "Repetitive movement back and forth at a regular speed.", phonetic = "/ˌɒs.ɪˈleɪ.ʃən/", exampleSentence = "The oscillation of a grandfather clock pendulum marks the seconds."),
+            DictationWord(word = "Gravitation", meaning = "The universal force of attraction acting between all matter.", phonetic = "/ˌɡræv.ɪˈteɪ.ʃən/", exampleSentence = "Newton formulated the universal law of gravitation.")
         )
         return pool.take(count)
     }
@@ -414,9 +543,14 @@ class GeminiDictationService {
             DictationWord(word = "Asynchronous", meaning = "Operations that occur independently of the main program flow.", phonetic = "/eɪˈsɪŋ.krə.nəs/", exampleSentence = "Coroutines simplify asynchronous networking tasks in Kotlin."),
             DictationWord(word = "Polymorphism", meaning = "Ability of an object or function to take on many forms.", phonetic = "/ˌpɒl.iˈmɔː.fɪ.zəm/", exampleSentence = "Method overriding is a classic example of runtime polymorphism."),
             DictationWord(word = "Recursion", meaning = "Method where the solution to a problem depends on solutions to smaller instances.", phonetic = "/rɪˈkɜː.ʒən/", exampleSentence = "Tree traversal algorithms naturally lend themselves to recursion."),
-            DictationWord(word = "Encapsulation", meaning = "Bundling of data and methods that operate on that data within one unit.", phonetic = "/ɪnˌkæp.sjəˈleɪ.ʃən/", exampleSentence = "Encapsulation protects class fields from unintended external access.")
+            DictationWord(word = "Encapsulation", meaning = "Bundling of data and methods that operate on that data within one unit.", phonetic = "/ɪnˌkæp.sjəˈleɪ.ʃən/", exampleSentence = "Encapsulation protects class fields from unintended external access."),
+            DictationWord(word = "Concurrency", meaning = "The execution of multiple instruction sequences at the same time.", phonetic = "/kənˈkɜːr.ən.si/", exampleSentence = "Thread synchronization prevents race conditions during concurrency."),
+            DictationWord(word = "Immutable", meaning = "Unchanging over time or unable to be modified after creation.", phonetic = "/ɪˈmjuː.tə.bəl/", exampleSentence = "Kotlin val properties define immutable references for safer code."),
+            DictationWord(word = "Repository", meaning = "A central place where data is stored, managed, and abstracted.", phonetic = "/rɪˈpɒz.ɪ.tər.i/", exampleSentence = "The repository pattern decouples the UI from direct database queries."),
+            DictationWord(word = "Serialization", meaning = "The process of converting an object into a format that can be stored or transmitted.", phonetic = "/ˌsɪər.i.ə.laɪˈzeɪ.ʃən/", exampleSentence = "We use kotlinx.serialization to convert Kotlin objects to JSON strings."),
+            DictationWord(word = "Inheritance", meaning = "The mechanism where a new class inherits attributes from an existing class.", phonetic = "/ɪnˈher.ɪ.təns/", exampleSentence = "Object-oriented design utilizes inheritance to promote code reuse."),
+            DictationWord(word = "Abstraction", meaning = "Hiding complex implementation details and showing only necessary features.", phonetic = "/æbˈstræk.ʃən/", exampleSentence = "Interfaces provide clean abstraction layers between modular components.")
         )
         return pool.take(count)
     }
 }
-

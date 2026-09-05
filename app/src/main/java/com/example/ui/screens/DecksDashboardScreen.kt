@@ -96,6 +96,7 @@ fun DecksDashboardScreen(
     onDeleteDeckClick: (FlashcardDeck) -> Unit = {},
     decks: List<FlashcardDeck> = emptyList(),
     selectedDeckIds: Set<String> = emptySet(),
+    gridColumns: Int = 2,
     onToggleSelection: (String) -> Unit = {},
     onClearSelection: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -135,6 +136,8 @@ fun DecksDashboardScreen(
 
         matchesSearch && matchesFilter
     }
+
+    val deckChunks = remember(filteredDecks, gridColumns) { filteredDecks.chunked(gridColumns.coerceIn(1, 4)) }
 
     Box(
         modifier = modifier
@@ -399,6 +402,46 @@ fun DecksDashboardScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
+                        }
+                    }
+                }
+            } else if (gridColumns > 1) {
+                items(
+                    items = deckChunks,
+                    key = { chunk -> chunk.joinToString("_") { it.id } },
+                    contentType = { "deck_chunk" }
+                ) { chunk ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        for (deck in chunk) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                val isSelected = deck.id in selectedDeckIds
+                                ManagedDeckItem(
+                                    deck = deck,
+                                    gridColumns = gridColumns,
+                                    isSelected = isSelected,
+                                    isSelectionMode = isSelectionMode,
+                                    onRename = { onRenameDeckClick(deck) },
+                                    onDelete = { onDeleteDeckClick(deck) },
+                                    onClick = {
+                                        if (isSelectionMode) {
+                                            onToggleSelection(deck.id)
+                                        } else {
+                                            onDeckClick(deck)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        onToggleSelection(deck.id)
+                                    }
+                                )
+                            }
+                        }
+                        if (chunk.size < gridColumns) {
+                            repeat(gridColumns - chunk.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }

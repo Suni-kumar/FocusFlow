@@ -372,6 +372,7 @@ fun FolderScreen(
                                         folder = folder,
                                         isSelected = isSelected,
                                         isSelectionMode = uiState.isSelectionMode,
+                                        gridColumns = uiState.gridColumns,
                                         onClick = {
                                             AppHaptic.vibrateClick(context, hapticView)
                                             if (uiState.isSelectionMode) {
@@ -748,11 +749,14 @@ fun FolderCard(
     folder: FolderItem,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
+    gridColumns: Int = 2,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = gridColumns >= 3
+    val isUltraCompact = gridColumns >= 4
     val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else null
     val borderCol = when {
         isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
@@ -763,7 +767,7 @@ fun FolderCard(
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(if (isUltraCompact) 54.dp else 60.dp),
         backgroundColor = bg,
         elevation = 2.dp,
         borderColor = borderCol,
@@ -775,13 +779,13 @@ fun FolderCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 12.dp, end = 6.dp),
+                .padding(start = if (isUltraCompact) 6.dp else if (isCompact) 8.dp else 12.dp, end = if (isUltraCompact) 2.dp else if (isCompact) 4.dp else 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 10.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 if (isSelectionMode) {
@@ -789,12 +793,12 @@ fun FolderCard(
                         imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                         contentDescription = if (isSelected) "Selected" else "Not selected",
                         tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(if (isCompact) 16.dp else 20.dp)
                     )
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(if (isUltraCompact) 28.dp else if (isCompact) 32.dp else 36.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                         contentAlignment = Alignment.Center
@@ -803,7 +807,7 @@ fun FolderCard(
                             imageVector = Icons.Default.Folder,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(if (isCompact) 16.dp else 20.dp)
                         )
                     }
                 }
@@ -814,32 +818,32 @@ fun FolderCard(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text(
                             text = folder.name,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            fontSize = 14.sp,
+                            fontSize = if (isUltraCompact) 11.sp else if (isCompact) 12.sp else 14.sp,
                             modifier = Modifier.weight(1f, fill = false)
                         )
-                        if (folder.isPinned) {
+                        if (folder.isPinned && !isUltraCompact) {
                             Icon(
                                 imageVector = Icons.Default.PushPin,
                                 contentDescription = "Pinned",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(if (isCompact) 11.dp else 13.dp)
                             )
                         }
-                        if (folder.isFavorite) {
+                        if (folder.isFavorite && !isUltraCompact) {
                             Icon(
                                 imageVector = Icons.Default.Favorite,
                                 contentDescription = "Favorite",
                                 tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(if (isCompact) 11.dp else 13.dp)
                             )
                         }
                     }
@@ -849,13 +853,13 @@ fun FolderCard(
             if (!isSelectionMode) {
                 IconButton(
                     onClick = onMoreClick,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(if (isCompact) 22.dp else 32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Folder options",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(if (isCompact) 14.dp else 18.dp)
                     )
                 }
             }

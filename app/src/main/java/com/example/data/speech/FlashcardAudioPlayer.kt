@@ -2,6 +2,7 @@ package com.example.data.speech
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.PlaybackParams
@@ -84,6 +85,71 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     private val memCache = LruCache<String, ByteArray>(50)
     private val cacheDir = File(appContext.cacheDir, "audio_cache").apply { mkdirs() }
 
+    private val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var audioFocusRequest: AudioFocusRequest? = null
+
+    private fun requestAudioFocus(): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val playbackAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+                val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                    .setAudioAttributes(playbackAttributes)
+                    .setAcceptsDelayedFocusGain(false)
+                    .build()
+                audioFocusRequest = request
+                audioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.requestAudioFocus(
+                    null,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+                ) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Audio focus request note: ${e.message}")
+            true
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+                audioFocusRequest = null
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.abandonAudioFocus(null)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Abandon audio focus note: ${e.message}")
+        }
+    }
+
+    /**
+     * Guarantees audio routes to phone loudspeaker at an audible volume level.
+     * Prevents sound from being routed to in-call earpiece or muted.
+     */
+    private fun ensureSpeakerOutput() {
+        try {
+            if (audioManager.mode != AudioManager.MODE_NORMAL) {
+                audioManager.mode = AudioManager.MODE_NORMAL
+            }
+            val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            // If phone volume is at 0 or muted, raise to at least 70%
+            if (currentVol <= 1 && maxVol > 0) {
+                val safeVolume = (maxVol * 0.75f).toInt().coerceAtLeast(1)
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, safeVolume, 0)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Speaker output setup note: ${e.message}")
+        }
+    }
+
     // Fast-failing HTTP client so network delays never block local offline speech
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(3500, TimeUnit.MILLISECONDS)
@@ -125,6 +191,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     @Synchronized
     private fun initTts() {
         if (isTtsReady && tts != null) return
+        if (tts != null) return // Already initializing
 
         if (ttsReadyDeferred.isCompleted) {
             ttsReadyDeferred = CompletableDeferred()
@@ -157,6 +224,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
 
                         override fun onDone(utteranceId: String?) {
                             if (utteranceId == currentActiveUtteranceId) {
+                                abandonAudioFocus()
                                 _isSpeaking.value = false
                                 _currentText.value = null
                                 stopVisualizerTicker()
@@ -170,6 +238,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                         @Deprecated("Deprecated in Java")
                         override fun onError(utteranceId: String?) {
                             if (utteranceId == currentActiveUtteranceId) {
+                                abandonAudioFocus()
                                 _isSpeaking.value = false
                                 _currentText.value = null
                                 stopVisualizerTicker()
@@ -182,6 +251,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
 
                         override fun onError(utteranceId: String?, errorCode: Int) {
                             if (utteranceId == currentActiveUtteranceId) {
+                                abandonAudioFocus()
                                 Log.w(TAG, "TTS Utterance $utteranceId error: $errorCode")
                                 _isSpeaking.value = false
                                 _currentText.value = null
@@ -263,38 +333,13 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             val cachedFile = File(cacheDir, "$cacheKey.wav")
             if (cachedFile.exists() && cachedFile.length() > 0) {
                 _currentEngineType.value = "Cached HD Voice ($selectedVoice)"
+                ensureSpeakerOutput()
+                requestAudioFocus()
                 val success = playAudioFile(cachedFile)
                 if (success) return@launch
             }
 
-            // If user prefers Gemini Live HD voice and API key is present, attempt live generative voice streaming with fast timeout
-            if (preferGemini && apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
-                _isLoading.value = true
-                _currentEngineType.value = "Gemini Live HD ($selectedVoice)"
-
-                val geminiSuccess = try {
-                    withTimeoutOrNull(4000) {
-                        tryGeminiTts(
-                            text = cleanText,
-                            locale = lang,
-                            apiKey = apiKey,
-                            voiceName = selectedVoice,
-                            cacheKey = cacheKey,
-                            playImmediately = true
-                        )
-                    } ?: false
-                } catch (e: Exception) {
-                    false
-                }
-
-                _isLoading.value = false
-
-                if (geminiSuccess) {
-                    return@launch
-                }
-            }
-
-            // Instant local offline acoustic engine (guaranteed sound)
+            // Guaranteed instant offline acoustic engine
             _currentEngineType.value = "Offline Engine ($selectedVoice)"
             playWithLocalTts(cleanText, lang, rate = rate, voicePersona = selectedVoice)
         }
@@ -320,26 +365,88 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
      * Dictation Practice: Speaks a specific word cleanly for dictation with zero delay.
      */
     fun speakDictationWord(word: String, onDone: () -> Unit = {}) {
-        speak(word, forceReplay = true, onDone = onDone)
+        val cleanText = word.trim()
+        if (cleanText.isEmpty()) {
+            onDone()
+            return
+        }
+        stop()
+        onSpeechDoneCallback = onDone
+        _currentText.value = cleanText
+
+        val lang = resolveLocaleForText(cleanText)
+        val selectedVoice = normalizeVoiceName(prefsManager.geminiVoiceName)
+
+        scope.launch {
+            val cacheKey = hashAudioKey(cleanText, selectedVoice, prefsManager.voiceAccent)
+            val cachedFile = File(cacheDir, "$cacheKey.wav")
+            if (cachedFile.exists() && cachedFile.length() > 0) {
+                _currentEngineType.value = "Cached Voice ($selectedVoice)"
+                ensureSpeakerOutput()
+                requestAudioFocus()
+                val success = playAudioFile(cachedFile)
+                if (success) return@launch
+            }
+
+            _currentEngineType.value = "Offline Engine ($selectedVoice)"
+            playWithLocalTts(cleanText, lang, rate = prefsManager.voiceSpeed, voicePersona = selectedVoice)
+        }
     }
 
     /**
      * Dictation Practice: Speaks a specific word slowly (0.75x rate) for phonetic clarity.
      */
     fun speakDictationWordSlowly(word: String, onDone: () -> Unit = {}) {
-        speak(word, rate = 0.75f, forceReplay = true, onDone = onDone)
+        val cleanText = word.trim()
+        if (cleanText.isEmpty()) {
+            onDone()
+            return
+        }
+        stop()
+        onSpeechDoneCallback = onDone
+        _currentText.value = cleanText
+
+        val lang = resolveLocaleForText(cleanText)
+        val selectedVoice = normalizeVoiceName(prefsManager.geminiVoiceName)
+
+        scope.launch {
+            _currentEngineType.value = "Offline Engine ($selectedVoice • Slow)"
+            playWithLocalTts(cleanText, lang, rate = (prefsManager.voiceSpeed * 0.72f).coerceAtLeast(0.4f), voicePersona = selectedVoice)
+        }
     }
 
     /**
      * Dictation Practice: Speaks the meaning/definition of a word.
      */
     fun speakDictationMeaning(word: String, meaning: String, onDone: () -> Unit = {}) {
-        val phrase = if (prefsManager.voiceAccent == "HINDI_IN") {
-            "$word का अर्थ है: $meaning"
+        val cleanWord = word.trim()
+        val cleanMeaning = meaning.trim()
+        val phrase = if (prefsManager.voiceAccent == "HINDI_IN" || detectLanguage(cleanMeaning) == Locale.forLanguageTag("hi-IN")) {
+            "$cleanWord का अर्थ है: $cleanMeaning"
         } else {
-            "The meaning of $word is: $meaning"
+            "The meaning of $cleanWord is: $cleanMeaning"
         }
-        speak(phrase, forceReplay = true, onDone = onDone)
+        stop()
+        onSpeechDoneCallback = onDone
+        _currentText.value = phrase
+
+        val lang = resolveLocaleForText(phrase)
+        val selectedVoice = normalizeVoiceName(prefsManager.geminiVoiceName)
+
+        scope.launch {
+            val cacheKey = hashAudioKey(phrase, selectedVoice, prefsManager.voiceAccent)
+            val cachedFile = File(cacheDir, "$cacheKey.wav")
+            if (cachedFile.exists() && cachedFile.length() > 0) {
+                _currentEngineType.value = "Cached Voice ($selectedVoice)"
+                ensureSpeakerOutput()
+                requestAudioFocus()
+                val success = playAudioFile(cachedFile)
+                if (success) return@launch
+            }
+
+            _currentEngineType.value = "Offline Engine ($selectedVoice)"
+            playWithLocalTts(phrase, lang, rate = prefsManager.voiceSpeed, voicePersona = selectedVoice)
+        }
     }
 
     /**
@@ -466,6 +573,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
     }
 
     fun stop() {
+        abandonAudioFocus()
         currentActiveUtteranceId = null
         safetyWatchdogJob?.cancel()
         safetyWatchdogJob = null
@@ -651,9 +759,13 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         val utteranceId = "flashcard_speech_${System.currentTimeMillis()}_${Random.nextInt(1000, 9999)}"
         currentActiveUtteranceId = utteranceId
 
+        ensureSpeakerOutput()
+        requestAudioFocus()
+
         val params = Bundle().apply {
             putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
             putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+            putString(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC.toString())
             putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
         }
 
@@ -667,6 +779,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             delay(estimatedDurationMs + 2500L)
             if (_isSpeaking.value && currentActiveUtteranceId == utteranceId) {
                 Log.w(TAG, "Safety watchdog unblocking TTS for $utteranceId")
+                abandonAudioFocus()
                 _isSpeaking.value = false
                 _currentText.value = null
                 stopVisualizerTicker()
@@ -687,6 +800,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             val fallbackResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
             if (fallbackResult != TextToSpeech.SUCCESS) {
                 Log.e(TAG, "Fallback speak also failed: $fallbackResult")
+                abandonAudioFocus()
                 _isSpeaking.value = false
                 _currentText.value = null
                 stopVisualizerTicker()
@@ -708,8 +822,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
         playImmediately: Boolean = true
     ): Boolean = withContext(Dispatchers.IO) {
         val models = listOf(
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-exp"
+            "gemini-3.6-flash"
         )
 
         val normVoice = normalizeVoiceName(voiceName)
@@ -874,6 +987,8 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
 
     private suspend fun playAudioFile(file: File): Boolean = withContext(Dispatchers.Main) {
         try {
+            ensureSpeakerOutput()
+            requestAudioFocus()
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -901,6 +1016,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                     start()
                 }
                 setOnCompletionListener {
+                    abandonAudioFocus()
                     _isSpeaking.value = false
                     _currentText.value = null
                     stopVisualizerTicker()
@@ -909,6 +1025,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                     callback?.invoke()
                 }
                 setOnErrorListener { _, _, _ ->
+                    abandonAudioFocus()
                     _isSpeaking.value = false
                     _currentText.value = null
                     stopVisualizerTicker()
@@ -922,6 +1039,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error playing audio file", e)
+            abandonAudioFocus()
             stopVisualizerTicker()
             val callback = onSpeechDoneCallback
             onSpeechDoneCallback = null
@@ -938,6 +1056,8 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             }
 
             withContext(Dispatchers.Main) {
+                ensureSpeakerOutput()
+                requestAudioFocus()
                 mediaPlayer?.release()
                 mediaPlayer = MediaPlayer().apply {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -969,6 +1089,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                         start()
                     }
                     setOnCompletionListener {
+                        abandonAudioFocus()
                         _isSpeaking.value = false
                         _currentText.value = null
                         stopVisualizerTicker()
@@ -978,6 +1099,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
                         callback?.invoke()
                     }
                     setOnErrorListener { _, _, _ ->
+                        abandonAudioFocus()
                         _isSpeaking.value = false
                         _currentText.value = null
                         stopVisualizerTicker()
@@ -993,6 +1115,7 @@ class FlashcardAudioPlayer private constructor(private val appContext: Context) 
             return@withContext true
         } catch (e: Exception) {
             Log.e(TAG, "Error playing audio bytes", e)
+            abandonAudioFocus()
             stopVisualizerTicker()
             val callback = onSpeechDoneCallback
             onSpeechDoneCallback = null

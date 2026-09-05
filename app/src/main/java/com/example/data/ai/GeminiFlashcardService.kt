@@ -169,7 +169,7 @@ class GeminiFlashcardService {
         effectiveTopic: String,
         apiKey: String
     ): List<Flashcard> {
-        val models = listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
+        val models = listOf("gemini-3.6-flash")
         var lastException: Exception? = null
 
         val systemPrompt = """

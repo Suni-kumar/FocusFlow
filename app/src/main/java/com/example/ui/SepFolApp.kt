@@ -533,6 +533,7 @@ fun SepFolApp() {
                                     onBackClick = navigateBack,
                                     decks = deckUiState.decks,
                                     selectedDeckIds = deckUiState.selectedDeckIds,
+                                    gridColumns = gridColumns,
                                     onToggleSelection = { deckViewModel.toggleDeckSelection(it) },
                                     onClearSelection = { deckViewModel.clearSelection() },
                                     onToggleStar = { deckViewModel.toggleStarDeck(it) },
@@ -570,6 +571,7 @@ fun SepFolApp() {
                             tab == MainTab.DICTATION -> {
                                 DictationWorkspaceScreen(
                                     viewModel = dictationViewModel,
+                                    gridColumns = gridColumns,
                                     onDeckClick = { deck ->
                                         dictationViewModel.startPracticeSession(deck)
                                         screenStack = screenStack + ScreenState.DICTATION_PRACTICE
@@ -586,6 +588,7 @@ fun SepFolApp() {
                                 StudioScreen(
                                     decks = deckUiState.decks,
                                     selectedDeckIds = deckUiState.selectedDeckIds,
+                                    gridColumns = gridColumns,
                                     onToggleSelection = { deckViewModel.toggleDeckSelection(it) },
                                     onClearSelection = { deckViewModel.clearSelection() },
                                     onViewAllDecksClick = { screenStack = screenStack + ScreenState.ALL_DECKS },

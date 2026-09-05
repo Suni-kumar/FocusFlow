@@ -1,6 +1,5 @@
 package com.example.ui.dialogs
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -27,9 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.OfflineBolt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -149,16 +149,27 @@ fun AiGenerateDictationDialog(
 
                         Column {
                             Text(
-                                text = "AI Dictation Generator",
+                                text = "Smart Dictation Generator",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Text(
-                                text = "Extract words & meanings from text or topics",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.OfflineBolt,
+                                    contentDescription = null,
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "Online Gemini AI + Deep Offline Dictionary",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
 
@@ -199,7 +210,7 @@ fun AiGenerateDictationDialog(
                                 modifier = Modifier.size(48.dp)
                             )
                             Text(
-                                text = progressMessage.ifBlank { "Gemini AI is curating your dictation deck..." },
+                                text = progressMessage.ifBlank { "Curating your dictation deck..." },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Medium
@@ -217,8 +228,8 @@ fun AiGenerateDictationDialog(
                             OutlinedTextField(
                                 value = deckTitle,
                                 onValueChange = { deckTitle = it },
-                                label = { Text("Chapter / Deck Title (e.g. Chapter 5: Biology)") },
-                                placeholder = { Text("Leave empty to auto-title") },
+                                label = { Text("Chapter / Deck Title (Optional)") },
+                                placeholder = { Text("e.g. Chapter 1: Biology or GRE Vocab") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -233,12 +244,12 @@ fun AiGenerateDictationDialog(
                             OutlinedTextField(
                                 value = inputContent,
                                 onValueChange = { inputContent = it },
-                                label = { Text("Topic, Vocabulary Notes, or Pasted Word List") },
+                                label = { Text("Paste Text / Words / Study Notes") },
                                 placeholder = {
-                                    Text("E.g., paste your study notes, essay, or type: '15 High-Frequency GRE words with Hindi meanings'")
+                                    Text("Paste text file, notes, word list (e.g., Apple, Banana, Cherry or 1. Word: Meaning) or type any topic.")
                                 },
-                                minLines = 4,
-                                maxLines = 8,
+                                minLines = 5,
+                                maxLines = 10,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("ai_dictation_input_text"),
@@ -252,12 +263,24 @@ fun AiGenerateDictationDialog(
 
                         // Word count selector chips
                         item {
-                            Text(
-                                text = "Target Words Count: $wordCount",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Target Word Count:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "$wordCount words",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = primaryColor
+                                )
+                            }
                             Spacer(modifier = Modifier.height(6.dp))
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -267,18 +290,23 @@ fun AiGenerateDictationDialog(
                                     val isSelected = wordCount == count
                                     Surface(
                                         modifier = Modifier
+                                            .weight(1f)
                                             .clip(RoundedCornerShape(8.dp))
                                             .clickable { wordCount = count },
                                         color = if (isSelected) primaryColor else MaterialTheme.colorScheme.surfaceContainerHighest,
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text(
-                                            text = "$count words",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                        )
+                                        Box(
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "$count",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -287,7 +315,7 @@ fun AiGenerateDictationDialog(
                         // Quick suggestion topics
                         item {
                             Text(
-                                text = "Quick Ideas & Sample Topics",
+                                text = "Or Choose Sample Topic / Ideas",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -376,7 +404,7 @@ fun AiGenerateDictationDialog(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Generate Deck",
+                                    text = "Create Deck ($wordCount)",
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black
                                 )

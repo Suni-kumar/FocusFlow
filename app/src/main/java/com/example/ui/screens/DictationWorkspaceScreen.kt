@@ -103,6 +103,7 @@ fun DictationWorkspaceScreen(
     onDeckClick: (DictationDeck) -> Unit,
     onVoiceSettingsClick: () -> Unit,
     onSwipeUpFab: () -> Unit,
+    gridColumns: Int = 2,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -140,7 +141,7 @@ fun DictationWorkspaceScreen(
         }
     }
 
-    val deckChunks = remember(filteredDecks) { filteredDecks.chunked(2) }
+    val deckChunks = remember(filteredDecks, gridColumns) { filteredDecks.chunked(gridColumns.coerceIn(1, 4)) }
 
     // Intercept back button if speed dial is open or in selection mode
     BackHandler(enabled = isSpeedDialOpen || isSelectionMode) {
@@ -491,6 +492,7 @@ fun DictationWorkspaceScreen(
                                 val isSelected = deck.id in uiState.selectedDeckIds
                                 ManagedDictationDeckItem(
                                     deck = deck,
+                                    gridColumns = gridColumns,
                                     isSelected = isSelected,
                                     isSelectionMode = isSelectionMode,
                                     onClick = {
@@ -518,8 +520,10 @@ fun DictationWorkspaceScreen(
                                 )
                             }
                         }
-                        if (chunk.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
+                        if (chunk.size < gridColumns) {
+                            repeat(gridColumns - chunk.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -600,6 +604,7 @@ fun DictationWorkspaceScreen(
 @Composable
 fun ManagedDictationDeckItem(
     deck: DictationDeck,
+    gridColumns: Int = 2,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
     onClick: () -> Unit,
@@ -613,16 +618,21 @@ fun ManagedDictationDeckItem(
     val haptic = LocalView.current
     var isMenuOpen by remember { mutableStateOf(false) }
 
+    val isCompact = gridColumns >= 3
+    val isUltraCompact = gridColumns >= 4
+    val cardHeight = if (isUltraCompact) 144.dp else if (isCompact) 148.dp else 152.dp
+    val cardPadding = if (isUltraCompact) 8.dp else if (isCompact) 10.dp else 14.dp
+
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .height(145.dp)
+            .height(cardHeight)
             .testTag("managed_dictation_deck_${deck.id}"),
-        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else null,
-        elevation = if (isSelected) 6.dp else 3.dp,
-        borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
-        borderWidth = if (isSelected) 1.5.dp else 1.dp,
-        shape = RoundedCornerShape(16.dp),
+        backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else null,
+        elevation = if (isSelected) 4.dp else 1.5.dp,
+        borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
+        borderWidth = if (isSelected) 1.5.dp else 0.8.dp,
+        shape = RoundedCornerShape(18.dp),
         onClick = onClick,
         onLongClick = {
             haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -632,10 +642,10 @@ fun ManagedDictationDeckItem(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(cardPadding),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (isCompact) 3.dp else 6.dp)) {
                 // Top Row: Icon + Star + Selection Check / 3-dot Menu
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -644,20 +654,20 @@ fun ManagedDictationDeckItem(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 2.dp else 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.RecordVoiceOver,
                             contentDescription = null,
                             tint = deck.categoryColor,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(if (isCompact) 17.dp else 20.dp)
                         )
-                        if (deck.isStarred) {
+                        if (deck.isStarred && !isUltraCompact) {
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = "Starred",
                                 tint = Color(0xFFF59E0B),
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(if (isCompact) 13.dp else 16.dp)
                             )
                         }
                     }
@@ -665,7 +675,7 @@ fun ManagedDictationDeckItem(
                     if (isSelectionMode) {
                         Box(
                             modifier = Modifier
-                                .size(22.dp)
+                                .size(if (isCompact) 18.dp else 22.dp)
                                 .clip(CircleShape)
                                 .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                                 .border(
@@ -680,7 +690,7 @@ fun ManagedDictationDeckItem(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
                                     tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(if (isCompact) 11.dp else 14.dp)
                                 )
                             }
                         }
@@ -689,13 +699,13 @@ fun ManagedDictationDeckItem(
                         Box {
                             IconButton(
                                 onClick = { isMenuOpen = true },
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,
                                     contentDescription = "Deck options",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(if (isCompact) 14.dp else 18.dp)
                                 )
                             }
 
@@ -765,62 +775,72 @@ fun ManagedDictationDeckItem(
                 // Deck Title
                 Text(
                     text = deck.title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = if (isUltraCompact) 11.sp else if (isCompact) 12.sp else 14.sp
                 )
 
                 // Chips row
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (deck.isAiGenerated) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(9999.dp))
-                                .background(Color(0xFF8B5CF6).copy(alpha = 0.2f))
-                                .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "AI",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFC084FC),
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-                    BadgeChip(
-                        text = "${deck.words.size} words",
-                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                if (isUltraCompact) {
+                    Text(
+                        text = "${deck.words.size}w",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp
                     )
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 2.dp else 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (deck.isAiGenerated) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(9999.dp))
+                                    .background(Color(0xFF8B5CF6).copy(alpha = 0.2f))
+                                    .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f), RoundedCornerShape(9999.dp))
+                                    .padding(horizontal = if (isCompact) 4.dp else 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "AI",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFC084FC),
+                                    fontSize = if (isCompact) 9.sp else 10.sp
+                                )
+                            }
+                        }
+                        BadgeChip(
+                            text = if (isCompact) "${deck.words.size}w" else "${deck.words.size} words",
+                            backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
             // Progress & Accuracy section
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (isCompact) 2.dp else 4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (deck.accuracy > 0.6f) "Mastered" else "Due: ${deck.words.size.coerceAtLeast(1)}",
+                        text = if (deck.accuracy > 0.6f) "Mastered" else if (isCompact) "Due" else "Due: ${deck.words.size.coerceAtLeast(1)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        fontSize = if (isUltraCompact) 9.sp else if (isCompact) 10.sp else 11.sp
                     )
                     Text(
                         text = "${(deck.accuracy * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = deck.categoryColor,
-                        fontSize = 11.sp
+                        fontSize = if (isUltraCompact) 9.sp else if (isCompact) 10.sp else 11.sp
                     )
                 }
 
@@ -828,14 +848,14 @@ fun ManagedDictationDeckItem(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
+                        .height(if (isCompact) 3.dp else 4.dp)
                         .clip(RoundedCornerShape(9999.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainer)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(deck.accuracy.coerceIn(0f, 1f))
-                            .height(4.dp)
+                            .height(if (isCompact) 3.dp else 4.dp)
                             .clip(RoundedCornerShape(9999.dp))
                             .background(deck.categoryColor)
                     )
